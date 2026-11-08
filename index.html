@@ -1060,7 +1060,7 @@
 }
 </style>
 <style id="hdr-white">
-@media (min-width:1024px){
+@media screen{
   body.app-shell .hp-hero{background:#fff !important;color:#0B2244 !important;border-radius:0 !important;box-shadow:0 1px 0 #E2E8F0,0 6px 18px -10px rgba(11,34,68,.25) !important;border:0 !important}
   body.app-shell .hp-hero svg{display:none}
   .hp-hero .hp-title{color:#0B2244 !important;text-shadow:none !important}.hp-hero .hp-sub{color:#64748B !important}
@@ -1073,7 +1073,7 @@
   body.app-shell header h1{color:#0B2244 !important}
   body.app-shell header .text-emerald-300{color:#64748B !important}
 }
-</style><style id="hb-v2bright">@media (min-width:1024px){
+</style><style id="hb-v2bright">@media screen{
 html body.page-home #home-page .hp-photo{display:grid !important;grid-template-columns:1fr;grid-template-areas:"l" "c";gap:10px;height:auto !important;min-height:0 !important;padding:0 !important;background:none !important;border:0 !important;box-shadow:none !important;backdrop-filter:none !important}
 html body.page-home #home-page .hp-photo::before,html body.page-home #home-page .hp-photo::after{display:none !important}
 html body.page-home #home-page .hb-l{grid-area:l;display:flex;flex-direction:row;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -1127,7 +1127,7 @@ html body.page-home #home-page .hp-grid5 .hp-tile{padding:10px 8px !important;mi
 html body.page-home #home-page .hp-foot{grid-column:1/-1;grid-row:5;padding:0 2px !important}
 }
 @media (min-width:1024px) and (max-height:560px){}
-</style><style id="hb-grad">@media (min-width:1024px){
+</style><style id="hb-grad">@media screen{
 html body.page-home #home-page .hb-chip{color:#fff !important;box-shadow:0 12px 26px -12px rgba(10,30,90,.6) !important;position:relative;overflow:hidden}
 html body.page-home #home-page .hb-chip::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.16)}
 html body.page-home #home-page .hb-chip .k,html body.page-home #home-page .hb-chip i{color:rgba(255,255,255,.9) !important}
@@ -1138,7 +1138,24 @@ html body.page-home #home-page #hb-bal{background:linear-gradient(135deg,#059669
 html body.page-home #home-page #hb-new{background:linear-gradient(135deg,#ec4899,#f43f5e) !important}
 html body.page-home #home-page .hp-tile.pri{background:linear-gradient(135deg,#6366f1,#0ea5e9) !important}
 html body.page-home #home-page .hp-hero{background:linear-gradient(90deg,#ffffff 0%,#eef4ff 100%) !important}
-}</style><style id="hb-mobile">body.page-home #home-page .hb-l b em::before{content:" "}.hb-chip i{font-style:normal}.hb-chip .k::after{content:" "}</style></head>
+}</style><style id="hb-mobile">body.page-home #home-page .hb-l b em::before{content:" "}.hb-chip i{font-style:normal}.hb-chip .k::after{content:" "}</style><style id="mobile-fix">
+body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;height:18px;position:static !important;opacity:1 !important}
+@media (max-width:1023px){
+  html body.page-home #home-page .hb-chips{grid-template-columns:1fr 1fr !important;gap:10px !important}
+  html body.page-home #home-page .hb-chip{padding:12px 14px !important}
+  html body.page-home #home-page .hb-chip b{font-size:24px !important}
+  html body.page-home #home-page .hb-l b{font-size:20px !important}
+  html body.page-home #home-page .hb-l b em{display:block;margin:2px 0 0 !important;font-size:14px}
+  html body.page-home #home-page .hb-l span{margin-left:0 !important}
+  html body.page-home #home-page .hb-spark{display:none !important}
+  html body.page-home #home-page .hp-photo{gap:10px !important}
+  body.app-shell .hp-hero{display:flex !important;flex-direction:row !important;align-items:center !important;justify-content:flex-end !important;min-height:58px !important;padding:8px 10px 8px 60px !important;margin:-64px -12px 0 -12px !important;padding-top:8px !important;position:relative;top:0}
+  #sb-toggle{background:#F1F5F9 !important;color:#0B2244 !important;border:1px solid #E2E8F0 !important;left:10px !important;top:8px !important;width:42px !important;height:42px !important;border-radius:12px !important}
+  .hp-hero .hp-datebar{flex-wrap:nowrap !important;gap:4px !important;width:auto !important;margin:0 !important;align-self:center !important}
+  .hp-hero .hp-ghost{min-width:34px !important;min-height:36px !important;padding:0 8px !important;font-size:13px !important}
+  .hp-hero .hp-datebar b{min-width:78px !important;font-size:13.5px !important}
+}
+</style></head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col cyber-grid-bg">
 
     <!-- หน้าจอ Login แบบห้องนิรภัยไฮเทค (Sci-Fi HUD) -->
