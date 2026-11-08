@@ -1037,7 +1037,43 @@
   #home-page{padding:64px 22px 18px}
 }
 </style>
-</head>
+<style id="hdr-bar">
+@media (min-width:1024px){
+  #sb-toggle{left:16px;top:11px;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.12) !important;color:#fff !important;border:1px solid rgba(255,255,255,.28) !important;font-size:20px;backdrop-filter:blur(6px);transition:background .15s}
+  #sb-toggle:hover{background:rgba(255,255,255,.24) !important}
+  #home-page{padding:18px 22px !important}
+  /* หน้าแรก: แถบบนบรรทัดเดียว  ☰ | โลโก้+ชื่อ ............ วันที่ */
+  body.app-shell .hp-hero{min-height:0 !important;height:64px;padding:0 22px 0 76px !important;flex-direction:row !important;align-items:center;justify-content:space-between}
+  .hp-hero .hp-hero-in{display:flex !important;align-items:center;gap:12px}
+  .hp-hero .hp-hero-in img{width:38px !important;height:38px !important}
+  .hp-hero .hp-eyebrow{display:none}
+  .hp-hero .hp-title{font-size:17px !important;line-height:1.15}
+  .hp-hero .hp-sub{font-size:12px !important;opacity:.85;margin-top:1px}
+  .hp-hero .hp-datebar{margin:0 !important;align-self:center}
+  /* หน้าบัญชีรายวัน */
+  body.app-shell header > div{justify-content:space-between !important;padding:0 20px 0 76px;height:64px}
+  body.app-shell header > div > div:nth-child(1){display:flex !important;align-items:center;gap:12px}
+  body.app-shell header > div > div:nth-child(1) img{width:38px;height:38px;border-radius:50%}
+  body.app-shell header h1{font-size:17px;line-height:1.15}
+  body.app-shell header > div > div:nth-child(1) p.text-xs{font-size:12px;opacity:.85}
+  body.app-shell header > div > div:nth-child(1) p.text-\\[10px\\]{display:none}
+}
+</style>
+<style id="hdr-white">
+@media (min-width:1024px){
+  body.app-shell .hp-hero{background:#fff !important;color:#0B2244 !important;border-radius:0 !important;box-shadow:0 1px 0 #E2E8F0,0 6px 18px -10px rgba(11,34,68,.25) !important;border:0 !important}
+  body.app-shell .hp-hero svg{display:none}
+  .hp-hero .hp-title{color:#0B2244 !important;text-shadow:none !important}.hp-hero .hp-sub{color:#64748B !important}
+  #sb-toggle{background:#F1F5F9 !important;color:#0B2244 !important;border:1px solid #E2E8F0 !important}
+  .hp-hero .hp-ghost{background:#F1F5F9 !important;color:#0B2244 !important;border:1px solid #E2E8F0 !important}
+  .hp-hero .hp-ghost.on{background:#1D4ED8 !important;color:#fff !important;border-color:#1D4ED8 !important}
+  .hp-hero #hp-date{color:#0B2244 !important}
+  body.app-shell header{background:#fff !important;color:#0B2244 !important;border-radius:0 !important;box-shadow:0 1px 0 #E2E8F0,0 6px 18px -10px rgba(11,34,68,.25) !important}
+  body.app-shell header::before{display:none !important}
+  body.app-shell header h1{color:#0B2244 !important}
+  body.app-shell header .text-emerald-300{color:#64748B !important}
+}
+</style></head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col cyber-grid-bg">
 
     <!-- หน้าจอ Login แบบห้องนิรภัยไฮเทค (Sci-Fi HUD) -->
