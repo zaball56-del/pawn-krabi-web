@@ -1021,6 +1021,22 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style id="sb-scrollbar-hide">#app-sidebar{scrollbar-width:none;-ms-overflow-style:none}#app-sidebar::-webkit-scrollbar{width:0;height:0;display:none}</style>
+<style id="sb-pop">
+@media (min-width:1024px){
+  #app-sidebar{left:14px;top:64px;bottom:auto;width:560px;max-height:calc(100vh - 80px);border-radius:18px;
+    display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;padding:14px;
+    opacity:0;transform:translateY(-8px) scale(.98);pointer-events:none;transition:.16s;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+  body.sb-open #app-sidebar{opacity:1;transform:none;pointer-events:auto}
+  #app-sidebar .sb-brand,#app-sidebar .sb-sep,#app-sidebar .sb-ver{grid-column:1/-1}
+  #app-sidebar .sb-ver{margin-top:6px}
+  #sb-toggle{display:block}
+  #sb-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:44}
+  body.sb-open #sb-backdrop{display:block}
+  body.app-shell #app-container{padding-left:0}
+  body.app-shell header{padding-left:64px}
+  #home-page{padding:64px 22px 18px}
+}
+</style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col cyber-grid-bg">
 
