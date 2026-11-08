@@ -6195,7 +6195,20 @@
   function compactOf(k){ return JSON.stringify(db[k], stripTrailingBlankRows); }
   function localMap(){ var o=JSON.parse(serializeDBCompact()), m={}; Object.keys(o).forEach(function(k){ if(k!=='') m[k]=JSON.stringify(o[k]); }); return m; }
   function bytes(s){ try{ return new TextEncoder().encode(s).length; }catch(e){ return s.length*3; } }
-  function keyOf(d){ var x=d.data()||{}; return x.k!==undefined?x.k:d.id; }
+  /* เก็บเป็นเอกสารรายสัปดาห์ (7 วัน/เอกสาร) แต่ละวันเป็นฟิลด์แยก ลดจำนวนการอ่านลงราว 7 เท่า
+     และแก้คนละวันพร้อมกันก็ไม่ทับกัน */
+  function hex(k){ return Array.from(new TextEncoder().encode(k)).map(function(b){ return ('0'+b.toString(16)).slice(-2); }).join(''); }
+  function unhex(h){ var a=[]; for(var i=0;i<h.length;i+=2) a.push(parseInt(h.substr(i,2),16)); return new TextDecoder().decode(new Uint8Array(a)); }
+  function fieldOf(k){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(k); return m?'d'+m[1]+m[2]+m[3]:'x'+hex(k); }
+  function keyOfField(f){ if(/^d\d{8}$/.test(f)) return f.slice(1,5)+'-'+f.slice(5,7)+'-'+f.slice(7,9); if(f.charAt(0)==='x') return unhex(f.slice(1)); return null; }
+  function chunkOf(k){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(k); return m?('w'+Math.floor(Date.UTC(+m[1],+m[2]-1,+m[3])/864e5/7)):'wx'; }
+  /* อ่านรายการ {k,json} จากเอกสาร รองรับทั้งแบบรายสัปดาห์และแบบรายวันเดิม */
+  function entriesOf(d){
+    var x=d.data()||{}, out=[];
+    if(typeof x.json==='string'){ out.push({k:(x.k!==undefined?x.k:d.id),json:x.json,legacy:true,id:d.id}); return out; }
+    Object.keys(x).forEach(function(f){ var k=keyOfField(f); if(k!==null && typeof x[f]==='string') out.push({k:k,json:x[f]}); });
+    return out;
+  }
 
   var configured = !!(cfg.apiKey && cfg.projectId && window.firebase);
 
@@ -6244,26 +6257,32 @@
     try{
       do{
         cloud.again=false;
-        var loc=localMap(), ops=[];
-        Object.keys(loc).forEach(function(k){ if(loc[k]!==cloud.last[k]) ops.push({t:'set',k:k}); });
+        var loc=localMap(), byChunk={};
+        Object.keys(loc).forEach(function(k){
+          if(loc[k]===cloud.last[k]) return;
+          if(bytes(loc[k])>900000){ tooBig++; return; }
+          var c=chunkOf(k); (byChunk[c]=byChunk[c]||{f:{},sets:[],dels:[]}); byChunk[c].f[fieldOf(k)]=loc[k]; byChunk[c].sets.push(k);
+        });
         var del=Object.keys(cloud.last).filter(function(k){ return !(k in loc); });
         if(del.length && !Object.keys(loc).length){ del=[]; toast('ข้อมูลในเครื่องว่าง จึงไม่ลบข้อมูลกลาง'); }
-        del.forEach(function(k){ ops.push({t:'del',k:k}); });
-        var i=0;
+        del.forEach(function(k){ var c=chunkOf(k); (byChunk[c]=byChunk[c]||{f:{},sets:[],dels:[]}); byChunk[c].f[fieldOf(k)]=firebase.firestore.FieldValue.delete(); byChunk[c].dels.push(k); });
+        var ids=Object.keys(byChunk), i=0;
         var worker=async function(){
-          while(i<ops.length){
-            var op=ops[i++], ref=cloud.col.doc(docId(op.k));
+          while(i<ids.length){
+            var cid=ids[i++], ch=byChunk[cid];
             try{
-              if(op.t==='set'){
-                if(bytes(loc[op.k])>900000){ tooBig++; continue; }
-                await ref.set({k:op.k,json:loc[op.k],t:Date.now()});
-                cloud.last[op.k]=loc[op.k];
-              }else{ await ref.delete(); delete cloud.last[op.k]; }
-            }catch(e){ failed++; console.warn('sync',op,e); }
+              await cloud.col.doc(cid).set(ch.f,{merge:true});
+              ch.sets.forEach(function(k){ cloud.last[k]=loc[k]; });
+              ch.dels.forEach(function(k){ delete cloud.last[k]; });
+            }catch(e){ failed++; console.warn('sync',cid,e); }
           }
         };
         await Promise.all([worker(),worker(),worker(),worker()]);
       }while(cloud.again);
+      if(!failed && cloud.legacy && cloud.legacy.length){
+        var L=cloud.legacy; cloud.legacy=[];
+        L.forEach(function(id){ cloud.col.doc(id).delete().catch(function(e){ console.warn('legacy',id,e); }); });
+      }
       if(tooBig) ind('error','ข้อมูลบางวันใหญ่เกินกำหนด · ไม่ได้ซิงค์');
       else if(failed){ ind('error','ซิงค์ไม่สำเร็จ · กำลังลองใหม่'); clearTimeout(cloud.failTimer); cloud.failTimer=setTimeout(push,8000); }
       else ind('saved','ซิงค์ข้อมูลกลางแล้ว');
@@ -6278,28 +6297,44 @@
     try{ getCurrentDayData(); renderTable(); }catch(e){ console.warn(e); }
   }
   document.addEventListener('focusout',function(){ if(cloud.deferRender) setTimeout(function(){ if(!editing()) refresh(); },400); },true);
+  cloud.chunkKeys={}; cloud.legacy=[];
+  function applyKey(k,json,st){
+    if(json===cloud.last[k]) return;
+    var cur=(k in db)?compactOf(k):undefined;
+    if(cur===json){ cloud.last[k]=json; return; }
+    if(cur!==undefined && cur!==cloud.last[k]) return;      // เครื่องนี้กำลังแก้ ให้ของเครื่องนี้ทับ
+    try{ db[k]=JSON.parse(json); cloud.last[k]=json; if(k===currentDate) st.cur=true; }catch(e){}
+  }
+  function dropKey(k,st){
+    if(!(k in cloud.last)) return;
+    var dirty=(k in db) && compactOf(k)!==cloud.last[k];
+    delete cloud.last[k];
+    if(!dirty && (k in db)){ delete db[k]; if(k===currentDate) st.cur=true; }
+  }
   function applyRemote(snap){
-    var touchedCurrent=false;
+    var st={cur:false};
     snap.docChanges().forEach(function(ch){
-      var k=keyOf(ch.doc), x=ch.doc.data()||{};
+      var id=ch.doc.id;
       if(ch.type==='removed'){
-        if(!(k in cloud.last)) return;
-        var dirty=(k in db) && compactOf(k)!==cloud.last[k];
-        delete cloud.last[k];
-        if(!dirty && (k in db)){ delete db[k]; if(k===currentDate) touchedCurrent=true; }
-        return;
+        (cloud.chunkKeys[id]||[]).forEach(function(k){ dropKey(k,st); }); delete cloud.chunkKeys[id]; return;
       }
-      if(typeof x.json!=='string' || x.json===cloud.last[k]) return;
-      var cur=(k in db)?compactOf(k):undefined;
-      if(cur===x.json){ cloud.last[k]=x.json; return; }
-      if(cur!==undefined && cur!==cloud.last[k]) return;
-      try{ db[k]=JSON.parse(x.json); cloud.last[k]=x.json; if(k===currentDate) touchedCurrent=true; }catch(e){}
+      var es=entriesOf(ch.doc), now={};
+      es.forEach(function(e){ now[e.k]=1; if(!e.legacy) applyKey(e.k,e.json,st); else applyKey(e.k,e.json,st); });
+      (cloud.chunkKeys[id]||[]).forEach(function(k){ if(!now[k]) dropKey(k,st); });
+      cloud.chunkKeys[id]=Object.keys(now);
     });
-    if(touchedCurrent){ try{ origSave(); }catch(e){} refresh(); toast('มีการอัปเดตข้อมูลจากอีกเครื่อง'); }
+    if(st.cur){ try{ origSave(); }catch(e){} refresh(); toast('มีการอัปเดตข้อมูลจากอีกเครื่อง'); }
   }
   function loadAll(snap){
     var o={}, last={};
-    snap.docs.forEach(function(d){ var x=d.data()||{}; if(typeof x.json==='string'){ try{ o[keyOf(d)]=JSON.parse(x.json); last[keyOf(d)]=x.json; }catch(e){} } });
+    snap.docs.forEach(function(d){
+      var es=entriesOf(d), ks=[];
+      es.forEach(function(e){
+        try{ o[e.k]=JSON.parse(e.json); ks.push(e.k); }catch(x){ return; }
+        if(e.legacy){ cloud.legacy.push(e.id); } else last[e.k]=e.json;   // ข้อมูลแบบเดิมจะถูกย้ายเข้าเอกสารรายสัปดาห์
+      });
+      cloud.chunkKeys[d.id]=ks;
+    });
     return {o:o,last:last};
   }
 
@@ -6321,7 +6356,7 @@
         var r=loadAll(snap);
         if(Object.keys(r.o).length){ db=r.o; cloud.last=r.last; try{ origSave(); }catch(e){} }
         cloud.on=true; resolve(offline?'offline':true);
-        if(!Object.keys(r.o).length && Object.keys(db).length) push();
+        if((!Object.keys(r.o).length && Object.keys(db).length) || cloud.legacy.length) push();
       }
       cloud.col.onSnapshot(function(snap){
         if(first){
