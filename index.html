@@ -6711,5 +6711,95 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
   #app-sidebar .sb-gw:not(.first) .sb-gb{top:0 !important;left:calc(100% + 10px) !important;min-width:250px}
   #app-sidebar .sb-item{width:100%}
 }
-</style></body>
+</style><style id="perks-css">
+@keyframes pk-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+body.page-home #home-page > *{animation:pk-in .32s ease both}
+body.page-home #home-page > *:nth-child(2){animation-delay:.04s}body.page-home #home-page > *:nth-child(3){animation-delay:.08s}
+body.page-home #home-page > *:nth-child(4){animation-delay:.12s}body.page-home #home-page > *:nth-child(5){animation-delay:.16s}
+@media (prefers-reduced-motion:reduce){body.page-home #home-page > *{animation:none}}
+@media (max-width:640px){#pk-snd{display:none !important}.hp-hero .hp-ghost{min-width:32px !important;padding:0 6px !important}.hp-hero .hp-datebar{gap:3px !important}.hp-hero .hp-datebar b{min-width:68px !important;font-size:13px !important}.hp-hero .hp-ghost.on{padding:0 9px !important}}
+body.app-shell .hp-hero{overflow:hidden}
+html body.page-home #home-page .hb-l small#hb-tip{display:block !important;align-self:auto;margin:2px 0 0;padding:0;background:none;letter-spacing:0;font-size:13px;color:#fef3c7}
+.hp-ghost.pk-b svg{width:18px;height:18px}
+#pk-confetti{position:fixed;inset:0;width:100%;height:100%;z-index:80;pointer-events:none}
+/* ธีมกลางคืน (เฉพาะหน้าแรก) */
+html body.page-home.hp-night,html body.page-home.hp-night #app-container{background:linear-gradient(160deg,#050b1f 0%,#0b1d45 55%,#0f3a6b 130%) fixed !important}
+html body.page-home.hp-night #home-page .hp-hero{background:linear-gradient(90deg,#0b1d45,#102a5c) !important;color:#fff !important;box-shadow:0 1px 0 rgba(255,255,255,.08) !important}
+html body.page-home.hp-night #home-page .hp-hero .hp-title,html body.page-home.hp-night #home-page .hp-hero #hp-date,html body.page-home.hp-night #home-page .hp-hero b{color:#fff !important}
+html body.page-home.hp-night #home-page .hp-hero .hp-sub{color:#9fb3d1 !important}
+html body.page-home.hp-night #home-page .hp-hero .hp-ghost{background:rgba(255,255,255,.10) !important;color:#fff !important;border:1px solid rgba(255,255,255,.22) !important}
+html body.page-home.hp-night #home-page .hp-hero .hp-ghost.on{background:#2563eb !important;border-color:#2563eb !important}
+html body.page-home.hp-night #sb-toggle{background:rgba(255,255,255,.12) !important;color:#fff !important;border:1px solid rgba(255,255,255,.25) !important}
+html body.page-home.hp-night #home-page .hp-panel,html body.page-home.hp-night #home-page #hp-ai{background:rgba(255,255,255,.07) !important;color:#e5edff !important;border:1px solid rgba(255,255,255,.12) !important;box-shadow:none !important}
+html body.page-home.hp-night #home-page .hp-panel h2,html body.page-home.hp-night #home-page #hp-ai .ai-x{color:#fff !important}
+html body.page-home.hp-night #home-page #hp-recent,html body.page-home.hp-night #home-page #hp-recent *{color:#cbd5e1}
+html body.page-home.hp-night #home-page .hp-tile{background:rgba(255,255,255,.08) !important;color:#bfdbfe !important;border:1px solid rgba(255,255,255,.14) !important}
+html body.page-home.hp-night #home-page .hp-tile.pri{background:linear-gradient(135deg,#4f46e5,#0ea5e9) !important;color:#fff !important}
+html body.page-home.hp-night #home-page #hp-ai .ai-t,html body.page-home.hp-night #home-page #hp-ai [class*=ai-]{color:#9fb3d1 !important}
+html body.page-home.hp-night #home-page #hp-ai .ai-x{color:#fff !important}
+html body.page-home.hp-night #home-page .hb-l b,html body.page-home.hp-night #home-page .hb-l b em{color:#fff}
+</style>
+<script id="perks-js">
+(function(){
+  function g(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+  function p(k,v){ try{localStorage.setItem(k,v);}catch(e){} }
+  var ICON={
+    moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+    sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>',
+    bellOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 9-5.2M18 8c0 7 3 8 3 8H6M10.3 21a1.9 1.9 0 0 0 3.4 0M3 3l18 18"/></svg>'
+  };
+  var night=g('pawn_hp_night')==='1', sound=g('pawn_hp_sound')==='1';
+  function applyTheme(){ document.body.classList.toggle('hp-night',night); var b=document.getElementById('pk-theme'); if(b){ b.innerHTML=night?ICON.sun:ICON.moon; b.title=night?'สลับเป็นโหมดกลางวัน':'สลับเป็นโหมดกลางคืน'; } }
+  function applySound(){ var b=document.getElementById('pk-snd'); if(b){ b.innerHTML=sound?ICON.bell:ICON.bellOff; b.title=sound?'เสียงแจ้งเตือน: เปิด':'เสียงแจ้งเตือน: ปิด'; } }
+  function addButtons(){
+    var bar=document.querySelector('.hp-hero .hp-datebar'); if(!bar||document.getElementById('pk-theme')) return;
+    var gear=document.getElementById('hp-gear');
+    function mk(id,fn){ var b=document.createElement('button'); b.id=id; b.type='button'; b.className='hp-ghost pk-b'; b.style.cssText='display:inline-flex;align-items:center;justify-content:center'; b.onclick=fn; bar.insertBefore(b,gear||bar.firstChild); return b; }
+    mk('pk-snd',function(){ sound=!sound; p('pawn_hp_sound',sound?'1':'0'); applySound(); if(sound) beep(660,.12); });
+    mk('pk-theme',function(){ night=!night; p('pawn_hp_night',night?'1':'0'); applyTheme(); });
+    applyTheme(); applySound();
+  }
+  // เสียง
+  var ac; function beep(f,d){ if(!sound) return; try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); var o=ac.createOscillator(),v=ac.createGain(); o.frequency.value=f; o.type='sine'; v.gain.value=.05; o.connect(v); v.connect(ac.destination); o.start(); v.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d); o.stop(ac.currentTime+d); }catch(e){} }
+  // พลุกระดาษ
+  window.pawnConfetti=function(){
+    if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var c=document.getElementById('pk-confetti')||document.createElement('canvas'); c.id='pk-confetti'; document.body.appendChild(c);
+    var W=c.width=innerWidth,H=c.height=innerHeight,x=c.getContext('2d'),cols=['#f59e0b','#ef4444','#22c55e','#3b82f6','#a855f7','#ec4899','#14b8a6'];
+    var ps=[];for(var i=0;i<150;i++)ps.push({x:W/2+(Math.random()-.5)*160,y:H*.6,vx:(Math.random()-.5)*14,vy:-Math.random()*16-5,s:5+Math.random()*6,c:cols[i%cols.length],r:Math.random()*6,vr:(Math.random()-.5)*.4});
+    var t0=performance.now();
+    (function f(t){ var el=t-t0; x.clearRect(0,0,W,H); ps.forEach(function(q){ q.vy+=.36; q.x+=q.vx; q.y+=q.vy; q.r+=q.vr; x.save(); x.translate(q.x,q.y); x.rotate(q.r); x.fillStyle=q.c; x.globalAlpha=Math.max(0,1-el/2600); x.fillRect(-q.s/2,-q.s/3,q.s,q.s*.6); x.restore(); });
+      if(el<2600) requestAnimationFrame(f); else c.remove(); })(t0);
+    beep(880,.18); setTimeout(function(){beep(1175,.22);},140);
+  };
+  var st=window.showToast; if(typeof st==='function'){ window.showToast=function(m){ var r=st.apply(this,arguments); try{ if(/ปิดยอด/.test(String(m))&&!/ไม่|ผิด|ล้มเหลว/.test(String(m))) pawnConfetti(); else if(/สำเร็จ|บันทึกแล้ว/.test(String(m))) beep(740,.1); }catch(e){} return r; }; }
+  // นับตัวเลขขึ้น
+  var guard=false,last={};
+  function num(s){ var m=/([\d,]+(?:\.\d+)?)/.exec(s||''); return m?{v:parseFloat(m[1].replace(/,/g,'')),dec:(m[1].split('.')[1]||'').length,pre:s.slice(0,m.index),post:s.slice(m.index+m[1].length)}:null; }
+  function fmt(n,dec){ return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+  function run(el){
+    if(el.__busy) return;
+    var b=el.querySelector('b'), i=el.querySelector('i'); if(!b) return;
+    var fin=b.textContent+'|'+(i?i.textContent:''); if(last[el.id]===fin) return;
+    var nb=num(b.textContent), ni=i?num(i.textContent):null; if(!nb){ last[el.id]=fin; return; }
+    if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){ last[el.id]=fin; return; }
+    el.__busy=true; var bt=b.textContent, it=i?i.textContent:'';
+    var t0=performance.now(), D=800;
+    (function f(t){ var k=Math.min(1,(t-t0)/D), e=1-Math.pow(1-k,3);
+      b.textContent=nb.pre+fmt(Math.round(nb.v*e),0)+nb.post; if(ni&&i) i.textContent=ni.pre+fmt(ni.v*e,ni.dec)+ni.post;
+      if(k<1) requestAnimationFrame(f); else { b.textContent=bt; if(i) i.textContent=it; last[el.id]=fin; setTimeout(function(){ el.__busy=false; },60); } })(t0);
+  }
+  function watch(){ ['hb-pl','hb-rd','hb-bal','hb-new'].forEach(function(id){ var el=document.getElementById(id); if(!el||el.__w) return; el.__w=1;
+    new MutationObserver(function(){ run(el); }).observe(el,{childList:true,subtree:true,characterData:true}); run(el); }); }
+  // ข้อความกำลังใจ
+  var TIPS=['อย่าลืมสำรองข้อมูลสิ้นเดือนนะครับ','ตรวจยอดคงเหลือก่อนปิดวันทุกครั้ง','พักสายตาบ้างนะ ทำงานเก่งอยู่แล้ว 👍','ตั๋วใกล้ครบกำหนด ลองค้นดูก่อนสิ้นเดือน','วันนี้ก็สู้ๆ นะครับ ✨','บันทึกทีละรายการ ผิดน้อยลงเยอะ','กด “ค้นหาตั๋ว” หาเลขตั๋วได้ไวกว่าเลื่อนหา'];
+  function tip(){ var l=document.querySelector('.hb-l'); if(!l||document.getElementById('hb-tip')) return; var d=new Date(); var s=document.createElement('small'); s.id='hb-tip'; s.textContent='💡 '+TIPS[(d.getDate()+d.getMonth())%TIPS.length]; l.appendChild(s); }
+  function boot(){ addButtons(); watch(); tip(); }
+  setInterval(boot,1200); setTimeout(boot,300);
+  applyTheme();
+  window.__pk={setNight:function(v){night=v;applyTheme();}};
+})();
+</script>
+</body>
 </html>
