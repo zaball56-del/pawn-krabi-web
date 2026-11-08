@@ -6609,5 +6609,90 @@ html body.page-home #home-page .hp-hero{background:linear-gradient(90deg,#ffffff
 })();
 
 </script>
-</body>
+<style id="sb-groups-css">
+#app-sidebar .sb-grp{grid-column:1/-1;display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;margin-top:6px;border:0;border-radius:10px;background:rgba(255,255,255,.06);color:#9fb3d1;font:700 12px/1 Sarabun,sans-serif;letter-spacing:.08em;cursor:pointer;text-align:left}
+#app-sidebar .sb-grp:hover{background:rgba(255,255,255,.12);color:#fff}
+#app-sidebar .sb-grp .n{margin-left:auto;font-weight:600;letter-spacing:0;opacity:.8}
+#app-sidebar .sb-grp .ch{transition:transform .15s;font-size:10px}
+#app-sidebar .sb-grp.shut .ch{transform:rotate(-90deg)}
+#app-sidebar .sb-gb{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;padding-top:4px}
+#app-sidebar .sb-gb.shut{display:none}
+@media (max-width:1023px){#app-sidebar .sb-gb{display:block}#app-sidebar .sb-gb.shut{display:none}}
+</style>
+<script id="sb-groups-js">
+(function(){
+  var GROUPS=[
+    ['ใช้ทุกวัน',['หน้าแรก','บัญชีรายวัน','คีย์ด่วน','ค้นหาตั๋ว','ปิดยอดวัน'],true],
+    ['นำเข้าและตรวจสอบ',['นำเข้า สธ.3','นำเข้า สธ.2','ตรวจ PDF','ตรวจความสอดคล้อง'],false],
+    ['รายงาน',['รายงาน','สรุปรายเดือน'],false],
+    ['ข้อมูลและระบบ',['ประวัติการแก้ไข','จุดกู้คืน','สำรองข้อมูล','ลบข้อมูลเก่า','ตั้งค่า','ตรวจสอบอัปเดต','น้อง'],false]
+  ];
+  var openState={}; try{ openState=JSON.parse(localStorage.getItem('pawn_sb_groups')||'{}'); }catch(e){}
+  function save(){ try{ localStorage.setItem('pawn_sb_groups',JSON.stringify(openState)); }catch(e){} }
+  function build(){
+    var sb=document.getElementById('app-sidebar'); if(!sb) return;
+    var items=[].slice.call(sb.querySelectorAll('.sb-item')).filter(function(b){ return !b.closest('.sb-gb'); });
+    if(!items.length) return;
+    var fresh=!sb.querySelector('.sb-grp');
+    var anchor=items[0];
+    var bodies=GROUPS.map(function(){return [];});
+    items.forEach(function(b){
+      var t=(b.textContent||'').trim(), gi=-1;
+      GROUPS.forEach(function(g,i){ if(gi<0 && g[1].some(function(k){return t.indexOf(k)===0 || t.indexOf(k)>=0 && k.length>4;})) gi=i; });
+      if(gi<0) gi=GROUPS.length-1;
+      bodies[gi].push(b);
+    });
+    var frag=document.createDocumentFragment();
+    GROUPS.forEach(function(g,i){
+      if(!bodies[i].length) return;
+      var shut = !g[2];
+      var h=document.createElement('button'); h.type='button'; h.className='sb-grp'+(shut?' shut':'');
+      h.innerHTML='<span class="ch">▼</span><span>'+g[0]+'</span><span class="n">'+bodies[i].filter(function(b){return b.style.display!=='none';}).length+'</span>';
+      var body=document.createElement('div'); body.className='sb-gb'+(shut?' shut':'');
+      bodies[i].forEach(function(b){ body.appendChild(b); });
+      h.onclick=function(){ var s=!h.classList.contains('shut'); if(!s===false && window.innerWidth>=1024){ [].forEach.call(document.querySelectorAll('.sb-gw:not(.first) .sb-grp'),function(x){ if(x!==h){ x.classList.add('shut'); x.nextSibling.classList.add('shut'); } }); } h.classList.toggle('shut',s); body.classList.toggle('shut',s);  };
+      var w=document.createElement('div'); w.className='sb-gw'+(i===0?' first':''); w.appendChild(h); w.appendChild(body); frag.appendChild(w);
+    });
+    var sep=sb.querySelector('.sb-sep'); if(sep) sep.style.display='none';
+    var ver=sb.querySelector('.sb-ver');
+    if(ver) sb.insertBefore(frag,ver); else sb.appendChild(frag);
+  }
+  function go(){ try{ build(); }catch(e){} }
+  setTimeout(go,1500); setTimeout(go,4000);
+  var o=window.sbToggle; if(typeof o==='function'){ window.sbToggle=function(){ go(); return o.apply(this,arguments); }; }
+})();
+</script>
+<style id="sb-row">
+@media (min-width:1024px){
+  #app-sidebar{display:flex !important;flex-direction:row !important;align-items:center !important;gap:6px !important;left:72px !important;right:auto !important;top:10px !important;bottom:auto !important;width:auto !important;max-width:calc(100vw - 100px);padding:6px 8px !important;border-radius:14px !important;overflow:visible !important;z-index:60}
+  body.sb-open #sb-toggle{position:fixed;z-index:61}
+  #app-sidebar .sb-brand,#app-sidebar .sb-ver,#app-sidebar .sb-sep{display:none !important}
+  #app-sidebar .sb-gw{position:relative;display:flex;align-items:center}
+  #app-sidebar .sb-gw.first .sb-grp{display:none}
+  #app-sidebar .sb-gw.first .sb-gb{display:flex !important;gap:4px !important;padding:0 !important;grid-column:auto}
+  #app-sidebar .sb-gw:not(.first) .sb-grp{width:auto;margin:0 !important;padding:0 12px !important;height:34px;background:rgba(255,255,255,.08);color:#e2e8f0;font-size:13px !important;letter-spacing:0;border-radius:9px !important;gap:6px;white-space:nowrap}
+  #app-sidebar .sb-gw:not(.first) .sb-grp .n{display:none}
+  #app-sidebar .sb-gw:not(.first) .sb-gb{position:absolute;top:calc(100% + 8px);left:0;min-width:250px;display:block !important;background:#0f2a57;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:6px !important;box-shadow:0 16px 36px rgba(0,0,0,.5)}
+  #app-sidebar .sb-gw:not(.first) .sb-gb.shut{display:none !important}
+  #app-sidebar .sb-gw:not(.first) .sb-gb .sb-item{width:100%}
+  #app-sidebar .sb-item{padding:4px 10px !important;height:34px;min-height:0 !important;gap:7px !important;font-size:13px !important;border-radius:9px !important;white-space:nowrap}
+  #app-sidebar .sb-item .sb-ic{width:22px !important;height:22px !important;flex:none}
+  #app-sidebar .sb-item .sb-ic svg{width:13px !important;height:13px !important}
+  #app-sidebar .sb-item small{display:none}
+}
+</style><style id="sb-leftpill">
+@media (min-width:1024px){
+  #app-sidebar{flex-direction:column !important;align-items:stretch !important;left:14px !important;top:72px !important;max-width:none !important;width:236px !important;max-height:calc(100vh - 90px);padding:8px !important;gap:4px !important;overflow:visible !important}
+  body.sb-open #sb-toggle{position:fixed}
+  #app-sidebar .sb-gw{display:block !important}
+  #app-sidebar .sb-gw.first .sb-gb{display:flex !important;flex-direction:column;gap:3px !important}
+  #app-sidebar .sb-gw.first{padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:2px}
+  #app-sidebar .sb-gw:not(.first) .sb-grp{width:100% !important;justify-content:flex-start;height:36px}
+  #app-sidebar .sb-gw:not(.first) .sb-grp .ch{transform:rotate(-90deg)}
+  #app-sidebar .sb-gw:not(.first) .sb-grp:not(.shut) .ch{transform:rotate(0)}
+  #app-sidebar .sb-gw:not(.first) .sb-grp::after{content:"›";margin-left:auto;font-size:16px;opacity:.7}
+  #app-sidebar .sb-gw:not(.first) .sb-gb{top:0 !important;left:calc(100% + 10px) !important;min-width:250px}
+  #app-sidebar .sb-item{width:100%}
+}
+</style></body>
 </html>
