@@ -6801,5 +6801,60 @@ html body.page-home.hp-night #home-page .hb-l b,html body.page-home.hp-night #ho
   window.__pk={setNight:function(v){night=v;applyTheme();}};
 })();
 </script>
+<style id="hd2-css">
+@media screen{
+html body.app-shell header{background:linear-gradient(90deg,#06b6d4,#3b82f6 45%,#8b5cf6 80%,#ec4899) !important;color:#fff !important;border:0 !important;box-shadow:0 4px 14px rgba(59,130,246,.35) !important}
+html body.app-shell header h1{color:#fff !important}
+html body.app-shell header .text-emerald-300,html body.app-shell header .text-lime-200{color:#e0f2fe !important}
+html body.app-shell header > div > div:nth-child(2){gap:8px !important;flex-wrap:nowrap !important}
+html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;gap:2px !important;min-width:64px;padding:6px 12px !important;border-radius:12px !important;font-size:11px !important;font-weight:600 !important;line-height:1.2;border:0 !important;color:#fff !important;background:rgba(255,255,255,.22) !important;box-shadow:none !important;white-space:nowrap}
+html body.app-shell header > div > div:nth-child(2) > button i{font-size:18px !important;line-height:1}
+html body.app-shell header > div > div:nth-child(2) > button:hover{background:rgba(255,255,255,.34) !important}
+html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear)[onclick*="openQuickScanModal"]{background:#fde047 !important;color:#422006 !important;font-weight:700 !important}
+html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear)[onclick*="logout"]{flex-direction:row !important;min-width:0;padding:8px 12px !important;font-size:13px !important}
+html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear)[onclick*="logout"] i{font-size:14px !important}
+html body.app-shell header #hdr-tools>summary{background:#fff !important;color:#4338ca !important;border:0 !important;padding:9px 16px !important;border-radius:12px !important;font-size:13px !important;font-weight:700 !important;min-height:0;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+html body.app-shell header #hdr-tools[open]>summary{background:#eef2ff !important}
+#hdr-tools .hdr-menu-panel{min-width:260px;max-height:75vh;overflow:auto}
+#hdr-tools .tl-grp{font-size:11px;font-weight:700;color:#6366f1;letter-spacing:.3px;padding:8px 10px 2px}
+#hdr-tools .tl-grp:first-child{padding-top:4px}
+}
+@media (max-width:640px){
+html body.app-shell header > div > div:nth-child(2){flex-wrap:wrap !important;justify-content:center !important}
+html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-width:56px;padding:5px 9px !important}
+}
+</style>
+<script id="hd2-js">
+(function(){
+  function build(){
+    try{
+      var hdr=document.querySelector('header'); if(!hdr||document.getElementById('hdr-tools')) return;
+      var ds=[].slice.call(hdr.querySelectorAll('details.hdr-menu'));
+      if(ds.length<2) return;
+      var det=document.createElement('details'); det.className='hdr-menu'; det.id='hdr-tools';
+      det.innerHTML='<summary><i class="fa-solid fa-bars"></i> เมนูเครื่องมือ ▾</summary><div class="hdr-menu-panel"></div>';
+      var panel=det.querySelector('.hdr-menu-panel');
+      ds.forEach(function(d){
+        var t=d.querySelector('summary').textContent.replace(/\s+/g,' ').trim();
+        var g=document.createElement('div'); g.className='tl-grp'; g.textContent=t; panel.appendChild(g);
+        [].slice.call(d.querySelector('.hdr-menu-panel').children).forEach(function(c){panel.appendChild(c)});
+      });
+      var gear=document.getElementById('hdr-gear');
+      if(gear){var b=document.createElement('button');b.type='button';b.className='menu-item';b.setAttribute('onclick','openDataSettings()');b.innerHTML='<i class="fa-solid fa-gear"></i> ตั้งค่า / ข้อมูล…';panel.appendChild(b);gear.parentNode.removeChild(gear);}
+      ds[0].parentNode.insertBefore(det,ds[0]);
+      ds.forEach(function(d){d.parentNode.removeChild(d)});
+      // ย่อชื่อปุ่ม
+      [].slice.call(hdr.querySelectorAll('button[onclick]')).forEach(function(bt){
+        var o=bt.getAttribute('onclick')||'',txt=null;
+        if(o.indexOf('openQuickScanModal')>-1) txt=' คีย์ด่วน';
+        else if(o.indexOf('openPrintPreview')>-1) txt=' พิมพ์/สรุป';
+        if(txt){[].slice.call(bt.childNodes).forEach(function(n){if(n.nodeType===3&&n.nodeValue.trim()) n.nodeValue=txt});}
+      });
+    }catch(e){}
+  }
+  function go(){build();setTimeout(build,400);setTimeout(build,1500)}
+  if(document.readyState==='complete') go(); else window.addEventListener('load',go);
+})();
+</script>
 </body>
 </html>
