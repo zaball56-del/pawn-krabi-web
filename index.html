@@ -7038,6 +7038,14 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
   }
 
 
+  function blankRows(day,res){
+    var skip=[]; (res||[]).forEach(function(o){ if(o.lrow) skip.push(o.lrow); });
+    var out=[]; if(!day||!day.data) return out;
+    Object.keys(day.data).forEach(function(mn){ if(mn==='สรุปประจำวัน') return; var a=day.data[mn]; if(!Array.isArray(a)) return;
+      a.forEach(function(r){ if(r&&String(r.ticket==null?'':r.ticket).trim()!==''&&!String(r.type||'').trim()&&skip.indexOf(r)<0) out.push(r); }); });
+    return out;
+  }
+  window.sor2FillT=function(v){S.fillT=!!v};
   function matchedCount(P,dk){ try{ var a=analyze(P,dk); return a.res.filter(function(o){return o.kind!=='new'&&o.kind!=='nofound'}).length; }catch(e){return 0} }
   function suggest(){
     var box=$('s2-sug'); box.style.display='none'; box.innerHTML='';
@@ -7068,10 +7076,11 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     var dk=$('s2-date').value, day=(typeof db!=='undefined')?db[dk]:null, srow=day&&day.data&&day.data['สรุปประจำวัน']&&day.data['สรุปประจำวัน'][1]||{};
     var curC=num(srow.count),curA=num(srow.amount);
     var diff=(curC||curA)&&(curC!==n||Math.abs(curA-sum)>0.009);
-    S.setSummary=S.setSummary===undefined?false:S.setSummary;
+    S.setSummary=S.setSummary===undefined?false:S.setSummary; if(S.fillT===undefined) S.fillT=true;
     $('s2-sum').innerHTML='<b>หมวดจำนำ</b> · จำนำใหม่ '+fmt0(cnt.new)+' ราย ('+fmt(amt.new)+') + ต่อตั๋ว '+fmt0(n-cnt.new)+' ราย ('+fmt(amt.renew)+') = <b>'+fmt0(n)+' ราย / '+fmt(sum)+' บาท</b>'
       +'<br>สรุปประจำวัน แถว "รับจำนำ" ตอนนี้: '+(curC||curA?fmt0(curC)+' ราย / '+fmt(curA)+' บาท'+(diff?' <b style="color:#b45309">⚠ ไม่ตรงกับ สธ.2</b>':' ✓ ตรงกับ สธ.2'):'ยังว่าง')
-      +'<label class="chk"><input type="checkbox" id="s2-setsum" '+(S.setSummary?'checked':'')+' onchange="sor2SetSum(this.checked)"> ตั้งยอด "รับจำนำ" ในสรุปประจำวันเป็น '+fmt0(n)+' ราย / '+fmt(sum)+' บาท</label>';
+      +'<label class="chk"><input type="checkbox" id="s2-setsum" '+(S.setSummary?'checked':'')+' onchange="sor2SetSum(this.checked)"> ตั้งยอด "รับจำนำ" ในสรุปประจำวันเป็น '+fmt0(n)+' ราย / '+fmt(sum)+' บาท</label>'
+      +(function(){ var nb=blankRows(day,S.res).length; return nb?'<label class="chk"><input type="checkbox" id="s2-fillt" '+(S.fillT?'checked':'')+' onchange="sor2FillT(this.checked)"> เติมประเภท <b>ถ</b> (ไถ่ถอน) ให้แถวที่มีเลขตั๋วแต่ไม่อยู่ใน สธ.2 อีก <b>'+fmt0(nb)+'</b> แถว</label>':''; })();
     var ex=$('s2-extra'); if(S.extra.length){ex.style.display='block';ex.innerHTML='<b>⚠ ในบัญชีมีตั๋วใหม่ที่ไม่อยู่ใน สธ.2 ('+S.extra.length+')</b><br>'+S.extra.map(function(e){return 'ตั๋วเดิม '+esc(e.type||'')+' '+esc(e.old)+' ('+esc(e.mn)+') → ตั๋วใหม่ '+esc(e.tk)+(e.book?'/'+esc(e.book):'')}).join('<br>');} else ex.style.display='none';
     var tabs=[['all','ทั้งหมด',n],['new','จำนำใหม่',cnt.new],['renew','ต่อตั๋ว',n-cnt.new],['warn','เตือน',cnt.conflict+cnt.nofound]];
     $('s2-tabs').innerHTML=tabs.map(function(t){return '<button type="button" class="s2-tab'+(S.filter===t[0]?' on':'')+'" onclick="sor2Filter(\''+t[0]+'\')">'+t[1]+' ('+t[2]+')</button>'}).join('');
@@ -7131,8 +7140,9 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
       if(!String(lr.newBook||'').trim()||fix) lr.newBook=String(r.book);
       if(String(lr.newAmount==null?'':lr.newAmount).trim()===''||fix) lr.newAmount=String(r.amount);
     });
+    var tN=0; if(S.fillT){ blankRows(day,a.res).forEach(function(r){ r.type='ถ'; tN++; }); }
     day.sor2={v:1,file:S.file,at:Date.now(),n:n,amt:sum,newN:nNew.length,newAmt:newAmt,month:P.month,goldBuy:P.goldBuy,goldSell:P.goldSell,
-      rows:P.rows.map(function(r){return [r.type,r.oldT,r.oldM,r.ticket,r.book,r.weight,r.amount]})};
+      tN:tN,rows:P.rows.map(function(r){return [r.type,r.oldT,r.oldM,r.ticket,r.book,r.weight,r.amount]})};
     if(S.setSummary){ var sr=day.data&&day.data['สรุปประจำวัน']; if(sr&&sr[1]){sr[1].count=n;sr[1].amount=sum;} }
     try{
       if(dk===currentDate){ renderTable(); updateSummaryColumn(); }
@@ -7140,7 +7150,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     }catch(e){console.error(e)}
     try{ recalculateFutureBroughtForwardBalances(dk); }catch(e){}
     saveDB();
-    try{ showToast('นำเข้า สธ.2 แล้ว '+n+' ราย'); }catch(e){}
+    try{ showToast('นำเข้า สธ.2 แล้ว '+n+' ราย'+(tN?' · เติม ถ '+tN+' แถว':'')); }catch(e){}
     closeSor2Modal();
   };
   window.__sor2={parse:parse,analyze:analyze,dec:dec};
