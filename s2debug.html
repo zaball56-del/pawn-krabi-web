@@ -1,0 +1,24 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ตรวจไฟล์ สธ.2</title>
+<style>body{font:14px Sarabun,Tahoma,sans-serif;margin:16px;background:#fff;color:#111}pre{white-space:pre-wrap;word-break:break-all;background:#f3f4f6;padding:10px;border-radius:8px;font-size:12px}button{padding:8px 14px}</style></head><body>
+<h3>ตรวจไฟล์ สธ.2 (หน้าทดสอบ)</h3><p>เลือกไฟล์ PDF แล้วแคปหน้าจอทั้งหน้าส่งให้ผม</p>
+<input type="file" id="f" accept=".pdf"><pre id="o">ยังไม่ได้เลือกไฟล์</pre>
+<script src="pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.js/3.11.174/pdf.worker.min.js';
+function cp(s){return Array.from(s).map(function(c){var n=c.charCodeAt(0);return n>127?'['+n.toString(16)+']'+c:c}).join('')}
+document.getElementById('f').onchange=async function(e){
+ var o=document.getElementById('o'),f=e.target.files[0];if(!f)return;o.textContent='กำลังอ่าน...';
+ try{
+ var pdf=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;
+ var pg=await pdf.getPage(1),vp=pg.getViewport({scale:1}),c=await pg.getTextContent();
+ var t='ไฟล์: '+f.name+'\nหน้า: '+pdf.numPages+'  ขนาดหน้า1: '+vp.width.toFixed(0)+' x '+vp.height.toFixed(0)+'\nข้อความหน้า1: '+c.items.length+' ชิ้น  (pdf.js '+pdfjsLib.version+')\n\n';
+ var its=c.items.filter(function(i){return i.str.trim()}).map(function(i){return {s:i.str,x:i.transform[4],y:i.transform[5]}});
+ var anc=its.filter(function(i){return /\d+\s*\/\s*\d+/.test(cp(i.s).replace(/\[[0-9a-f]+\]/g,function(m){var n=parseInt(m.slice(1,-1),16);return n>=0x158&&n<=0x161?String(n-0x158):m}))});
+ t+='--- 12 ชิ้นแรกของหน้า ---\n'+its.slice(0,12).map(function(i){return 'x='+i.x.toFixed(0)+' y='+i.y.toFixed(0)+' "'+cp(i.s)+'"'}).join('\n');
+ var ys=[];its.forEach(function(i){var k=Math.round(i.y);if(ys.indexOf(k)<0)ys.push(k)});
+ ys=ys.sort(function(a,b){return b-a});var mid=ys[Math.floor(ys.length/3)];
+ t+='\n\n--- แถวตัวอย่าง (y≈'+mid+') ---\n'+its.filter(function(i){return Math.abs(i.y-mid)<=5}).sort(function(a,b){return a.x-b.x}).map(function(i){return 'x='+i.x.toFixed(0)+' "'+cp(i.s)+'"'}).join('\n');
+ o.textContent=t;
+ }catch(err){o.textContent='ผิดพลาด: '+err}
+};
+</script></body></html>
