@@ -7664,6 +7664,38 @@ html body #quick-scan-modal.fixed .qs-type-btn:active{transform:translateY(2px);
 }
 #cam-ov .cam-bot button{background:linear-gradient(135deg,#fbbf24,#f97316);border-radius:16px;height:52px;box-shadow:0 6px 14px -6px rgba(249,115,22,.8)}
 #cam-ov .cam-top button{border-radius:999px;padding:8px 16px;background:#ffffff33;backdrop-filter:blur(6px)}
+
+/* tap reliability */
+html body.app-shell:not(.page-home) #m-bar{height:68px;gap:2px;padding-left:2px;padding-right:2px;touch-action:manipulation}
+#m-bar button{flex:1 1 0;min-width:0 !important;height:100%;padding:0 !important;justify-content:center;-webkit-tap-highlight-color:rgba(245,158,11,.35);touch-action:manipulation;user-select:none;-webkit-user-select:none;position:relative}
+#m-bar button.main{flex:1.7 1 0;height:52px;margin:0 4px;padding:0 6px !important}
+#m-bar button.main::after,#m-bar button:not(.main)::after{content:"";position:absolute;left:0;right:0;top:-8px;bottom:-8px}
+#m-bar button:active{transform:scale(.95)}
+html body.app-shell:not(.page-home) #m-bar{z-index:48 !important}html body.sb-open #m-bar{display:none !important}
+#m-bar button.m-press{background:rgba(245,158,11,.35) !important}#m-bar button.main.m-press{filter:brightness(1.15)}
+
+/* ---- scanner v2 ---- */
+#cam-ov{background:#000}
+#cam-ov .cam-top{padding:calc(14px + env(safe-area-inset-top)) 16px 28px;background:linear-gradient(#000c,#0000);z-index:3}
+#cam-ov .cam-top #cam-t{display:flex;align-items:center;gap:8px;font:800 17px Sarabun,sans-serif;letter-spacing:.2px}
+#cam-ov .cam-top #cam-t::before{content:"";width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.3);animation:camPulse 1.4s infinite}
+@keyframes camPulse{50%{box-shadow:0 0 0 9px rgba(34,197,94,0)}}
+#cam-ov .cam-fr{left:7%;right:7%;top:30%;height:26%;border:0;border-radius:20px;box-shadow:0 0 0 100vmax rgba(2,6,23,.62);z-index:2;pointer-events:none;
+ background:
+ linear-gradient(#fbbf24,#fbbf24) left top/34px 5px no-repeat,linear-gradient(#fbbf24,#fbbf24) left top/5px 34px no-repeat,
+ linear-gradient(#fbbf24,#fbbf24) right top/34px 5px no-repeat,linear-gradient(#fbbf24,#fbbf24) right top/5px 34px no-repeat,
+ linear-gradient(#fbbf24,#fbbf24) left bottom/34px 5px no-repeat,linear-gradient(#fbbf24,#fbbf24) left bottom/5px 34px no-repeat,
+ linear-gradient(#fbbf24,#fbbf24) right bottom/34px 5px no-repeat,linear-gradient(#fbbf24,#fbbf24) right bottom/5px 34px no-repeat}
+#cam-ov .cam-fr::after{content:"";position:absolute;left:10px;right:10px;top:8%;height:3px;border-radius:3px;background:linear-gradient(90deg,#0000,#f87171,#0000);box-shadow:0 0 14px 3px rgba(248,113,113,.7);animation:camLaser 1.8s ease-in-out infinite alternate}
+@keyframes camLaser{to{top:90%}}
+#cam-ov .cam-hint{position:absolute;left:0;right:0;top:calc(30% + 26% + 16px);text-align:center;color:#e2e8f0;font:600 14px Sarabun,sans-serif;z-index:3;text-shadow:0 1px 4px #000}
+#cam-ov .cam-bot{background:linear-gradient(#0000,#020617 38%);padding:28px 16px calc(16px + env(safe-area-inset-bottom));z-index:3;position:relative}
+#cam-raw{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(8px);border-radius:14px !important;padding:10px 14px !important;font:700 14px Sarabun,sans-serif;text-align:center;color:#fff}
+#cam-ov .cam-row{display:flex;gap:10px}
+#cam-ov .cam-bot button{flex:1;height:52px;border-radius:16px}
+#cam-ov .cam-bot #cam-pic{background:linear-gradient(135deg,#fbbf24,#f97316)}
+#cam-ov .cam-bot #cam-torch{flex:0 0 56px;font-size:22px;padding:0;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.28);box-shadow:none}
+#cam-ov .cam-bot #cam-torch.on{background:#fde047;color:#78350f;border-color:#fde047}
 </style>
 <div id="m-bar" class="no-print"><button type="button" id="m-undo"><b>↶</b>เลิกทำ</button><button type="button" id="m-find"><b>🔍</b>ค้นหา</button><button type="button" class="main" id="m-quick"><b>⚡</b>คีย์ด่วน</button><button type="button" id="m-addrow"><b>＋</b>เพิ่มแถว</button><button type="button" id="m-print"><b>🖨</b>พิมพ์</button></div>
 <script id="mob-js">
@@ -7755,12 +7787,12 @@ html body #quick-scan-modal.fixed .qs-type-btn:active{transform:translateY(2px);
 
   (function(){ try{
     var ov=document.createElement('div'); ov.id='cam-ov';
-    ov.innerHTML='<video id="cam-v" playsinline muted autoplay></video><div class="cam-top"><span id="cam-t">สแกนบาร์โค้ด</span><button type="button" id="cam-x">ปิด ✕</button></div><div class="cam-fr"></div><div class="cam-bot"><div id="cam-raw">ส่องบาร์โค้ดให้อยู่ในกรอบสีส้ม</div><button type="button" id="cam-pic">ถ่ายรูปบาร์โค้ดแทน</button><input type="file" id="cam-file" accept="image/*" capture="environment" style="display:none"></div>';
+    ov.innerHTML='<video id="cam-v" playsinline muted autoplay></video><div class="cam-top"><span id="cam-t">สแกนบาร์โค้ด</span><button type="button" id="cam-x">ปิด ✕</button></div><div class="cam-fr"></div><div class="cam-hint">วางบาร์โค้ดให้อยู่กลางกรอบ ถือให้นิ่ง</div><div class="cam-bot"><div id="cam-raw">ส่องบาร์โค้ดให้อยู่ในกรอบสีส้ม</div><div class="cam-row"><button type="button" id="cam-torch" aria-label="ไฟฉาย">🔦</button><button type="button" id="cam-pic">ถ่ายรูปบาร์โค้ดแทน</button></div><input type="file" id="cam-file" accept="image/*" capture="environment" style="display:none"></div>';
     document.body.appendChild(ov);
     var stream=null,timer=null,det=null,target=null,busy=false;
     function $(i){return document.getElementById(i)}
     function raw(t){$('cam-raw').textContent=t}
-    function stop(){ if(timer){clearInterval(timer);timer=null} if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null} ov.classList.remove('on'); }
+    function stop(){ if(timer){clearInterval(timer);timer=null} if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null} ov.classList.remove('on'); var tb=document.getElementById('cam-torch'); if(tb)tb.classList.remove('on'); }
     function done(v){ var el=$(target); stop(); if(!el)return; el.value=String(v).trim(); el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); try{ var o=$('qs-msg'); if(o){o.textContent='สแกนได้: '+v;} }catch(e){} el.focus(); }
     function mk(){ if(det)return det; if(!('BarcodeDetector' in window))return null; try{det=new BarcodeDetector();}catch(e){det=null} return det; }
     async function tick(){ if(busy||!stream)return; busy=true; try{ var r=await det.detect($('cam-v')); if(r&&r.length){ done(r[0].rawValue); } }catch(e){} busy=false; }
@@ -7769,10 +7801,18 @@ html body #quick-scan-modal.fixed .qs-type-btn:active{transform:translateY(2px);
       try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}); var v=$('cam-v'); v.srcObject=stream; await v.play(); raw('ส่องบาร์โค้ดให้อยู่ในกรอบสีส้ม'); if(d) timer=setInterval(tick,250); }
       catch(e){ raw('เปิดกล้องไม่ได้: '+(e&&e.name||e)+' (ตรวจสอบว่ากดอนุญาตใช้กล้อง) · ใช้ปุ่มถ่ายรูปแทนได้'); } }
     $('cam-x').onclick=stop;
+    $('cam-torch').onclick=async function(){ try{ var t=stream&&stream.getVideoTracks()[0]; var cp=t&&t.getCapabilities&&t.getCapabilities(); if(!cp||!cp.torch){raw('เครื่องนี้เปิดไฟฉายผ่านเว็บไม่ได้');return;} var on=!this.classList.contains('on'); await t.applyConstraints({advanced:[{torch:on}]}); this.classList.toggle('on',on); }catch(e){raw('เปิดไฟฉายไม่ได้');} };
     $('cam-pic').onclick=function(){ $('cam-file').click() };
     $('cam-file').onchange=async function(){ var f=this.files&&this.files[0]; this.value=''; if(!f)return; var d=mk(); if(!d){raw('เบราว์เซอร์นี้อ่านบาร์โค้ดจากรูปไม่ได้');return;} raw('กำลังอ่านรูป...'); try{ var bm=await createImageBitmap(f); var r=await d.detect(bm); if(r&&r.length){done(r[0].rawValue);} else raw('อ่านบาร์โค้ดจากรูปไม่ได้ ลองถ่ายใหม่ให้ใกล้และคมขึ้น'); }catch(e){ raw('อ่านรูปไม่ได้: '+(e&&e.message||e)); } };
     [['qs-ticket','สแกนเลขตั๋วเดิม'],['qs-new-ticket','สแกนเลขตั๋วใหม่']].forEach(function(p){ var inp=$(p[0]); if(!inp)return; var wrap=inp.parentElement; if(!wrap||wrap.querySelector('.cam-btn'))return; var row=document.createElement('div'); row.className='qs-camrow'; var b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกน</span>'; b.setAttribute('aria-label',p[1]); inp.style.flex='1'; inp.parentNode.insertBefore(row,inp); row.appendChild(inp); row.appendChild(b); b.onclick=function(){ $('cam-t').textContent=p[1]; open(p[0]); }; });
   }catch(e){ try{console.error(e)}catch(_){} } })();
+
+  (function(){ try{
+    var bar=document.getElementById('m-bar'); if(!bar)return; var sx=0,sy=0,id=null,last=0;
+    bar.addEventListener('pointerdown',function(e){ sx=e.clientX; sy=e.clientY; var b=e.target.closest&&e.target.closest('button'); if(b){b.classList.add('m-press'); setTimeout(function(){b.classList.remove('m-press')},220);} });
+    bar.addEventListener('pointerup',function(e){ var b=e.target.closest&&e.target.closest('button'); if(!b||b.disabled)return; if(Math.abs(e.clientX-sx)>16||Math.abs(e.clientY-sy)>16)return; if(Date.now()-last<500)return; last=Date.now(); e.preventDefault(); try{navigator.vibrate&&navigator.vibrate(12)}catch(_){} b.click(); });
+    bar.addEventListener('click',function(e){ if(e.isTrusted&&Date.now()-last<500){ e.stopPropagation(); e.preventDefault(); } },true);
+  }catch(e){} })();
 </script>
 
 </body>
