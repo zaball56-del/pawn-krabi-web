@@ -1014,10 +1014,21 @@
             scheduleIndexedDBSave(serialized);
             if (localSaved) {
                 setSaveIndicator('saved', 'บันทึกอัตโนมัติในเครื่องแล้ว');
-            } else {
-                setSaveIndicator('pending', 'บันทึกหลักไม่สำเร็จ · กรุณาสำรอง JSON');
+                return true;
             }
-            return localSaved;
+            // พื้นที่ Local Storage เต็ม/ใช้ไม่ได้ → ใช้ IndexedDB (พื้นที่ใหญ่กว่ามาก) เป็นที่เก็บหลักแทน
+            if (typeof indexedDB !== 'undefined') {
+                if (indexedDBSaveTimer) clearTimeout(indexedDBSaveTimer);
+                writeIndexedDBSnapshot(serialized).then(() => {
+                    setSaveIndicator('saved', 'บันทึกในที่เก็บสำรองของเบราว์เซอร์แล้ว (พื้นที่หลักเต็ม)');
+                }).catch(error => {
+                    console.warn('IndexedDB บันทึกไม่สำเร็จ:', error);
+                    setSaveIndicator('pending', 'บันทึกหลักไม่สำเร็จ · กรุณาสำรอง JSON');
+                });
+                return true;
+            }
+            setSaveIndicator('pending', 'บันทึกหลักไม่สำเร็จ · กรุณาสำรอง JSON');
+            return false;
         }
 
         // แสดงข้อความแจ้งเตือนมุมจอ (เดิมถูกเรียกใช้ 19 จุดแต่ไม่มีนิยาม ทำให้เกิด ReferenceError หลังบันทึกสำเร็จ)

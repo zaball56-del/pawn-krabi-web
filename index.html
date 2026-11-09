@@ -2695,10 +2695,21 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             scheduleIndexedDBSave(serialized);
             if (localSaved) {
                 setSaveIndicator('saved', 'บันทึกอัตโนมัติในเครื่องแล้ว');
-            } else {
-                setSaveIndicator('pending', 'บันทึกหลักไม่สำเร็จ · กรุณาสำรอง JSON');
+                return true;
             }
-            return localSaved;
+            // พื้นที่ Local Storage เต็ม/ใช้ไม่ได้ → ใช้ IndexedDB (พื้นที่ใหญ่กว่ามาก) เป็นที่เก็บหลักแทน
+            if (typeof indexedDB !== 'undefined') {
+                if (indexedDBSaveTimer) clearTimeout(indexedDBSaveTimer);
+                writeIndexedDBSnapshot(serialized).then(() => {
+                    setSaveIndicator('saved', 'บันทึกในที่เก็บสำรองของเบราว์เซอร์แล้ว (พื้นที่หลักเต็ม)');
+                }).catch(error => {
+                    console.warn('IndexedDB บันทึกไม่สำเร็จ:', error);
+                    setSaveIndicator('pending', 'บันทึกหลักไม่สำเร็จ · กรุณาสำรอง JSON');
+                });
+                return true;
+            }
+            setSaveIndicator('pending', 'บันทึกหลักไม่สำเร็จ · กรุณาสำรอง JSON');
+            return false;
         }
 
         // แสดงข้อความแจ้งเตือนมุมจอ (เดิมถูกเรียกใช้ 19 จุดแต่ไม่มีนิยาม ทำให้เกิด ReferenceError หลังบันทึกสำเร็จ)
@@ -4975,7 +4986,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         var days=0,rows=0,keys=[];
         try{ Object.keys(db||{}).forEach(function(k){ var d=db[k]; if(!d||typeof d!=='object') return; var has=(typeof hasDayData==='function')?hasDayData(k):true; if(!has) return; days++; keys.push(k);
             Object.keys(d.data||{}).forEach(function(m){ (d.data[m]||[]).forEach(function(r){ if(r&&(r.ticket||r.amount)) rows++; }); }); }); }catch(e){}
-        keys.sort(); var size=0; try{ size=(localStorage.getItem('pawn_krabi_master_db')||'').length; }catch(e){}
+        keys.sort(); var size=0; try{ size=(localStorage.getItem('pawn_krabi_master_db')||'').length; }catch(e){} if(!size){ try{ size=serializeDBCompact().length; }catch(e){} }
         function th(k){var p=k.split('-'); return p[2]+'/'+p[1]+'/'+(Number(p[0])+543);}
         return {days:days,rows:rows,from:keys.length?th(keys[0]):'-',to:keys.length?th(keys[keys.length-1]):'-',kb:Math.round(size/102.4)/10};
     }

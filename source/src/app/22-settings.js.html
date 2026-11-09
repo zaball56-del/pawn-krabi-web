@@ -104,7 +104,7 @@
         var days=0,rows=0,keys=[];
         try{ Object.keys(db||{}).forEach(function(k){ var d=db[k]; if(!d||typeof d!=='object') return; var has=(typeof hasDayData==='function')?hasDayData(k):true; if(!has) return; days++; keys.push(k);
             Object.keys(d.data||{}).forEach(function(m){ (d.data[m]||[]).forEach(function(r){ if(r&&(r.ticket||r.amount)) rows++; }); }); }); }catch(e){}
-        keys.sort(); var size=0; try{ size=(localStorage.getItem('pawn_krabi_master_db')||'').length; }catch(e){}
+        keys.sort(); var size=0; try{ size=(localStorage.getItem('pawn_krabi_master_db')||'').length; }catch(e){} if(!size){ try{ size=serializeDBCompact().length; }catch(e){} }
         function th(k){var p=k.split('-'); return p[2]+'/'+p[1]+'/'+(Number(p[0])+543);}
         return {days:days,rows:rows,from:keys.length?th(keys[0]):'-',to:keys.length?th(keys[keys.length-1]):'-',kb:Math.round(size/102.4)/10};
     }
