@@ -2,8 +2,8 @@
 <style>body{font:14px Sarabun,Tahoma,sans-serif;margin:16px;background:#fff;color:#111}pre{white-space:pre-wrap;word-break:break-all;background:#f3f4f6;padding:10px;border-radius:8px;font-size:12px}button{padding:8px 14px}</style></head><body>
 <h3>ตรวจไฟล์ สธ.2 (หน้าทดสอบ)</h3><p>เลือกไฟล์ PDF แล้วแคปหน้าจอทั้งหน้าส่งให้ผม</p>
 <input type="file" id="f" accept=".pdf"><pre id="o">ยังไม่ได้เลือกไฟล์</pre>
-<script src="pdf.js/3.11.174/pdf.min.js"></script>
-<script>
+<script type="module">
+import * as pdfjsLib from "./pdf.js/3.11.174/pdf.min.js";
 pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.js/3.11.174/pdf.worker.min.js';
 function cp(s){return Array.from(s).map(function(c){var n=c.charCodeAt(0);return n>127?'['+n.toString(16)+']'+c:c}).join('')}
 document.getElementById('f').onchange=async function(e){
