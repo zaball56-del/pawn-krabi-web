@@ -7835,5 +7835,155 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
   }catch(e){} })();
 </script>
 
+<style id="bk-css">
+#bk-card{padding:16px 20px;border-bottom:1px solid #EEF1F6}
+#bk-card h3{margin:0 0 10px;font-size:15px;color:inherit !important;display:flex;align-items:center;gap:8px}
+#bk-card .bk-st{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;border:1.5px solid #E1E7F0;background:#F4F7FC;margin-bottom:10px}
+#bk-card .bk-st .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none;background:#E0E7FF}
+#bk-card .bk-st b{display:block;font-size:15px;color:#0B2244}#bk-card .bk-st small{display:block;color:#5B6678;font-size:12px;line-height:1.4;word-break:break-all}
+#bk-card .bk-st.ok{background:#ECFDF5;border-color:#A7F3D0}#bk-card .bk-st.ok .ic{background:#D1FAE5}
+#bk-card .bk-st.warn{background:#FFF7ED;border-color:#FED7AA}#bk-card .bk-st.warn .ic{background:#FFEDD5}
+#bk-card .bk-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+#bk-card .bk-btn{border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:10px 14px;font:700 13px Sarabun,sans-serif;cursor:pointer}
+#bk-card .bk-btn.pri{background:linear-gradient(135deg,#10b981,#0d9488);border-color:transparent;color:#fff}
+#bk-card .bk-btn:disabled{opacity:.5;cursor:default}
+#bk-card .bk-file{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #EEF1F6;font-size:13px}
+#bk-card .bk-file small{color:inherit;opacity:.7;display:block}#bk-card .bk-file b{color:inherit}
+#bk-card .bk-note{font-size:12px;color:inherit;opacity:.75;margin-top:8px;line-height:1.5}
+#bk-card .bk-keep{display:flex;gap:8px;align-items:center;font-size:13px;margin-top:10px}
+#bk-card .bk-keep select{height:36px;border:1.5px solid #CBD5E4;border-radius:10px;padding:0 8px;font:600 13px Sarabun,sans-serif;background:#fff;color:#14213D}#bk-card .bk-file{border-top-color:rgba(127,127,127,.25)}
+#bk-bar{display:none;position:fixed;left:50%;transform:translateX(-50%);top:12px;z-index:60;max-width:min(560px,calc(100vw - 24px));width:max-content;background:#0f172a;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:10px 12px 10px 16px;box-shadow:0 12px 30px -8px rgba(0,0,0,.55);align-items:center;gap:12px;font:600 14px Sarabun,sans-serif}
+#bk-bar.on{display:flex}
+#bk-bar button{border:0;border-radius:12px;padding:10px 14px;font:800 14px Sarabun,sans-serif;cursor:pointer;white-space:nowrap}
+#bk-bar .go{background:linear-gradient(135deg,#10b981,#0d9488);color:#fff}
+#bk-bar .x{background:rgba(255,255,255,.12);color:#fff;padding:10px 12px}
+@media (max-width:640px){#bk-bar{top:auto;bottom:84px;width:calc(100vw - 24px);max-width:none}}
+@media print{#bk-bar{display:none !important}}
+</style>
+<script id="bk-js">
+(function(){ try{
+  var SUP=!!window.showDirectoryPicker, DBN='pawn_bk_store', cfg={on:false,keep:30,lastAt:0,lastName:'',folder:''}, handle=null, busy=false, snoozed=false;
+  function idb(){ return new Promise(function(res,rej){ var r=indexedDB.open(DBN,1); r.onupgradeneeded=function(){ r.result.createObjectStore('kv'); }; r.onsuccess=function(){res(r.result)}; r.onerror=function(){rej(r.error)}; }); }
+  function kvGet(k){ return idb().then(function(d){ return new Promise(function(res){ var q=d.transaction('kv').objectStore('kv').get(k); q.onsuccess=function(){res(q.result)}; q.onerror=function(){res(undefined)}; }); }).catch(function(){}); }
+  function kvSet(k,v){ return idb().then(function(d){ return new Promise(function(res){ var t=d.transaction('kv','readwrite'); t.objectStore('kv').put(v,k); t.oncomplete=function(){res(true)}; t.onerror=function(){res(false)}; }); }).catch(function(){return false}); }
+  function p2(n){return String(n).padStart(2,'0')}
+  function dayKey(d){ d=d||new Date(); return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
+  function fname(){ var d=new Date(); return 'pawn-krabi-backup-'+dayKey(d)+'_'+p2(d.getHours())+p2(d.getMinutes())+'.json'; }
+  var RX=/^pawn-krabi-backup-\d{4}-\d{2}-\d{2}_\d{4}\.json$/;
+  function fmtDT(ms){ try{return new Date(ms).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'})}catch(e){return '-'} }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+  function toast(m){ try{ showToast(m); }catch(e){} }
+  async function load(){ var c=await kvGet('cfg'); if(c) cfg=Object.assign(cfg,c); handle=(await kvGet('dir'))||null; if(handle&&!cfg.folder) cfg.folder=handle.name||''; }
+  function save(){ return kvSet('cfg',cfg); }
+  async function perm(h,ask){ if(!h) return false; try{ var q=await h.queryPermission({mode:'readwrite'}); if(q==='granted') return true; if(ask){ q=await h.requestPermission({mode:'readwrite'}); return q==='granted'; } }catch(e){} return false; }
+  async function files(h){ var out=[]; try{ for await (var e of h.values()){ if(e.kind==='file'&&RX.test(e.name)){ var f=await e.getFile(); out.push({name:e.name,size:f.size,mtime:f.lastModified,handle:e}); } } }catch(e){} out.sort(function(a,b){return b.name<a.name?-1:1}); return out; }
+  async function prune(h){ try{ var l=await files(h); for(var i=cfg.keep;i<l.length;i++){ try{ await h.removeEntry(l[i].name); }catch(e){} } }catch(e){} }
+  async function writeNow(ask){
+    if(busy||!handle) return {ok:false,why:'nohandle'}; busy=true;
+    try{
+      if(!(await perm(handle,!!ask))) return {ok:false,why:'perm'};
+      var text=JSON.stringify(db), name=fname();
+      var fh=await handle.getFileHandle(name,{create:true}); var w=await fh.createWritable(); await w.write(text); await w.close();
+      var back=await (await fh.getFile()).text(); if(back.length!==text.length) throw new Error('verify');
+      cfg.lastAt=Date.now(); cfg.lastName=name; await save();
+      try{ localStorage.setItem('pawn_krabi_last_backup',new Date().toISOString()); if(typeof checkBackupReminder==='function') checkBackupReminder(); }catch(e){}
+      await prune(handle); return {ok:true,name:name};
+    }catch(e){ return {ok:false,why:String(e&&e.message||e)}; }
+    finally{ busy=false; }
+  }
+  /* ---- แถบเตือนเมื่อยังไม่ได้สำรองวันนี้และต้องกดอนุญาต ---- */
+  var bar=document.createElement('div'); bar.id='bk-bar'; bar.setAttribute('role','status');
+  bar.innerHTML='<span id="bk-bar-t">ยังไม่ได้สำรองข้อมูลวันนี้</span><button type="button" class="go" id="bk-bar-go">สำรองเลย</button><button type="button" class="x" id="bk-bar-x" aria-label="ปิด">✕</button>';
+  document.body.appendChild(bar);
+  function showBar(msg){ if(snoozed) return; document.getElementById('bk-bar-t').textContent=msg||'ยังไม่ได้สำรองข้อมูลวันนี้'; bar.classList.add('on'); }
+  function hideBar(){ bar.classList.remove('on'); }
+  document.getElementById('bk-bar-x').onclick=function(){ snoozed=true; hideBar(); };
+  document.getElementById('bk-bar-go').onclick=async function(){ var r=await writeNow(true); if(r.ok){ hideBar(); toast('สำรองข้อมูลแล้ว · '+r.name); render(); } else toast(r.why==='perm'?'ยังไม่ได้อนุญาตให้เขียนไฟล์ในโฟลเดอร์':'สำรองไม่สำเร็จ: '+r.why); };
+  function doneToday(){ return cfg.lastAt && dayKey(new Date(cfg.lastAt))===dayKey(); }
+  var lastCheck=0;
+  async function auto(){
+    if(!SUP||!cfg.on||!handle||busy) return; if(doneToday()){ hideBar(); return; }
+    var hasData=false; try{ hasData=Object.keys(db||{}).length>0; }catch(e){} if(!hasData) return;
+    if(await perm(handle,false)){ var r=await writeNow(false); if(r.ok){ hideBar(); toast('สำรองข้อมูลอัตโนมัติแล้ว · '+r.name); render(); } else showBar('สำรองอัตโนมัติไม่สำเร็จ กดเพื่อลองใหม่'); }
+    else showBar('ยังไม่ได้สำรองข้อมูลวันนี้ · กดเพื่อสำรองลงโฟลเดอร์');
+  }
+  /* ---- การ์ดในหน้าตั้งค่าข้อมูล ---- */
+  var cardBusy=false;
+  async function render(){
+    var host=document.getElementById('bk-card'); if(!host) return; if(cardBusy) return; cardBusy=true;
+    try{
+      var h='<h3>🛡️ สำรองข้อมูลอัตโนมัติ</h3>';
+      if(!SUP){
+        h+='<div class="bk-st warn"><div class="ic">ℹ️</div><div><b>เบราว์เซอร์นี้ยังเลือกโฟลเดอร์สำรองให้อัตโนมัติไม่ได้</b><small>ใช้ Chrome หรือ Edge บนคอมพิวเตอร์ ส่วนบนมือถือให้กด "สำรองข้อมูล (.json)" ด้านบนเป็นประจำ</small></div></div>';
+      } else if(!handle||!cfg.on){
+        h+='<div class="bk-st"><div class="ic">📁</div><div><b>ยังไม่ได้ตั้งค่า</b><small>เลือกโฟลเดอร์หนึ่งครั้ง (เช่น โฟลเดอร์ใน Google Drive หรือ USB) โปรแกรมจะบันทึกไฟล์สำรองให้เองวันละครั้ง</small></div></div>'
+          +'<div class="bk-row"><button type="button" class="bk-btn pri" id="bk-pick">เลือกโฟลเดอร์สำรอง…</button></div>';
+      } else {
+        var okp=await perm(handle,false), ok=doneToday();
+        h+='<div class="bk-st '+(ok?'ok':'warn')+'"><div class="ic">'+(ok?'✅':'⚠️')+'</div><div><b>'+(ok?'สำรองวันนี้แล้ว':'ยังไม่ได้สำรองวันนี้')+'</b><small>'
+          +(cfg.lastAt?'ล่าสุด '+esc(fmtDT(cfg.lastAt))+' · '+esc(cfg.lastName):'ยังไม่เคยสำรอง')+'<br>โฟลเดอร์: '+esc(cfg.folder||handle.name)+(okp?'':' · ต้องกดอนุญาตอีกครั้ง')+'</small></div></div>'
+          +'<div class="bk-row"><button type="button" class="bk-btn pri" id="bk-now">สำรองตอนนี้</button><button type="button" class="bk-btn" id="bk-pick">เปลี่ยนโฟลเดอร์…</button><button type="button" class="bk-btn" id="bk-off">ปิดสำรองอัตโนมัติ</button></div>'
+          +'<div class="bk-keep">เก็บไฟล์สำรองย้อนหลัง <select id="bk-keep">'+[7,14,30,60,90].concat([7,14,30,60,90].indexOf(cfg.keep)<0?[cfg.keep]:[]).map(function(n){return '<option value="'+n+'"'+(n===cfg.keep?' selected':'')+'>'+n+' ไฟล์</option>'}).join('')+'</select></div>';
+        if(okp){ var l=(await files(handle)).slice(0,5); if(l.length){ h+='<div style="margin-top:10px;font-size:13px;font-weight:700">ไฟล์สำรองล่าสุด</div>'; l.forEach(function(f,i){ h+='<div class="bk-file"><span><b>'+esc(f.name)+'</b><small>'+esc(fmtDT(f.mtime))+' · '+Math.round(f.size/1024)+' KB</small></span><button type="button" class="bk-btn" data-i="'+i+'">กู้คืน</button></div>'; }); host._files=l; } }
+      }
+      h+='<div class="bk-note">ไฟล์สำรองเป็นไฟล์ .json ชุดเดียวกับปุ่ม "สำรองข้อมูล" กู้คืนได้ด้วยปุ่ม "นำเข้า" เสมอ ระบบสำรองเมื่อเปิดโปรแกรมของแต่ละวัน และเก็บไว้ตามจำนวนที่ตั้ง ไฟล์เก่ากว่านั้นถูกลบอัตโนมัติ เฉพาะไฟล์ที่ชื่อขึ้นต้น pawn-krabi-backup</div>';
+      host.innerHTML=h; wire(host);
+    } finally { cardBusy=false; }
+  }
+  function wire(host){
+    var q=function(i){return host.querySelector(i)};
+    if(q('#bk-pick')) q('#bk-pick').onclick=async function(){ try{ var d=await window.showDirectoryPicker({mode:'readwrite',id:'pawnbk'}); handle=d; cfg.on=true; cfg.folder=d.name; await kvSet('dir',d); await save(); var r=await writeNow(true); toast(r.ok?'ตั้งค่าแล้ว · สำรองไฟล์แรกเรียบร้อย':'ตั้งค่าแล้ว แต่สำรองไม่สำเร็จ: '+r.why); snoozed=false; hideBar(); }catch(e){ if(e&&e.name!=='AbortError') toast('เลือกโฟลเดอร์ไม่สำเร็จ'); } render(); };
+    if(q('#bk-now')) q('#bk-now').onclick=async function(){ this.disabled=true; var r=await writeNow(true); toast(r.ok?'สำรองข้อมูลแล้ว · '+r.name:(r.why==='perm'?'ยังไม่ได้อนุญาตให้เขียนไฟล์':'สำรองไม่สำเร็จ: '+r.why)); if(r.ok) hideBar(); render(); };
+    if(q('#bk-off')) q('#bk-off').onclick=async function(){ cfg.on=false; await save(); hideBar(); toast('ปิดสำรองอัตโนมัติแล้ว (ไฟล์เดิมในโฟลเดอร์ยังอยู่)'); render(); };
+    if(q('#bk-keep')) q('#bk-keep').onchange=async function(){ cfg.keep=Number(this.value)||30; await save(); if(handle&&await perm(handle,false)) await prune(handle); render(); };
+    host.querySelectorAll('.bk-file button').forEach(function(b){ b.onclick=async function(){ var f=host._files&&host._files[Number(b.getAttribute('data-i'))]; if(!f) return; try{ var file=await f.handle.getFile(); try{ closeDataSettings(); }catch(e){} await importJSON({target:{files:[file],value:''}}); }catch(e){ toast('อ่านไฟล์สำรองไม่ได้'); } }; });
+  }
+  /* ---- แทรกการ์ดเข้าไปในหน้า "ตั้งค่า / ข้อมูล" (ฉบับเว็บ) ---- */
+  function inject(){
+    var m=document.getElementById('ds-modal'); if(!m||document.getElementById('bk-card')) return;
+    var secs=[].slice.call(m.querySelectorAll('.ds-sec')); var tgt=secs.filter(function(s){ var h=s.querySelector('h3'); return h&&/สำรอง \/ นำเข้า/.test(h.textContent); })[0];
+    if(!tgt) return; var c=document.createElement('div'); c.id='bk-card'; tgt.parentNode.insertBefore(c,tgt.nextSibling); render();
+  }
+  var mo=null;
+  var o0=window.openDataSettings;
+  if(typeof o0==='function'){ window.openDataSettings=function(){ var r=o0.apply(this,arguments); setTimeout(function(){ var m=document.getElementById('ds-modal'); if(m&&!mo){ mo=new MutationObserver(function(){ if(!document.getElementById('bk-card')) inject(); }); mo.observe(m,{childList:true,subtree:true}); } inject(); },250); return r; }; }
+  /* ---- เริ่มทำงานหลังเข้าโปรแกรม ---- */
+  load().then(function(){ var tries=0; var t=setInterval(function(){ tries++; var a=document.getElementById('app-container'); if(a&&a.style.display==='flex'){ clearInterval(t); setTimeout(auto,3500); } else if(tries>240) clearInterval(t); },1000); setInterval(function(){ if(Date.now()-lastCheck>20*60*1000){ lastCheck=Date.now(); auto(); } },60*1000); });
+  window.__bk={writeNow:writeNow,cfg:function(){return cfg},auto:auto,files:function(){return handle?files(handle):[]},setHandle:async function(h){handle=h;cfg.on=true;cfg.folder=h.name||'test';await kvSet('dir',h);await save();}};
+}catch(e){ try{console.error('bk',e)}catch(_){} } })();
+</script>
+
+<style id="ns-css">
+#ns-off{display:none;position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:59;background:#7c2d12;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 16px;font:700 13px Sarabun,sans-serif;box-shadow:0 8px 20px -8px rgba(0,0,0,.5);white-space:nowrap}
+#ns-off.on{display:block}
+@media (max-width:640px){#ns-off{top:66px;bottom:auto;white-space:normal;text-align:center;width:calc(100vw - 24px)}}
+@media print{#ns-off{display:none !important}}
+</style>
+<script id="ns-js">
+(function(){ try{
+  var off=document.createElement('div'); off.id='ns-off'; off.textContent='ออฟไลน์ · คีย์ต่อได้ ข้อมูลเก็บในเครื่องและซิงค์เมื่อกลับมาออนไลน์'; document.body.appendChild(off);
+  /* สถานะออฟไลน์ */
+  function isOff(){ return navigator.onLine===false; }
+  function paint(){ var a=document.getElementById('app-container'); off.classList.toggle('on',isOff()&&a&&a.style.display==='flex'); }
+  var s0=window.setSaveIndicator;
+  if(typeof s0==='function'){ var s1=function(state,msg){ if(isOff()&&(state==='pending'||state==='saved'||state==='error')) { state='pending'; msg='ออฟไลน์ · บันทึกในเครื่องแล้ว จะซิงค์เมื่อกลับมาออนไลน์'; } return s0.call(this,state,msg); }; window.setSaveIndicator=s1; try{ setSaveIndicator=s1; }catch(e){} }
+  window.addEventListener('offline',function(){ paint(); try{ setSaveIndicator('pending','x'); }catch(e){} try{ showToast('ออฟไลน์ · ยังคีย์ต่อได้ ข้อมูลเก็บในเครื่องก่อน'); }catch(e){} });
+  window.addEventListener('online',function(){ paint(); try{ setSaveIndicator('pending','กำลังซิงค์ข้อมูลกลาง…'); }catch(e){} try{ showToast('กลับมาออนไลน์แล้ว · กำลังซิงค์ข้อมูล'); }catch(e){} });
+  setInterval(paint,3000); paint();
+}catch(e){ try{console.error('ns',e)}catch(_){} } })();
+</script>
+
+<script id="sw-reg-js">
+/* ลงทะเบียน service worker เพื่อให้เปิดโปรแกรมได้แม้เน็ตหลุด (เฉพาะ https / localhost) */
+(function(){ try{
+  if(!('serviceWorker' in navigator)) return;
+  var ok = location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
+  if(!ok) return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){ try{ reg.update(); }catch(e){} }).catch(function(e){ try{ console.warn('sw',e); }catch(_){} });
+  });
+}catch(e){} })();
+</script>
+
 </body>
 </html>
