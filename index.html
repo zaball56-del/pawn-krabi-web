@@ -7696,6 +7696,10 @@ html body.app-shell:not(.page-home) #m-bar{z-index:48 !important}html body.sb-op
 #cam-ov .cam-bot #cam-pic{background:linear-gradient(135deg,#fbbf24,#f97316)}
 #cam-ov .cam-bot #cam-torch{flex:0 0 56px;font-size:22px;padding:0;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.28);box-shadow:none}
 #cam-ov .cam-bot #cam-torch.on{background:#fde047;color:#78350f;border-color:#fde047}
+
+/* toast must never swallow taps; keep it above the bottom bar */
+#toast{pointer-events:none !important}
+@media (max-width:640px){html body.app-shell:not(.page-home) #toast{bottom:84px !important;left:12px !important;right:12px !important;max-width:none}}
 </style>
 <div id="m-bar" class="no-print"><button type="button" id="m-undo"><b>↶</b>เลิกทำ</button><button type="button" id="m-find"><b>🔍</b>ค้นหา</button><button type="button" class="main" id="m-quick"><b>⚡</b>คีย์ด่วน</button><button type="button" id="m-addrow"><b>＋</b>เพิ่มแถว</button><button type="button" id="m-print"><b>🖨</b>พิมพ์</button></div>
 <script id="mob-js">
