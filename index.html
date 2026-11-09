@@ -2353,6 +2353,16 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
         // คำนวณยอดยกไปสุทธิของเดือนตามสูตรที่กำหนด:
         // ยอดยกไปสุทธิ = ยอดยกมาใต้เดือน - ยอดรวมรายการของเดือน
         // ใช้ยอดรวมรายการชุดเดียวกับที่แสดงท้ายคอลัมน์ (ประเภท ถ, ส, พ, ผ)
+        // ตั๋วใหม่ของเดือนปัจจุบันจาก สธ.2 (รวมจำนำใหม่ + ต่อตั๋ว) บวกเข้ายอดยกไปสุทธิของเดือนนั้น
+        function getSor2AddForMonth(day, monthName) {
+            const z = { count: 0, amount: 0 };
+            try {
+                const s = day && day.sor2;
+                if (!s || !monthName || s.mn !== monthName) return z;
+                return { count: Number(s.n) || 0, amount: roundMoney(Number(s.amt) || 0) };
+            } catch (e) { return z; }
+        }
+
         function getMonthCarriedBalance(dateStr, targetMonthName) {
             const day = db[dateStr];
             if (!day || !Array.isArray(day.months)) return 0;
@@ -2362,7 +2372,7 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
             const opening = (day.bf && day.bf[colIdx] !== undefined)
                 ? cleanNumberString(day.bf[colIdx]) : 0;
             const monthlyTotal = getMonthlyRedemptionTotals(day, targetMonthName).amount;
-            return roundMoney(opening - monthlyTotal);
+            return roundMoney(opening + getSor2AddForMonth(day, targetMonthName).amount - monthlyTotal);
         }
 
         function getMonthCarriedCount(dateStr, targetMonthName) {
@@ -2373,7 +2383,7 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
             const openingCount = (day.bfCount && day.bfCount[colIdx] !== undefined)
                 ? cleanNumberString(day.bfCount[colIdx]) : 0;
             const monthlyCount = getMonthlyRedemptionTotals(day, targetMonthName).count;
-            return openingCount - monthlyCount;
+            return openingCount + getSor2AddForMonth(day, targetMonthName).count - monthlyCount;
         }
 
         function getPreviousDayCarriedForMonth(targetMonthName) {
@@ -3257,8 +3267,9 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
                 const totalAmount = totals.amount;
                 const openingCount = cleanNumberString(dayData.bfCount[idx] ?? 0);
                 const openingAmount = cleanNumberString(dayData.bf?.[idx] ?? 0);
-                const carriedCount = openingCount - totalCount;
-                const carriedAmount = roundMoney(openingAmount - totalAmount);
+                const s2add = getSor2AddForMonth(dayData, m);
+                const carriedCount = openingCount + s2add.count - totalCount;
+                const carriedAmount = roundMoney(openingAmount + s2add.amount - totalAmount);
                 const countText = totalCount !== 0 ? formatNumber(totalCount) : '';
                 const amountText = totalAmount !== 0 ? formatNumber(totalAmount) : '';
                 const carriedCountText = carriedCount !== 0 ? formatNumber(carriedCount) : '';
@@ -3575,8 +3586,9 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
                 let userTotal = monthSums[idx];
                 let openingCount = cleanNumberString(dayData.bfCount?.[idx] ?? 0);
                 let openingAmount = cleanNumberString(dayData.bf?.[idx] ?? 0);
-                let userCarriedCount = openingCount - userTotal.count;
-                let userCarriedAmount = roundMoney(openingAmount - userTotal.amount);
+                const s2addP = getSor2AddForMonth(dayData, m);
+                let userCarriedCount = openingCount + s2addP.count - userTotal.count;
+                let userCarriedAmount = roundMoney(openingAmount + s2addP.amount - userTotal.amount);
                 foot1.push("รวมรายการ:", userTotal.count || '', userTotal.amount || '');
                 foot2.push("ยกไปสุทธิ:", userCarriedCount || '', userCarriedAmount || '');
             });
@@ -3818,8 +3830,9 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
                 let userTotal = monthSums[idx];
                 let openingCount = cleanNumberString(dayData.bfCount?.[idx] ?? 0);
                 let openingAmount = cleanNumberString(dayData.bf?.[idx] ?? 0);
-                let carriedCount = openingCount - userTotal.count;
-                let carriedAmount = roundMoney(openingAmount - userTotal.amount);
+                const s2addH = getSor2AddForMonth(dayData, idxMonth);
+                let carriedCount = openingCount + s2addH.count - userTotal.count;
+                let carriedAmount = roundMoney(openingAmount + s2addH.amount - userTotal.amount);
                 foot1 += `<td class="border border-slate-400 p-1 text-right text-slate-900">รวมรายการ</td><td class="border border-slate-400 p-1 text-right text-emerald-900 font-bold">${userTotal.count ? formatNumber(userTotal.count) : ''}</td><td class="border border-slate-400 p-1 text-right text-emerald-900 font-bold">${userTotal.amount ? formatNumber(userTotal.amount) : ''}</td>`;
                 foot2 += `<td class="border border-slate-400 p-1 text-right text-emerald-950">ยกไปสุทธิ</td><td class="border border-slate-400 p-1 text-right text-emerald-950 font-bold">${carriedCount ? formatNumber(carriedCount) : ''}</td><td class="border border-slate-400 p-1 text-right text-emerald-950 font-bold">${carriedAmount ? formatNumber(carriedAmount) : ''}</td>`;
             });
@@ -7141,7 +7154,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
       if(String(lr.newAmount==null?'':lr.newAmount).trim()===''||fix) lr.newAmount=String(r.amount);
     });
     var tN=0; if(S.fillT){ blankRows(day,a.res).forEach(function(r){ r.type='ถ'; tN++; }); }
-    day.sor2={v:1,file:S.file,at:Date.now(),n:n,amt:sum,newN:nNew.length,newAmt:newAmt,month:P.month,goldBuy:P.goldBuy,goldSell:P.goldSell,
+    day.sor2={v:1,file:S.file,at:Date.now(),mn:(['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(dk.slice(5,7))-1]),n:n,amt:sum,newN:nNew.length,newAmt:newAmt,month:P.month,goldBuy:P.goldBuy,goldSell:P.goldSell,
       tN:tN,rows:P.rows.map(function(r){return [r.type,r.oldT,r.oldM,r.ticket,r.book,r.weight,r.amount]})};
     if(S.setSummary){ var sr=day.data&&day.data['สรุปประจำวัน']; if(sr&&sr[1]){sr[1].count=n;sr[1].amount=sum;} }
     try{
