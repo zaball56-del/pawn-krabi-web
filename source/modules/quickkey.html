@@ -1,0 +1,18 @@
+<script id="qk-js">
+(function(){
+  function $(i){return document.getElementById(i)}
+  function bind(){
+    if(window.__qkBound||typeof window.handleQSEnter!=='function') return; window.__qkBound=1;
+    var orig=window.handleQSEnter;
+    window.handleQSEnter=function(e,next){
+      if(e&&e.key==='Enter'&&e.target&&(e.target.id==='qs-ticket'||e.target.id==='qs-book')){
+        try{ if(window.__qsRun) window.__qsRun(); }catch(x){}
+        var A=$('qs-amount'),B=$('qs-book');
+        if(A&&B&&A.classList.contains('qs-auto')&&B.value.trim()&&A.value.trim()){ e.preventDefault(); var n=$('qs-new-ticket'); if(n){n.focus();n.select();} return; }
+      }
+      return orig.apply(this,arguments);
+    };
+  }
+  bind(); window.addEventListener('load',bind);
+})();
+</script>

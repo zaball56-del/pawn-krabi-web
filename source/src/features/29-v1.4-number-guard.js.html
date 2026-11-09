@@ -1,0 +1,46 @@
+<script>
+/* v1.4: ป้องกันการพิมพ์ตัวเลขผิดรูปแบบ (ไม่แตะสูตร) + แก้ไขรายการในหน้าตรวจเดือนด้วยกล่องในหน้า */
+(function(){
+    var SEL='input[class*="amount"],input[class*="count-input"],input[class*="summary-count"],input[inputmode="decimal"]';
+    var last=new WeakMap(), warnedAt=0;
+    function toast(m){ var n=Date.now(); if(n-warnedAt<1200) return; warnedAt=n; if(typeof showToast==='function') showToast(m); }
+    function thaiToArabic(s){ return s.replace(/[๐-๙]/g,function(c){ return String(c.charCodeAt(0)-0x0E50); }); }
+    function valid(s){ return /^-?\d*\.?\d*$/.test(s.replace(/[,\s]/g,'')); }
+    function isTarget(el){ return el&&el.matches&&el.tagName==='INPUT'&&el.type!=='password'&&el.matches(SEL); }
+    document.addEventListener('focusin',function(e){ if(isTarget(e.target)) last.set(e.target,e.target.value); },true);
+    document.addEventListener('input',function(e){
+        var el=e.target; if(!isTarget(el)) return;
+        var v=el.value, t=thaiToArabic(v);
+        if(t!==v){ var pos=el.selectionStart; el.value=t; try{ el.setSelectionRange(pos,pos); }catch(x){} v=t; }
+        if(valid(v)){ last.set(el,v); return; }
+        /* ผิดรูปแบบ: คืนค่าก่อนหน้า และไม่ส่งต่อให้ตัวจัดการเดิมบันทึกค่าผิด */
+        e.stopImmediatePropagation(); e.stopPropagation();
+        var prev=last.has(el)?last.get(el):''; el.value=prev; try{ el.setSelectionRange(prev.length,prev.length); }catch(x){}
+        var hint=/[()]/.test(v)?'ใช้เครื่องหมาย - นำหน้าแทนวงเล็บสำหรับยอดติดลบ':'พิมพ์ได้เฉพาะตัวเลข จุดทศนิยม 1 จุด และเครื่องหมาย - นำหน้า';
+        toast('รูปแบบตัวเลขไม่ถูกต้อง: '+hint);
+    },true);
+    /* วางข้อความ (paste) ที่มีเลขไทย/สัญลักษณ์เงิน: แปลงเลขไทยให้ ส่วนที่ผิดรูปแบบจะถูกปฏิเสธโดยกฎด้านบน */
+
+    /* แก้ไขรายการในหน้าตรวจเดือน: ใช้กล่องกรอกในหน้าแทน prompt() ที่อาจถูกบล็อก */
+    if(typeof auditEditRow==='function'){
+        auditEditRow=function(monthIndex,rowIndex){
+            var dayData=getCurrentDayData(), monthName=dayData.months[monthIndex];
+            var item=dayData.data&&dayData.data[monthName]&&dayData.data[monthName][rowIndex];
+            if(!item){ window.uiAlert('ไม่พบรายการนี้'); return; }
+            window.uiPrompt('แก้ประเภท (ส / พ / ผ / ถ) หรือเว้นว่าง',item.type||'').then(function(type){
+                if(type===null) return; var nt=thaiToArabic(String(type)).trim();
+                if(nt&&['ส','พ','ผ','ถ'].indexOf(nt)<0){ window.uiAlert('ประเภทไม่ถูกต้อง'); return; }
+                return window.uiPrompt('แก้เลขตั๋ว',item.ticket||'').then(function(ticket){
+                    if(ticket===null) return;
+                    return window.uiPrompt('แก้จำนวนเงิน',item.amount===''?'':String(item.amount)).then(function(amount){
+                        if(amount===null) return; amount=thaiToArabic(String(amount)).trim();
+                        if(amount!==''&&(!valid(amount)||cleanNumberString(amount)<0)){ window.uiAlert('จำนวนเงินไม่ถูกต้อง'); return; }
+                        item.type=nt; item.ticket=String(ticket).trim(); item.amount=amount===''?'':cleanNumberString(amount);
+                        saveDB(); renderTable(); openMonthAudit(monthIndex); showToast('บันทึกการแก้ไขรายการแล้ว');
+                    });
+                });
+            });
+        };
+    }
+})();
+</script>

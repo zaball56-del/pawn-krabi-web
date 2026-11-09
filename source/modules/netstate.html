@@ -1,0 +1,19 @@
+<style id="ns-css">
+#ns-off{display:none;position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:59;background:#7c2d12;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 16px;font:700 13px Sarabun,sans-serif;box-shadow:0 8px 20px -8px rgba(0,0,0,.5);white-space:nowrap}
+#ns-off.on{display:block}
+@media (max-width:640px){#ns-off{top:66px;bottom:auto;white-space:normal;text-align:center;width:calc(100vw - 24px)}}
+@media print{#ns-off{display:none !important}}
+</style>
+<script id="ns-js">
+(function(){ try{
+  var off=document.createElement('div'); off.id='ns-off'; off.textContent='ออฟไลน์ · คีย์ต่อได้ ข้อมูลเก็บในเครื่องและซิงค์เมื่อกลับมาออนไลน์'; document.body.appendChild(off);
+  /* สถานะออฟไลน์ */
+  function isOff(){ return navigator.onLine===false; }
+  function paint(){ var a=document.getElementById('app-container'); off.classList.toggle('on',isOff()&&a&&a.style.display==='flex'); }
+  var s0=window.setSaveIndicator;
+  if(typeof s0==='function'){ var s1=function(state,msg){ if(isOff()&&(state==='pending'||state==='saved'||state==='error')) { state='pending'; msg='ออฟไลน์ · บันทึกในเครื่องแล้ว จะซิงค์เมื่อกลับมาออนไลน์'; } return s0.call(this,state,msg); }; window.setSaveIndicator=s1; try{ setSaveIndicator=s1; }catch(e){} }
+  window.addEventListener('offline',function(){ paint(); try{ setSaveIndicator('pending','x'); }catch(e){} try{ showToast('ออฟไลน์ · ยังคีย์ต่อได้ ข้อมูลเก็บในเครื่องก่อน'); }catch(e){} });
+  window.addEventListener('online',function(){ paint(); try{ setSaveIndicator('pending','กำลังซิงค์ข้อมูลกลาง…'); }catch(e){} try{ showToast('กลับมาออนไลน์แล้ว · กำลังซิงค์ข้อมูล'); }catch(e){} });
+  setInterval(paint,3000); paint();
+}catch(e){ try{console.error('ns',e)}catch(_){} } })();
+</script>

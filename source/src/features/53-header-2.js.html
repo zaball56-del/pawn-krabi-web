@@ -1,0 +1,34 @@
+<script id="hd2-js">
+(function(){
+  function build(){
+    try{
+      var hdr=document.querySelector('header'); if(!hdr||document.getElementById('hdr-tools')) return;
+      var ds=[].slice.call(hdr.querySelectorAll('details.hdr-menu'));
+      if(ds.length<2) return;
+      var det=document.createElement('details'); det.className='hdr-menu'; det.id='hdr-tools';
+      det.innerHTML='<summary><i class="fa-solid fa-bars"></i> เมนูเครื่องมือ ▾</summary><div class="hdr-menu-panel"></div>';
+      var panel=det.querySelector('.hdr-menu-panel');
+      ds.forEach(function(d){
+        var t=d.querySelector('summary').textContent.replace(/\s+/g,' ').trim();
+        var g=document.createElement('div'); g.className='tl-grp'; g.textContent=t; panel.appendChild(g);
+        [].slice.call(d.querySelector('.hdr-menu-panel').children).forEach(function(c){panel.appendChild(c)});
+      });
+      var gear=document.getElementById('hdr-gear');
+      if(gear){var b=document.createElement('button');b.type='button';b.className='menu-item';b.setAttribute('onclick','openDataSettings()');b.innerHTML='<i class="fa-solid fa-gear"></i> ตั้งค่า / ข้อมูล…';panel.appendChild(b);gear.parentNode.removeChild(gear);}
+      ds[0].parentNode.insertBefore(det,ds[0]);
+      ds.forEach(function(d){d.parentNode.removeChild(d)});
+      // ย่อชื่อปุ่ม
+      [].slice.call(hdr.querySelectorAll('button[onclick]')).forEach(function(bt){
+        var o=bt.getAttribute('onclick')||'',txt=null;
+        if(o.indexOf('openQuickScanModal')>-1) txt=' คีย์ด่วน';
+        else if(o.indexOf('openPrintPreview')>-1) txt=' พิมพ์/สรุป';
+        if(txt){[].slice.call(bt.childNodes).forEach(function(n){if(n.nodeType===3&&n.nodeValue.trim()) n.nodeValue=txt});}
+      });
+    }catch(e){}
+  }
+  function go(){build();setTimeout(build,400);setTimeout(build,1500)}
+  if(document.readyState==='complete') go(); else window.addEventListener('load',go);
+})();
+</script>
+</body>
+</html>

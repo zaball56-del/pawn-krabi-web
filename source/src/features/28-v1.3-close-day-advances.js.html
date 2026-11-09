@@ -1,0 +1,125 @@
+<script>
+/* v1.3: ปิดยอดวัน + เงินเบิกล่วงหน้า (รอหักจ่าย) — โมดูลแยก เก็บใน db[วัน].advances / db[วัน].closing ไม่แก้สูตรเดิม */
+(function(){
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+    function num(v){ try{ return cleanNumberString(v)||0; }catch(e){ return 0; } }
+    function r2(v){ return Math.round(v*100)/100; }
+    function fmt(v){ return Number(v||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function toast(m){ if(typeof showToast==='function') showToast(m); }
+    function thDate(k){ var p=String(k).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+(Number(p[0])+543):k; }
+    function dateKeys(){ return Object.keys(db||{}).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k)&&db[k]; }).sort(); }
+    function day(){ var d=db[currentDate]; if(!d){ try{ d=getCurrentDayData(); }catch(e){} } d=d||db[currentDate]; if(!d) return null; if(!Array.isArray(d.advances)) d.advances=[]; if(!d.closing||typeof d.closing!=='object') d.closing={opening:'',adj:'',adjNote:'',counted:'',note:'',closed:false,closedAt:''}; return d; }
+    function srow(d,r){ var a=d.data&&d.data['สรุปประจำวัน']; var x=(a&&a[r])||{}; return num(x.amount); }
+    function prevCounted(){ var ks=dateKeys().filter(function(k){return k<currentDate;}).reverse(); for(var i=0;i<ks.length;i++){ var c=db[ks[i]].closing; if(c&&c.counted!==''&&c.counted!=null) return {v:num(c.counted),k:ks[i]}; } return null; }
+    function outstanding(){ var out=[]; dateKeys().forEach(function(k){ (db[k].advances||[]).forEach(function(a){ if(!a.settled) out.push({k:k,a:a}); }); }); return out; }
+    function calc(d){
+        var c=d.closing, pc=prevCounted();
+        var opening= (c.opening!==''&&c.opening!=null)?num(c.opening):(pc?pc.v:0);
+        var red=srow(d,2), pl=srow(d,1), adv=0; d.advances.forEach(function(a){ adv+=num(a.amount); });
+        var adj=num(c.adj), expected=r2(opening+red-pl-adv+adj);
+        var has=c.counted!==''&&c.counted!=null, counted=num(c.counted);
+        return {opening:opening,pc:pc,red:red,pl:pl,adv:r2(adv),adj:adj,expected:expected,has:has,counted:counted,diff:has?r2(counted-expected):null};
+    }
+    var css=document.createElement('style'); css.textContent=
+      '#cl-modal{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(11,34,68,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-family:Sarabun,sans-serif}#cl-modal.on{display:flex}'
+     +'#cl-box{width:100%;max-width:760px;max-height:94vh;overflow:auto;background:#fff;color:#14213D;border-radius:22px;box-shadow:0 30px 70px -24px rgba(11,34,68,.6)}'
+     +'#cl-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px;background:linear-gradient(135deg,#0B2244,#1D4ED8);color:#fff;border-radius:22px 22px 0 0}#cl-head b{font-size:18px}#cl-head small{display:block;color:#CFE0FF;font-size:12px}'
+     +'#cl-head button{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:10px;padding:8px 12px;font:600 14px Sarabun,sans-serif;cursor:pointer}'
+     +'.cl-sec{padding:16px 20px;border-bottom:1px solid #EEF1F6}.cl-sec h3{margin:0 0 10px;font-size:15px;color:#0B2244}'
+     +'.cl-line{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:14px;border-bottom:1px dashed #E1E7F0}.cl-line b{font-variant-numeric:tabular-nums}.cl-line small{color:#5B6678;display:block;font-size:12px}'
+     +'.cl-tot{font-size:16px;font-weight:700;border-bottom:0;padding-top:10px}.cl-in{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.cl-in label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:600;color:#3B4660}'
+     +'.cl-in input,.cl-add input{height:40px;border:1.5px solid #CBD5E4;border-radius:10px;padding:0 10px;font:500 15px Sarabun,sans-serif;background:#fff;color:#14213D;min-width:0}'
+     +'.cl-add{display:grid;grid-template-columns:130px 1fr 1fr auto;gap:8px;margin-top:10px}.cl-ok{color:#047857}.cl-bad{color:#B91C1C}'
+     +'.cl-tb{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}.cl-tb td,.cl-tb th{border-bottom:1px solid #E1E7F0;padding:6px 6px;text-align:left}.cl-tb td.n{text-align:right;font-variant-numeric:tabular-nums}'
+     +'.cl-sm{border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:8px;padding:5px 10px;font:600 12px Sarabun,sans-serif;cursor:pointer}.cl-sm.g{border-color:#10B981;color:#047857}.cl-sm.r{border-color:#FCA5A5;color:#B91C1C}'
+     +'.cl-note{font-size:12px;color:#5B6678;line-height:1.5;margin-top:8px}.cl-badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700}'
+     +'@media(max-width:600px){.cl-in{grid-template-columns:1fr}.cl-add{grid-template-columns:1fr 1fr}}'
+     +'html.theme-dark #cl-head{filter:hue-rotate(180deg) invert(1)}';
+    document.head.appendChild(css);
+    var modal=null;
+    function render(){
+        var d=day(); if(!d){ toast('ยังไม่มีข้อมูลของวันนี้'); return; }
+        if(!modal){ modal=document.createElement('div'); modal.id='cl-modal'; modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-label','ปิดยอดวัน / เงินเบิกล่วงหน้า');
+            modal.addEventListener('click',function(e){ if(e.target===modal) close(); }); document.body.appendChild(modal); }
+        var c=d.closing, k=calc(d), out=outstanding(), outTot=0; out.forEach(function(x){ outTot+=num(x.a.amount); });
+        var h='<div id="cl-box"><div id="cl-head"><div><b>ปิดยอดวัน · เงินเบิกล่วงหน้า</b><small>ประจำวันที่ '+esc(thDate(currentDate))+(c.closed?' · ปิดยอดแล้ว':'')+'</small></div><button type="button" id="cl-x">ปิดหน้าต่าง</button></div>';
+        h+='<div class="cl-sec"><h3>1) เงินเบิกล่วงหน้า (เบิกไปก่อน รอหักจ่ายภายหลัง)</h3>'
+          +'<div class="cl-add"><input id="cl-a-amt" inputmode="decimal" placeholder="จำนวนเงิน (บาท)"><input id="cl-a-who" placeholder="ผู้เบิก / วัตถุประสงค์"><input id="cl-a-note" placeholder="หมายเหตุ (ถ้ามี)"><button type="button" class="ds-btn pri" id="cl-a-add">บันทึกการเบิก</button></div>'
+          +'<table class="cl-tb"><thead><tr><th>เบิกวันที่</th><th>ผู้เบิก / วัตถุประสงค์</th><th class="n" style="text-align:right">จำนวน (บาท)</th><th></th></tr></thead><tbody>';
+        if(!out.length) h+='<tr><td colspan="4" style="text-align:center;color:#64748b;padding:14px">ไม่มียอดค้างหักจ่าย</td></tr>';
+        out.forEach(function(x){ h+='<tr><td>'+esc(thDate(x.k))+(x.a.at?' '+esc(x.a.at):'')+'</td><td>'+esc(x.a.who||'-')+(x.a.note?'<br><small style="color:#5B6678">'+esc(x.a.note)+'</small>':'')+'</td><td class="n">'+fmt(num(x.a.amount))+'</td><td style="white-space:nowrap"><button type="button" class="cl-sm g" data-settle="'+esc(x.k)+'|'+esc(x.a.id)+'">หักจ่ายแล้ว</button> <button type="button" class="cl-sm r" data-del="'+esc(x.k)+'|'+esc(x.a.id)+'">ลบ</button></td></tr>'; });
+        h+='</tbody></table><div class="cl-line cl-tot"><span>รวมยอดค้างหักจ่ายทั้งหมด</span><b>'+fmt(r2(outTot))+' บาท</b></div>'
+          +'<div class="cl-note">เมื่อหักจ่ายแล้ว กด "หักจ่ายแล้ว" เพื่อตัดออกจากยอดค้าง (ยอดเงินสดไม่เปลี่ยน เพราะเงินออกไปแล้วตั้งแต่วันเบิก)</div></div>';
+        h+='<div class="cl-sec"><h3>2) ปิดยอดเงินสดประจำวัน</h3>'
+          +'<div class="cl-line"><span>เงินสดตั้งต้น<small>'+((c.opening===''||c.opening==null)?(k.pc?'ยกจากยอดนับจริงของวันที่ '+esc(thDate(k.pc.k)):'ยังไม่มียอดยกมา กรอกเองได้'):'กรอกเอง')+'</small></span><b id="cl-v-open">'+fmt(k.opening)+'</b></div>'
+          +'<div class="cl-line"><span>+ รับไถ่ถอน<small>อ่านจากสรุปประจำวัน (แถวไถ่ถอน)</small></span><b id="cl-v-red">'+fmt(k.red)+'</b></div>'
+          +'<div class="cl-line"><span>− จ่ายรับจำนำ<small>อ่านจากสรุปประจำวัน (แถวรับจำนำ)</small></span><b id="cl-v-pl">'+fmt(k.pl)+'</b></div>'
+          +'<div class="cl-line"><span>− เบิกล่วงหน้าวันนี้<small>รวมรายการที่บันทึกในวันนี้</small></span><b id="cl-v-adv">'+fmt(k.adv)+'</b></div>'
+          +'<div class="cl-line"><span>± รายการอื่นวันนี้ (กรอกเอง)<small>เช่น ดอกเบี้ย/ค่าธรรมเนียมรับเข้า (+) หรือรายจ่ายอื่น (−)</small></span><b id="cl-v-adj">'+fmt(k.adj)+'</b></div>'
+          +'<div class="cl-line cl-tot"><span>ยอดเงินสดที่ควรมี</span><b id="cl-v-exp">'+fmt(k.expected)+'</b></div>'
+          +'<div class="cl-in"><label>แก้เงินสดตั้งต้น (เว้นว่าง = ใช้ยอดยกมา)<input id="cl-i-open" inputmode="decimal" value="'+esc(c.opening)+'"></label>'
+          +'<label>รายการอื่น (+/−)<input id="cl-i-adj" inputmode="decimal" value="'+esc(c.adj)+'"></label>'
+          +'<label>คำอธิบายรายการอื่น<input id="cl-i-adjn" value="'+esc(c.adjNote)+'"></label>'
+          +'<label>เงินสดที่นับได้จริง<input id="cl-i-cnt" inputmode="decimal" value="'+esc(c.counted)+'"></label></div>'
+          +'<div class="cl-line cl-tot"><span>ส่วนต่าง (นับจริง − ที่ควรมี)</span><b id="cl-v-diff"></b></div>'
+          +'<div class="cl-in" style="grid-template-columns:1fr"><label>หมายเหตุการปิดยอด<input id="cl-i-note" value="'+esc(c.note)+'"></label></div>'
+          +'<div class="cl-note">ยอดที่ควรมี = ตั้งต้น + ไถ่ถอน − รับจำนำ − เบิกล่วงหน้า ± รายการอื่น (เป็นสูตรของโมดูลนี้เท่านั้น ไม่เกี่ยวกับสูตรในสมุดบัญชี) กรุณาตรวจว่าตรงกับวิธีปิดยอดของหน่วยงาน</div></div>';
+        h+='<div class="cl-sec"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button type="button" class="ds-btn pri" id="cl-close">'+(c.closed?'บันทึกการปิดยอดซ้ำ':'ปิดยอดวันนี้')+'</button><button type="button" class="ds-btn" id="cl-print">พิมพ์ใบปิดยอด</button>'
+          +(c.closed?'<button type="button" class="ds-btn" id="cl-open">ยกเลิกการปิดยอด</button><span class="cl-badge cl-ok" style="background:#ECFDF5">ปิดยอดแล้ว '+esc(c.closedAt)+'</span>':'')+'</div></div></div>';
+        modal.innerHTML=h; modal.classList.add('on'); wire(); upd();
+    }
+    function upd(){
+        var d=day(); if(!d||!modal) return; var k=calc(d), g=function(i){return modal.querySelector('#'+i);};
+        g('cl-v-open').textContent=fmt(k.opening); g('cl-v-adj').textContent=fmt(k.adj); g('cl-v-exp').textContent=fmt(k.expected);
+        var e=g('cl-v-diff'); if(!k.has){ e.textContent='ยังไม่ได้กรอกยอดนับจริง'; e.className=''; }
+        else if(k.diff===0){ e.textContent='ตรงกัน (0.00)'; e.className='cl-ok'; }
+        else { e.textContent=(k.diff<0?'ขาด ':'เกิน ')+fmt(Math.abs(k.diff))+' บาท'; e.className='cl-bad'; }
+    }
+    function find(key){ var p=key.split('|'), d=db[p[0]]; if(!d||!d.advances) return null; for(var i=0;i<d.advances.length;i++) if(d.advances[i].id===p[1]) return {d:d,i:i,a:d.advances[i]}; return null; }
+    function wire(){
+        var d=day(), c=d.closing, g=function(i){return modal.querySelector('#'+i);};
+        g('cl-x').onclick=close;
+        function bind(id,field,isNum){ g(id).addEventListener('input',function(){ c[field]=this.value; upd(); }); g(id).addEventListener('change',function(){ if(isNum&&this.value.trim()!==''){ c[field]=String(num(this.value)); this.value=c[field]; } try{saveDB();}catch(e){} upd(); }); }
+        bind('cl-i-open','opening',true); bind('cl-i-adj','adj',true); bind('cl-i-adjn','adjNote',false); bind('cl-i-cnt','counted',true); bind('cl-i-note','note',false);
+        g('cl-a-add').onclick=function(){
+            var amt=num(g('cl-a-amt').value); if(!(amt>0)){ toast('กรุณากรอกจำนวนเงินที่เบิก'); return; }
+            d.advances.push({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),amount:r2(amt),who:g('cl-a-who').value.trim(),note:g('cl-a-note').value.trim(),at:new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}),settled:false,settledOn:''});
+            try{saveDB();}catch(e){} if(window.__audit) window.__audit('บันทึกเงินเบิกล่วงหน้า',fmt(amt)+' บาท · '+(g('cl-a-who').value.trim()||'-')); toast('บันทึกการเบิกแล้ว'); render();
+        };
+        modal.querySelectorAll('[data-settle]').forEach(function(b){ b.onclick=function(){ var f=find(b.getAttribute('data-settle')); if(!f) return; f.a.settled=true; f.a.settledOn=currentDate; if(window.__audit) window.__audit('หักจ่ายเงินเบิกแล้ว',fmt(num(f.a.amount))+' บาท · '+(f.a.who||'-')+' (เบิกวันที่ '+thDate(f.k||'')+')'); try{saveDB();}catch(e){} toast('ตัดยอดหักจ่ายแล้ว'); render(); }; });
+        modal.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){ var f=find(b.getAttribute('data-del')); if(!f) return;
+            window.uiConfirm('ลบรายการเบิก '+fmt(num(f.a.amount))+' บาท ของ '+(f.a.who||'-')+' ?\nการลบจะทำให้ยอดเงินสดที่ควรมีของวันที่เบิกเปลี่ยนไป').then(function(ok){ if(!ok) return; f.d.advances.splice(f.i,1); if(window.__audit) window.__audit('ลบรายการเบิกเงิน',fmt(num(f.a.amount))+' บาท · '+(f.a.who||'-')); try{saveDB();}catch(e){} render(); }); }; });
+        g('cl-close').onclick=function(){ var k=calc(d); if(!k.has){ toast('กรุณากรอกยอดเงินสดที่นับได้จริงก่อนปิดยอด'); return; }
+            c.closed=true; c.closedAt=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); c.expected=k.expected; c.diff=k.diff; delete window.__unlocked[currentDate]; try{saveDB();}catch(e){} if(window.__audit) window.__audit('ปิดยอดวัน','ที่ควรมี '+fmt(k.expected)+' นับจริง '+fmt(k.counted)+' ส่วนต่าง '+fmt(k.diff)); toast('ปิดยอดวันนี้แล้ว'); render(); };
+        if(g('cl-open')) g('cl-open').onclick=function(){ var go=function(){ c.closed=false; c.closedAt=''; try{saveDB();}catch(e){} if(window.__audit) window.__audit('ยกเลิกการปิดยอด',''); render(); }; if(window.__unlocked[currentDate]||!window.__askUnlock) go(); else window.__askUnlock('ใส่ PIN เพื่อยกเลิกการปิดยอดวันนี้').then(function(ok){ if(ok) go(); }); };
+        g('cl-print').onclick=slip;
+        if(c.closed&&!window.__unlocked[currentDate]){ ['cl-i-open','cl-i-adj','cl-i-adjn','cl-i-cnt','cl-i-note','cl-a-amt','cl-a-who','cl-a-note','cl-a-add','cl-close'].forEach(function(i){ var e=g(i); if(e) e.disabled=true; }); modal.querySelectorAll('[data-del]').forEach(function(b){ if(b.getAttribute('data-del').split('|')[0]===currentDate) b.disabled=true; }); }
+    }
+    function close(){ if(modal) modal.classList.remove('on'); }
+    function slip(){
+        var d=day(), k=calc(d), c=d.closing, out=outstanding(), tot=0; out.forEach(function(x){ tot+=num(x.a.amount); });
+        var org='สถานธนานุบาลเทศบาลเมืองกระบี่'; try{ var s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); if(s.org) org=s.org; }catch(e){}
+        function row(l,v,b){ return '<tr><td>'+l+'</td><td style="text-align:right'+(b?';font-weight:700':'')+'">'+v+'</td></tr>'; }
+        var h='<h2>'+esc(org)+'</h2><p><b>ใบปิดยอดเงินสดประจำวัน</b> ประจำวันที่ '+esc(thDate(currentDate))+'</p><table class="mr-t" style="max-width:520px;margin:0 auto"><tbody>'
+          +row('เงินสดตั้งต้น',fmt(k.opening))+row('+ รับไถ่ถอน',fmt(k.red))+row('− จ่ายรับจำนำ',fmt(k.pl))+row('− เบิกล่วงหน้าวันนี้',fmt(k.adv))
+          +row('± รายการอื่น'+(c.adjNote?' ('+esc(c.adjNote)+')':''),fmt(k.adj))+row('ยอดเงินสดที่ควรมี',fmt(k.expected),1)+row('เงินสดที่นับได้จริง',k.has?fmt(k.counted):'-',1)
+          +row('ส่วนต่าง',k.has?(k.diff===0?'ตรงกัน':(k.diff<0?'ขาด ':'เกิน ')+fmt(Math.abs(k.diff))):'-',1)+'</tbody></table>';
+        if(c.note) h+='<p style="text-align:left;max-width:520px;margin:6px auto">หมายเหตุ: '+esc(c.note)+'</p>';
+        h+='<p style="margin-top:14px"><b>ยอดเงินเบิกล่วงหน้าค้างหักจ่าย</b></p><table class="mr-t" style="max-width:640px;margin:0 auto"><thead><tr><th>เบิกวันที่</th><th>ผู้เบิก / วัตถุประสงค์</th><th>จำนวน (บาท)</th></tr></thead><tbody>'
+          +(out.length?out.map(function(x){ return '<tr><td>'+esc(thDate(x.k))+'</td><td style="text-align:left">'+esc(x.a.who||'-')+'</td><td style="text-align:right">'+fmt(num(x.a.amount))+'</td></tr>'; }).join(''):'<tr><td colspan="3" style="text-align:center">ไม่มี</td></tr>')
+          +'</tbody><tfoot><tr><td colspan="2">รวมค้างหักจ่าย</td><td style="text-align:right">'+fmt(r2(tot))+'</td></tr></tfoot></table>'
+          +'<div style="display:flex;justify-content:space-around;margin-top:40px;font-size:11pt"><div>ลงชื่อ ......................................<br>ผู้นับเงิน</div><div>ลงชื่อ ......................................<br>ผู้ตรวจสอบ</div></div>';
+        var pr=document.getElementById('mr-print'); if(!pr){ pr=document.createElement('div'); pr.id='mr-print'; document.body.appendChild(pr); }
+        pr.innerHTML=h;
+        var ps=document.getElementById('mr-page-style'); if(!ps){ ps=document.createElement('style'); ps.id='mr-page-style'; }
+        ps.textContent='@media print{@page{size:A4 portrait;margin:14mm}}'; document.head.appendChild(ps);
+        document.body.classList.add('mr-printing');
+        var cl=function(){ document.body.classList.remove('mr-printing'); if(ps.parentNode) ps.parentNode.removeChild(ps); window.removeEventListener('afterprint',cl); };
+        window.addEventListener('afterprint',cl);
+        try{ window.print(); }catch(e){ cl(); toast('เปิดหน้าพิมพ์ไม่ได้ในหน้านี้'); }
+    }
+    window.__closeStale=function(){ var d=db[currentDate]; if(!d||!d.closing||!d.closing.closed) return null; var k=calc(day()); return {stored:d.closing.expected,now:k.expected,stale:Math.round(num(d.closing.expected)*100)!==Math.round(k.expected*100)}; };
+    window.openDayClose=function(){ if(typeof sbClose==='function'){ try{sbClose();}catch(e){} } render(); };
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+})();
+</script>

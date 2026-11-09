@@ -1,0 +1,139 @@
+<script>
+/* v1.2: สรุปรายเดือน/ปี (อ่านอย่างเดียว) + กล่องถามในหน้า (prompt) + ธีมมืด/ขนาดตัวอักษร */
+(function(){
+    var MN=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+    function num(v){ try{ return cleanNumberString(v)||0; }catch(e){ return 0; } }
+    function fmt(v,dec){ return Number(v||0).toLocaleString('th-TH',{minimumFractionDigits:dec?2:0,maximumFractionDigits:2}); }
+    function toast(m){ if(typeof showToast==='function') showToast(m); }
+
+    /* ---------- กล่องถามข้อความในหน้า (แทน prompt ที่อาจถูกบล็อก) ---------- */
+    window.uiPrompt=function(msg,def,type){
+        return new Promise(function(res){
+            var l=document.createElement('div'); l.style.cssText='position:fixed;inset:0;z-index:2147483001;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(11,34,68,.55);font-family:Sarabun,sans-serif';
+            var b=document.createElement('div'); b.style.cssText='width:100%;max-width:420px;background:#fff;color:#14213D;border-radius:18px;padding:22px;box-shadow:0 30px 70px -24px rgba(11,34,68,.6)';
+            var p=document.createElement('div'); p.style.cssText='white-space:pre-line;font-size:15px;line-height:1.6;margin-bottom:12px'; p.textContent=msg;
+            var i=document.createElement('input'); i.type=type||'text'; i.value=def||''; i.style.cssText='width:100%;box-sizing:border-box;height:44px;border:1.5px solid #CBD5E4;border-radius:10px;padding:0 12px;font:500 16px Sarabun,sans-serif;margin-bottom:14px';
+            var r=document.createElement('div'); r.style.cssText='display:flex;gap:8px;justify-content:flex-end';
+            function done(v){ document.body.removeChild(l); res(v); }
+            var c=document.createElement('button'); c.type='button'; c.textContent='ยกเลิก'; c.style.cssText='border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:10px 18px;font:600 14px Sarabun,sans-serif;cursor:pointer'; c.onclick=function(){done(null);};
+            var o=document.createElement('button'); o.type='button'; o.textContent='ตกลง'; o.style.cssText='border:0;background:#1D4ED8;color:#fff;border-radius:10px;padding:10px 20px;font:700 14px Sarabun,sans-serif;cursor:pointer'; o.onclick=function(){done(i.value);};
+            i.addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();done(i.value);} if(e.key==='Escape'){e.preventDefault();done(null);} });
+            r.appendChild(c); r.appendChild(o); b.appendChild(p); b.appendChild(i); b.appendChild(r); l.appendChild(b); document.body.appendChild(l); setTimeout(function(){i.focus();i.select();},30);
+        });
+    };
+    /* ลืมรหัส: ใช้กล่องในหน้า */
+    window.forgotPin=function(){
+        var KEY='pawn_krabi_app_settings', s={}; try{ s=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){}
+        if(!s.pinHash){ window.uiAlert('ยังใช้รหัส PIN เริ่มต้นอยู่ ไม่ต้องกู้คืน'); return; }
+        window.uiPrompt('กรอก "รหัสกู้คืน" 8 หลักที่ได้ตอนตั้ง PIN ใหม่','').then(function(code){
+            if(code===null) return;
+            if(s.recoveryHash && window.__dsSha256('krabi-pawn-v1:R'+String(code).trim())===s.recoveryHash){ s.pinHash=null; s.recoveryHash=null; try{ localStorage.setItem(KEY,JSON.stringify(s)); }catch(e){} window.uiAlert('รีเซ็ต PIN กลับเป็นค่าเริ่มต้นแล้ว กรุณาเข้าระบบแล้วตั้ง PIN ใหม่'); }
+            else window.uiAlert('รหัสกู้คืนไม่ถูกต้อง');
+        });
+    };
+
+    /* ---------- สรุปรายเดือน / ปี ---------- */
+    function dayKeys(){ var a=[]; try{ Object.keys(db||{}).forEach(function(k){ if(/^\d{4}-\d{2}-\d{2}$/.test(k)&&db[k]&&db[k].data&&hasDayData(k)) a.push(k); }); }catch(e){} return a.sort(); }
+    function srow(day,r){ var a=day.data&&day.data['สรุปประจำวัน']; var x=(a&&a[r])||{}; return {c:num(x.count),a:num(x.amount)}; }
+    function dayRec(k){ var d=db[k], o=srow(d,0), p=srow(d,1), r=srow(d,2), b=srow(d,3);
+        return {k:k,oc:o.c,oa:o.a,pc:p.c,pa:p.a,rc:r.c,ra:r.a,bc:b.c,ba:b.a}; }
+    function agg(list){ var t={pc:0,pa:0,rc:0,ra:0}; list.forEach(function(x){ t.pc+=x.pc; t.pa+=x.pa; t.rc+=x.rc; t.ra+=x.ra; });
+        t.pa=Math.round(t.pa*100)/100; t.ra=Math.round(t.ra*100)/100;
+        t.oc=list.length?list[0].oc:0; t.oa=list.length?list[0].oa:0; t.bc=list.length?list[list.length-1].bc:0; t.ba=list.length?list[list.length-1].ba:0; return t; }
+    function thDate(k){ var p=k.split('-'); return p[2]+'/'+p[1]+'/'+(Number(p[0])+543); }
+    var st={mode:'month',y:null,m:null}, modal=null, cur=null;
+    function build(){
+        var keys=dayKeys(), rows=[], title='', sub='';
+        if(st.mode==='month'){
+            var pre=st.y+'-'+('0'+(st.m+1)).slice(-2)+'-';
+            var list=keys.filter(function(k){return k.indexOf(pre)===0;}).map(dayRec);
+            rows=list.map(function(x){ return {label:thDate(x.k),v:x}; });
+            title='สรุปบัญชีประจำเดือน'+MN[st.m]+' พ.ศ. '+(st.y+543); sub=list.length+' วันที่มีข้อมูล';
+            return {title:title,sub:sub,rows:rows,tot:agg(list),first:'วันที่'};
+        }
+        var all=keys.filter(function(k){return k.indexOf(st.y+'-')===0;}).map(dayRec), by={};
+        all.forEach(function(x){ var mi=Number(x.k.slice(5,7))-1; (by[mi]=by[mi]||[]).push(x); });
+        Object.keys(by).map(Number).sort(function(a,b){return a-b;}).forEach(function(mi){ rows.push({label:MN[mi]+' ('+by[mi].length+' วัน)',v:agg(by[mi])}); });
+        return {title:'สรุปบัญชีประจำปี พ.ศ. '+(st.y+543),sub:all.length+' วันที่มีข้อมูล',rows:rows,tot:agg(all),first:'เดือน'};
+    }
+    function tableHtml(r){
+        var h='<table class="mr-t"><thead><tr><th rowspan="2">'+r.first+'</th><th colspan="2">ยกมา (ย/ม)</th><th colspan="2">รับจำนำ</th><th colspan="2">ไถ่ถอน</th><th colspan="2">คงเหลือ</th></tr><tr>'+'<th>ราย</th><th>บาท</th>'.repeat(4)+'</tr></thead><tbody>';
+        if(!r.rows.length) h+='<tr><td colspan="9" style="text-align:center;color:#64748b;padding:18px">ไม่มีข้อมูลในช่วงนี้</td></tr>';
+        r.rows.forEach(function(x){ var v=x.v; h+='<tr><td>'+esc(x.label)+'</td><td>'+fmt(v.oc)+'</td><td>'+fmt(v.oa,1)+'</td><td>'+fmt(v.pc)+'</td><td>'+fmt(v.pa,1)+'</td><td>'+fmt(v.rc)+'</td><td>'+fmt(v.ra,1)+'</td><td>'+fmt(v.bc)+'</td><td>'+fmt(v.ba,1)+'</td></tr>'; });
+        var t=r.tot; h+='</tbody><tfoot><tr><td>รวม / ต้น-ปลายช่วง</td><td>'+fmt(t.oc)+'</td><td>'+fmt(t.oa,1)+'</td><td>'+fmt(t.pc)+'</td><td>'+fmt(t.pa,1)+'</td><td>'+fmt(t.rc)+'</td><td>'+fmt(t.ra,1)+'</td><td>'+fmt(t.bc)+'</td><td>'+fmt(t.ba,1)+'</td></tr></tfoot></table>';
+        return h;
+    }
+    var css=document.createElement('style'); css.textContent=
+      '#mr-modal{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(11,34,68,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-family:Sarabun,sans-serif}#mr-modal.on{display:flex}'
+     +'#mr-box{width:100%;max-width:980px;max-height:94vh;overflow:auto;background:#fff;color:#14213D;border-radius:22px;box-shadow:0 30px 70px -24px rgba(11,34,68,.6)}'
+     +'#mr-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px;background:linear-gradient(135deg,#0B2244,#1D4ED8);color:#fff;border-radius:22px 22px 0 0}#mr-head b{font-size:18px}'
+     +'#mr-head button{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:10px;padding:8px 12px;font:600 14px Sarabun,sans-serif;cursor:pointer}'
+     +'#mr-ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:14px 20px;background:#F4F7FC;border-bottom:1px solid #E1E7F0}'
+     +'#mr-ctl label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:600;color:#3B4660}#mr-ctl select{height:40px;border:1.5px solid #CBD5E4;border-radius:10px;padding:0 10px;font:500 15px Sarabun,sans-serif;background:#fff;color:#14213D}'
+     +'#mr-body{padding:14px 20px 20px;overflow-x:auto}#mr-body h3{margin:0 0 2px;font-size:17px;color:#0B2244}#mr-body .s{font-size:13px;color:#5B6678;margin-bottom:10px}'
+     +'.mr-t{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}.mr-t th,.mr-t td{border:1px solid #D5DDEA;padding:6px 8px;text-align:right}.mr-t th{background:#EAF0FB;text-align:center;font-weight:700}.mr-t td:first-child{text-align:left;white-space:nowrap}.mr-t tfoot td{font-weight:700;background:#F4F7FC}'
+     +'#mr-print{display:none}'
+     +'@media print{body.mr-printing>*:not(#mr-print){display:none !important}body.mr-printing #mr-print{display:block !important;color:#000;font-family:Sarabun,sans-serif}#mr-print h2{margin:0;font-size:16pt;text-align:center}#mr-print p{margin:2px 0 8px;text-align:center;font-size:11pt}#mr-print .mr-t{min-width:0;font-size:9.5pt}#mr-print .mr-t th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+    document.head.appendChild(css);
+    function years(){ var s={}; dayKeys().forEach(function(k){ s[Number(k.slice(0,4))]=1; }); var cy=new Date().getFullYear(); s[cy]=1; if(st.y!==null) s[st.y]=1; return Object.keys(s).map(Number).sort(function(a,b){return b-a;}); }
+    function render(){
+        if(!modal){ modal=document.createElement('div'); modal.id='mr-modal'; modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-label','สรุปรายเดือน / ปี');
+            modal.addEventListener('click',function(e){ if(e.target===modal) close(); }); document.body.appendChild(modal); }
+        cur=build();
+        var yo=years().map(function(y){ return '<option value="'+y+'"'+(y===st.y?' selected':'')+'>พ.ศ. '+(y+543)+'</option>'; }).join('');
+        var mo=MN.map(function(n,i){ return '<option value="'+i+'"'+(i===st.m?' selected':'')+'>'+n+'</option>'; }).join('');
+        modal.innerHTML='<div id="mr-box"><div id="mr-head"><b>สรุปรายเดือน / ปี</b><button type="button" id="mr-x">ปิด</button></div>'
+          +'<div id="mr-ctl"><label>ช่วงที่ดู<select id="mr-mode"><option value="month"'+(st.mode==='month'?' selected':'')+'>รายเดือน</option><option value="year"'+(st.mode==='year'?' selected':'')+'>รายปี</option></select></label>'
+          +'<label>ปี<select id="mr-y">'+yo+'</select></label>'+(st.mode==='month'?'<label>เดือน<select id="mr-m">'+mo+'</select></label>':'')
+          +'<span style="flex:1"></span><button type="button" class="ds-btn" id="mr-csv">บันทึก CSV</button><button type="button" class="ds-btn pri" id="mr-print-btn">พิมพ์</button></div>'
+          +'<div id="mr-body"><h3>'+esc(cur.title)+'</h3><div class="s">'+esc(cur.sub)+' · ตัวเลขอ่านจากสรุปประจำวันที่บันทึกไว้ ไม่มีการคำนวณใหม่</div>'+tableHtml(cur)+'</div></div>';
+        modal.classList.add('on');
+        var q=function(i){return modal.querySelector('#'+i);};
+        q('mr-x').onclick=close;
+        q('mr-mode').onchange=function(){ st.mode=this.value; render(); };
+        q('mr-y').onchange=function(){ st.y=Number(this.value); render(); };
+        if(q('mr-m')) q('mr-m').onchange=function(){ st.m=Number(this.value); render(); };
+        q('mr-csv').onclick=csv; q('mr-print-btn').onclick=doPrint;
+    }
+    function close(){ if(modal) modal.classList.remove('on'); }
+    function csv(){
+        var r=cur, L=[[r.title],[r.first,'ยกมา ราย','ยกมา บาท','รับจำนำ ราย','รับจำนำ บาท','ไถ่ถอน ราย','ไถ่ถอน บาท','คงเหลือ ราย','คงเหลือ บาท']];
+        function line(l,v){ return [l,v.oc,v.oa,v.pc,v.pa,v.rc,v.ra,v.bc,v.ba]; }
+        r.rows.forEach(function(x){ L.push(line(x.label,x.v)); }); L.push(line('รวม',r.tot));
+        var text='﻿'+L.map(function(a){ return a.map(function(c){ c=String(c); return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(','); }).join('\r\n');
+        try{ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'})); a.download='สรุป_'+(st.mode==='month'?(st.y+543)+'-'+('0'+(st.m+1)).slice(-2):(st.y+543))+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); toast('บันทึกไฟล์ CSV แล้ว'); }catch(e){ toast('บันทึกไฟล์ไม่สำเร็จ'); }
+    }
+    function doPrint(){
+        var org='สถานธนานุบาลเทศบาลเมืองกระบี่'; try{ var s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); if(s.org) org=s.org; }catch(e){}
+        var pr=document.getElementById('mr-print'); if(!pr){ pr=document.createElement('div'); pr.id='mr-print'; document.body.appendChild(pr); }
+        pr.innerHTML='<h2>'+esc(org)+'</h2><p><b>'+esc(cur.title)+'</b></p>'+tableHtml(cur);
+        var ps=document.getElementById('mr-page-style'); if(!ps){ ps=document.createElement('style'); ps.id='mr-page-style'; }
+        ps.textContent='@media print{@page{size:A4 landscape;margin:12mm}}'; document.head.appendChild(ps);
+        document.body.classList.add('mr-printing');
+        var clean=function(){ document.body.classList.remove('mr-printing'); if(ps.parentNode) ps.parentNode.removeChild(ps); window.removeEventListener('afterprint',clean); };
+        window.addEventListener('afterprint',clean);
+        try{ window.print(); }catch(e){ clean(); toast('เปิดหน้าพิมพ์ไม่ได้ในหน้านี้'); }
+    }
+    window.openMonthlyReport=function(){
+        var cd=(typeof currentDate==='string'&&/^\d{4}-\d{2}/.test(currentDate))?currentDate:new Date().toISOString().slice(0,10);
+        if(st.y===null){ st.y=Number(cd.slice(0,4)); st.m=Number(cd.slice(5,7))-1; }
+        render();
+    };
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+
+    /* ---------- ธีมมืด / ขนาดตัวอักษร ---------- */
+    var tcss=document.createElement('style'); tcss.id='v12-theme-css'; tcss.textContent=
+      'html.theme-dark{filter:invert(1) hue-rotate(180deg) contrast(.9);background:#fff}'
+     +'html.theme-dark img,html.theme-dark canvas,html.theme-dark video,html.theme-dark .hp-photo,html.theme-dark #app-sidebar,html.theme-dark body.app-shell header,html.theme-dark .hp-hero,html.theme-dark #login-modal,html.theme-dark #ui-dialog>div,html.theme-dark .ds-head,html.theme-dark #ds-head,html.theme-dark #mr-head{filter:hue-rotate(180deg) invert(1)}'
+     +'@media print{html.theme-dark{filter:none !important;background:#fff}html.theme-dark img,html.theme-dark canvas,html.theme-dark .hp-photo,html.theme-dark #app-sidebar,html.theme-dark body.app-shell header,html.theme-dark .hp-hero{filter:none !important}html{zoom:1 !important}}';
+    document.head.appendChild(tcss);
+    window.__applyLook=function(){
+        var s={}; try{ s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); }catch(e){}
+        var de=document.documentElement; de.classList.toggle('theme-dark',s.theme==='dark');
+        var z=Number(s.fontScale)||100; z=Math.max(90,Math.min(150,z)); de.style.zoom=(z===100)?'':String(z/100);
+        try{ if(typeof fixStickyLayout==='function') fixStickyLayout(); }catch(e){}
+    };
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',window.__applyLook); else window.__applyLook();
+})();
+</script>

@@ -1,0 +1,9 @@
+# order matters: each is inserted before </body>
+sor2.html
+assets.html
+quickkey.html
+storage.html
+mobile.html
+backup.html
+netstate.html
+swreg.html

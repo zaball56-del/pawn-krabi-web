@@ -1,0 +1,252 @@
+<script>
+/* ตั้งค่า / ข้อมูล (ฟันเฟือง) — ตั้งค่าหน้าตา/การพิมพ์/ความปลอดภัย อ่านข้อมูลจาก db แบบอ่านอย่างเดียว ไม่แตะสูตรคำนวณ */
+(function(){
+    var KEY='pawn_krabi_app_settings', SALT='krabi-pawn-v1:';
+    var DEF={pinHash:null,recoveryHash:null,autoLockMin:0,org:'',headerExtra:'',showDate:true,showLogo:false,paper:'A4',orient:'landscape',margin:5,sound:true,warnBackup:false,theme:'light',fontScale:100,qsConfirm:true};
+    function load(){ try{ return Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(e){ return Object.assign({},DEF); } }
+    function save(s){ try{ localStorage.setItem(KEY,JSON.stringify(s)); }catch(e){} }
+    function set(k,v){ var s=load(); s[k]=v; save(s); applyAll(); }
+    function toast(m){ if(typeof showToast==='function') showToast(m); }
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    /* ---- SHA-256 (ไม่เก็บ PIN ตรงๆ) ---- */
+    var K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    function sha256(str){
+        var m=unescape(encodeURIComponent(str)), l=m.length, w=[], i, j;
+        function rr(v,a){return (v>>>a)|(v<<(32-a));}
+        for(i=0;i<l;i++) w[i>>2]|=m.charCodeAt(i)<<(24-(i%4)*8);
+        w[l>>2]|=0x80<<(24-(l%4)*8); var nw=((((l+8)>>6)+1)<<4); for(i=0;i<nw;i++) w[i]=w[i]|0; w[nw-1]=l*8;
+        var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+        for(j=0;j<w.length;j+=16){
+            var W=w.slice(j,j+16), a=H.slice(0), t;
+            for(i=0;i<64;i++){
+                if(i>=16){ var s0=rr(W[i-15],7)^rr(W[i-15],18)^(W[i-15]>>>3), s1=rr(W[i-2],17)^rr(W[i-2],19)^(W[i-2]>>>10); W[i]=(W[i-16]+s0+W[i-7]+s1)|0; }
+                var S1=rr(a[4],6)^rr(a[4],11)^rr(a[4],25), ch=(a[4]&a[5])^(~a[4]&a[6]), t1=(a[7]+S1+ch+K[i]+W[i])|0;
+                var S0=rr(a[0],2)^rr(a[0],13)^rr(a[0],22), mj=(a[0]&a[1])^(a[0]&a[2])^(a[1]&a[2]), t2=(S0+mj)|0;
+                a=[(t1+t2)|0,a[0],a[1],a[2],(a[3]+t1)|0,a[4],a[5],a[6]];
+            }
+            for(i=0;i<8;i++) H[i]=(H[i]+a[i])|0;
+        }
+        return H.map(function(x){return ('00000000'+(x>>>0).toString(16)).slice(-8);}).join('');
+    }
+    window.__dsSha256=sha256;
+    function hp(p){ return sha256(SALT+p); }
+
+    /* ---- ใช้ PIN ที่ตั้งเอง (ถ้ามี) ที่หน้าล็อกอิน ---- */
+    var origCheck=checkLogin;
+    checkLogin=function(){
+        var s=load(); if(!s.pinHash) return origCheck();
+        var inp=document.getElementById('login-pin'), typed=inp?inp.value:'';
+        var ok=typed.length===4 && hp(typed)===s.pinHash;
+        if(inp) inp.value= ok ? CORRECT_PIN : '';
+        origCheck();
+        if(!ok && inp){ inp.value=typed; try{inp.select();}catch(e){} }
+    };
+    window.forgotPin=function(){
+        var s=load(); if(!s.pinHash){ alert('ยังใช้รหัส PIN เริ่มต้นอยู่ ไม่ต้องกู้คืน'); return; }
+        var code=prompt('กรอก "รหัสกู้คืน" 8 หลักที่ได้ตอนตั้ง PIN ใหม่'); if(code===null) return;
+        if(s.recoveryHash && hp('R'+String(code).trim())===s.recoveryHash){ s.pinHash=null; s.recoveryHash=null; save(s); alert('รีเซ็ต PIN กลับเป็นค่าเริ่มต้นแล้ว กรุณาเข้าระบบแล้วตั้ง PIN ใหม่'); }
+        else alert('รหัสกู้คืนไม่ถูกต้อง');
+    };
+
+    /* ---- ล็อกอัตโนมัติเมื่อไม่ได้ใช้งาน ---- */
+    var idleT=null, lastArm=0;
+    function arm(force){ var now=Date.now(); if(!force && now-lastArm<1500) return; lastArm=now; clearTimeout(idleT); var mins=Number(load().autoLockMin)||0; if(!mins) return;
+        idleT=setTimeout(function(){ var app=document.getElementById('app-container'); if(app&&app.style.display==='flex'){ try{ if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }catch(e){} setTimeout(function(){ logout(); },400); } },mins*60000); }
+    ['mousemove','keydown','click','touchstart','scroll'].forEach(function(ev){ document.addEventListener(ev,function(){arm(false);},{passive:true,capture:true}); });
+
+    /* ---- เสียง / เตือนสำรอง / การพิมพ์ ---- */
+    var origSound=playSciFiSound; playSciFiSound=function(){ if(load().sound===false) return; return origSound.apply(this,arguments); };
+    function logoSrc(){ var i=document.querySelector('#login-modal img'); return i?i.src:''; }
+    function setExtra(box,text,style){ var e=box.querySelector('.ds-extra'); if(!text){ if(e) e.remove(); return; } if(!e){ e=document.createElement('div'); e.className='ds-extra'; box.appendChild(e); } e.setAttribute('style',style); e.textContent=text; }
+    function setLogo(box,on,css){ var e=box.querySelector(':scope > .ds-logo'); if(!on||!logoSrc()){ if(e) e.remove(); return; } if(!e){ e=document.createElement('img'); e.className='ds-logo'; e.alt=''; box.insertBefore(e,box.firstChild); } e.src=logoSrc(); e.setAttribute('style',css); }
+    function applyPrintTexts(){
+        var s=load(), title='บัญชีแยกประเภท '+(s.org||'สถานธนานุบาลเทศบาลเมืองกระบี่');
+        var pv=document.querySelector('#print-preview-paper > div:first-child > .text-center');
+        if(pv){ if(pv.children[0]) pv.children[0].textContent=title; if(pv.children[1]) pv.children[1].style.display=s.showDate?'':'none'; setExtra(pv,s.headerExtra,'font-size:10pt;color:#334155');
+            var wrap=pv.parentElement; setLogo(wrap,s.showLogo,'width:52px;height:52px;object-fit:contain;flex:none'); }
+        var po=document.querySelector('.print-only.text-center');
+        if(po){ var h=po.querySelector('h2'), p=po.querySelector('p'); if(h) h.textContent=title; if(p) p.style.display=s.showDate?'':'none'; setExtra(po,s.headerExtra,'font-size:10px');
+            setLogo(po,s.showLogo,'display:block;margin:0 auto 4px;height:40px;object-fit:contain'); }
+    }
+    function applyAll(){
+        var s=load(), st=document.getElementById('ds-print-style'); if(!st){ st=document.createElement('style'); st.id='ds-print-style'; document.head.appendChild(st); }
+        var m=Math.max(0,Math.min(30,Number(s.margin)||0)); st.textContent='@media print{@page{size:'+s.paper+' '+s.orient+';margin:'+m+'mm}}';
+        document.body.classList.toggle('ds-warn-on',!!s.warnBackup); applyPrintTexts(); arm(true); if(window.__applyLook) window.__applyLook();
+    }
+    var origPP=openPrintPreview; openPrintPreview=function(){ var r=origPP.apply(this,arguments); applyPrintTexts(); return r; };
+    window.addEventListener('beforeprint',applyPrintTexts);
+
+    /* ---- หน้าต่างตั้งค่า ---- */
+    var css=document.createElement('style');
+    css.textContent='#ds-modal{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(11,34,68,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-family:Sarabun,sans-serif}'
+    +'#ds-modal.on{display:flex}#ds-box{width:100%;max-width:660px;max-height:92vh;overflow:auto;background:#fff;border-radius:22px;box-shadow:0 30px 70px -24px rgba(11,34,68,.6);color:#14213D}'
+    +'#ds-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;background:linear-gradient(135deg,#0B2244,#1D4ED8);color:#fff;border-radius:22px 22px 0 0}'
+    +'#ds-head b{font-size:18px}#ds-head button{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:10px;padding:8px 12px;font:600 14px Sarabun,sans-serif;cursor:pointer}'
+    +'#ds-tabs{position:sticky;top:64px;z-index:2;display:flex;gap:6px;padding:10px 16px;background:#F4F7FC;border-bottom:1px solid #E1E7F0;overflow-x:auto}'
+    +'#ds-tabs button{border:0;background:transparent;border-radius:10px;padding:8px 14px;font:600 14px Sarabun,sans-serif;color:#3B4660;cursor:pointer;white-space:nowrap}#ds-tabs button.on{background:#1D4ED8;color:#fff}'
+    +'.ds-sec{padding:16px 20px;border-bottom:1px solid #EEF1F6}.ds-sec h3{margin:0 0 10px;font-size:15px;color:#0B2244}'
+    +'.ds-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.ds-kv{background:#F4F7FC;border:1px solid #E1E7F0;border-radius:12px;padding:10px 12px}'
+    +'.ds-kv small{display:block;color:#5B6678;font-size:12px}.ds-kv b{font-size:16px}'
+    +'.ds-opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1.5px solid #E1E7F0;border-radius:12px;margin-bottom:8px;cursor:pointer}.ds-opt input{margin-top:4px;width:18px;height:18px}'
+    +'.ds-opt.sel{border-color:#1D4ED8;background:#EFF6FF}.ds-opt span small{display:block;color:#5B6678;font-size:12px}'
+    +'.ds-btn{border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:9px 14px;font:600 13px Sarabun,sans-serif;cursor:pointer}.ds-btn.pri{background:#1D4ED8;border-color:#1D4ED8;color:#fff}.ds-btn.warn{border-color:#FCA5A5;color:#B91C1C}'
+    +'.ds-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.ds-file{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #EEF1F6;font-size:13px}'
+    +'.ds-file small{color:#5B6678}.ds-note{font-size:12px;color:#5B6678;margin-top:8px;line-height:1.5;word-break:break-all}'
+    +'.ds-f{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}.ds-f label{font-size:13px;font-weight:600;color:#3B4660}'
+    +'.ds-f input[type=text],.ds-f input[type=password],.ds-f input[type=number],.ds-f select{height:42px;border:1.5px solid #CBD5E4;border-radius:10px;padding:0 12px;font:500 15px Sarabun,sans-serif;background:#fff;color:#14213D;max-width:100%}'
+    +'.ds-ck{display:flex;gap:10px;align-items:flex-start;padding:8px 0;font-size:14px;cursor:pointer}.ds-ck input{width:18px;height:18px;margin-top:3px}.ds-ck small{display:block;color:#5B6678;font-size:12px}'
+    +'.ds-2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.ds-warnbox{background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:10px 12px;font-size:13px;color:#9A3412;margin-bottom:10px;line-height:1.5}'
+    +'body:not(.ds-warn-on) #backup-warning{display:none !important}@media(max-width:560px){.ds-grid,.ds-2{grid-template-columns:1fr}}';
+    document.head.appendChild(css);
+    function fmtDT(ms){try{return new Date(ms).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'});}catch(e){return '-';}}
+    function stats(){
+        var days=0,rows=0,keys=[];
+        try{ Object.keys(db||{}).forEach(function(k){ var d=db[k]; if(!d||typeof d!=='object') return; var has=(typeof hasDayData==='function')?hasDayData(k):true; if(!has) return; days++; keys.push(k);
+            Object.keys(d.data||{}).forEach(function(m){ (d.data[m]||[]).forEach(function(r){ if(r&&(r.ticket||r.amount)) rows++; }); }); }); }catch(e){}
+        keys.sort(); var size=0; try{ size=(localStorage.getItem('pawn_krabi_master_db')||'').length; }catch(e){}
+        function th(k){var p=k.split('-'); return p[2]+'/'+p[1]+'/'+(Number(p[0])+543);}
+        return {days:days,rows:rows,from:keys.length?th(keys[0]):'-',to:keys.length?th(keys[keys.length-1]):'-',kb:Math.round(size/102.4)/10};
+    }
+    var modal, tab='data';
+    function ensure(){ if(modal) return modal; modal=document.createElement('div'); modal.id='ds-modal'; modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-label','ตั้งค่า / ข้อมูล');
+        modal.addEventListener('click',function(e){ if(e.target===modal) closeDS(); }); document.body.appendChild(modal); return modal; }
+    function closeDS(){ if(modal) modal.classList.remove('on'); }
+    window.closeDataSettings=closeDS;
+    function ck(id,label,sub,on){ return '<label class="ds-ck"><input type="checkbox" id="'+id+'"'+(on?' checked':'')+'><span>'+label+(sub?'<small>'+sub+'</small>':'')+'</span></label>'; }
+    async function tabData(){
+        var s=stats(), api=window.pawnDesktop, desk=!!(api&&api.getSettings), cfg={}, info={}, list={files:[],folders:[]};
+        if(desk){ try{ info=await api.getSettings(); cfg=info.config||{}; }catch(e){} try{ list=await api.listBackups(); }catch(e){} }
+        var h='<div class="ds-sec"><h3>ข้อมูลในเครื่อง</h3><div class="ds-grid">'
+          +'<div class="ds-kv"><small>จำนวนวันที่มีข้อมูล</small><b>'+s.days+' วัน</b></div>'
+          +'<div class="ds-kv"><small>จำนวนรายการทั้งหมด</small><b>'+s.rows+' รายการ</b></div>'
+          +'<div class="ds-kv"><small>ช่วงวันที่</small><b>'+(s.days?esc(s.from)+' – '+esc(s.to):'ยังไม่มีข้อมูล')+'</b></div>'
+          +'<div class="ds-kv"><small>ขนาดข้อมูล</small><b>'+s.kb+' KB</b></div></div>'
+          +'<div class="ds-note">ที่เก็บข้อมูล: '+(desk?esc(info.userDataPath||'ในเครื่องนี้'):'ในเบราว์เซอร์เครื่องนี้ (localStorage + IndexedDB)')+'</div></div>';
+        if(desk){
+            var src=cfg.dataSource==='usb-ask'?'usb-ask':'local';
+            h+='<div class="ds-sec"><h3>แหล่งข้อมูลตอนเปิดโปรแกรม</h3>'
+              +'<label class="ds-opt'+(src==='local'?' sel':'')+'"><input type="radio" name="dssrc" value="local"'+(src==='local'?' checked':'')+'><span><b>ใช้ข้อมูลในเครื่อง</b><small>ดึงข้อมูลที่บันทึกไว้ในเครื่องขึ้นมาเองทุกครั้ง (ค่าเริ่มต้น)</small></span></label>'
+              +'<label class="ds-opt'+(src==='usb-ask'?' sel':'')+'"><input type="radio" name="dssrc" value="usb-ask"'+(src==='usb-ask'?' checked':'')+'><span><b>ถามก่อนกู้คืนจากไฟล์สำรอง ถ้าข้อมูลในเครื่องว่าง</b><small>เมื่อเปิดแล้วไม่พบข้อมูลเลย โปรแกรมจะหาไฟล์สำรองล่าสุดจาก USB / โฟลเดอร์ที่เลือก แล้วถามยืนยันก่อนกู้คืน</small></span></label></div>';
+            h+='<div class="ds-sec"><h3>ไฟล์สำรองที่พบ</h3>';
+            if(!list.files.length) h+='<div class="ds-note">ยังไม่พบไฟล์สำรอง</div>';
+            list.files.slice(0,8).forEach(function(f){ h+='<div class="ds-file"><span><b>'+esc(f.name)+'</b><br><small>'+esc(f.source)+' · '+esc(fmtDT(f.mtime))+'</small></span><button type="button" class="ds-btn" data-restore="'+esc(f.path)+'">กู้คืน</button></div>'; });
+            h+='<div class="ds-row"><button type="button" class="ds-btn" id="ds-pick">เลือกโฟลเดอร์สำรอง…</button>'+(cfg.customBackupFolder?'<button type="button" class="ds-btn" id="ds-clear">เลิกใช้โฟลเดอร์นี้</button>':'')+'<button type="button" class="ds-btn" id="ds-file">กู้คืนจากไฟล์อื่น…</button></div>'
+              +'<div class="ds-note">'+(cfg.customBackupFolder?'โฟลเดอร์ที่เลือก: '+esc(cfg.customBackupFolder):'ค้นหาจาก USB ที่ตั้งไว้ และจุดกู้คืนในเครื่องอัตโนมัติ')+'</div></div>';
+            h+='<div class="ds-sec"><div class="ds-row" style="margin-top:0"><button type="button" class="ds-btn pri" id="ds-full">ตั้งค่า USB / อัปเดต / Windows…</button></div></div>';
+        } else {
+            h+='<div class="ds-sec"><h3>สำรอง / นำเข้า</h3><div class="ds-row" style="margin-top:0"><button type="button" class="ds-btn pri" onclick="closeDataSettings();exportJSON()">สำรองข้อมูล (.json)</button><button type="button" class="ds-btn" onclick="closeDataSettings();var i=document.getElementById(\'import-file\');if(i)i.click()">นำเข้าข้อมูล (.json)</button></div>'
+              +'<div class="ds-note">ตัวเลือกแหล่งข้อมูลและ USB ใช้ได้ในโปรแกรม Windows เท่านั้น</div></div>';
+        }
+        return h;
+    }
+    function tabSec(){
+        var s=load(), opts=[[0,'ปิด (ไม่ล็อกเอง)'],[5,'5 นาที'],[10,'10 นาที'],[15,'15 นาที'],[30,'30 นาที'],[60,'60 นาที']].map(function(o){ return '<option value="'+o[0]+'"'+(Number(s.autoLockMin)===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('');
+        return '<div class="ds-sec"><h3>เปลี่ยนรหัส PIN</h3>'
+          +'<div class="ds-warnbox">ใช้เลข 4 หลัก เมื่อตั้งแล้วจะได้ "รหัสกู้คืน" 8 หลักแสดงครั้งเดียว กรุณาจดเก็บไว้ ถ้าลืม PIN ใช้รหัสกู้คืนที่หน้าล็อกอิน (ลืมรหัส PIN?)</div>'
+          +'<div class="ds-2"><div class="ds-f"><label for="ds-p0">PIN ปัจจุบัน</label><input id="ds-p0" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div>'
+          +'<div class="ds-f"><label for="ds-p1">PIN ใหม่ (4 หลัก)</label><input id="ds-p1" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div>'
+          +'<div class="ds-f"><label for="ds-p2">ยืนยัน PIN ใหม่</label><input id="ds-p2" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div></div>'
+          +'<div class="ds-row" style="margin-top:0"><button type="button" class="ds-btn pri" id="ds-pinsave">บันทึก PIN ใหม่</button></div>'
+          +'<div class="ds-note">'+(s.pinHash?'สถานะ: ตั้ง PIN เองแล้ว':'สถานะ: ใช้ PIN เริ่มต้น (แนะนำให้เปลี่ยน)')+'</div></div>'
+          +'<div class="ds-sec"><h3>ล็อกหน้าจออัตโนมัติ</h3><div class="ds-f"><label for="ds-lock">ล็อกเมื่อไม่ได้ใช้งานนาน</label><select id="ds-lock">'+opts+'</select></div>'
+          +'<div class="ds-note">ข้อมูลที่กรอกเสร็จแล้วถูกบันทึกไว้เสมอ เมื่อล็อกต้องใส่ PIN อีกครั้ง</div></div>';
+    }
+    function tabPrint(){
+        var s=load();
+        function so(v,l,cur){ return '<option value="'+v+'"'+(cur===v?' selected':'')+'>'+l+'</option>'; }
+        return '<div class="ds-sec"><h3>หัวกระดาษ</h3>'
+          +'<div class="ds-f"><label for="ds-org">ชื่อหน่วยงานในหัวกระดาษ</label><input id="ds-org" type="text" value="'+esc(s.org)+'" placeholder="สถานธนานุบาลเทศบาลเมืองกระบี่"></div>'
+          +'<div class="ds-f"><label for="ds-extra">ข้อความเพิ่มใต้หัวกระดาษ (ไม่บังคับ)</label><input id="ds-extra" type="text" value="'+esc(s.headerExtra)+'" placeholder="เช่น สาขา / เบอร์โทร"></div>'
+          +ck('ds-showdate','แสดงบรรทัด "ประจำวันที่"','',s.showDate)+ck('ds-showlogo','แสดงโลโก้เทศบาลในหัวกระดาษ','ปิดไว้เป็นค่าเริ่มต้น',s.showLogo)+'</div>'
+          +'<div class="ds-sec"><h3>กระดาษ</h3><div class="ds-2">'
+          +'<div class="ds-f"><label for="ds-paper">ขนาด</label><select id="ds-paper">'+so('A4','A4',s.paper)+so('A3','A3',s.paper)+so('Letter','Letter',s.paper)+'</select></div>'
+          +'<div class="ds-f"><label for="ds-orient">แนวกระดาษ</label><select id="ds-orient">'+so('landscape','แนวนอน',s.orient)+so('portrait','แนวตั้ง',s.orient)+'</select></div>'
+          +'<div class="ds-f"><label for="ds-margin">ขอบกระดาษ (มม.)</label><input id="ds-margin" type="number" min="0" max="30" value="'+esc(s.margin)+'"></div></div>'
+          +'<div class="ds-row"><button type="button" class="ds-btn" id="ds-preview">ดูตัวอย่างพิมพ์</button></div></div>';
+    }
+    function cuNamesHtml(){
+        var a = (window.custodyNamesGet ? window.custodyNamesGet() : []);
+        var h = '<div class="ds-row" style="margin-top:0;gap:8px"><input id="ds-cu-in" type="text" placeholder="พิมพ์ชื่อผู้เบิก แล้วกดเพิ่ม" maxlength="60" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\'){event.preventDefault();dsCuAdd()}"><button type="button" class="ds-btn pri" onclick="dsCuAdd()">เพิ่มชื่อ</button></div>';
+        if (!a.length) return h + '<div class="ds-note">ยังไม่มีรายชื่อ</div>';
+        return h + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' + a.map(function (n, i) {
+            return '<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border-radius:999px;background:#eef2ff;border:1px solid #c7d2fe;color:#312e81;font-size:13px">' + String(n).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }) + '<button type="button" aria-label="ลบชื่อ" onclick="dsCuDel(' + i + ')" style="width:22px;height:22px;border-radius:50%;border:0;background:#c7d2fe;color:#312e81;cursor:pointer;line-height:1;font-size:14px">×</button></span>';
+        }).join('') + '</div>';
+    }
+    window.dsCuAdd = function () { var el = document.getElementById('ds-cu-in'); if (!el) return; var ok = window.custodyNamesAdd(el.value); var box = document.getElementById('ds-cu-names'); if (box) box.innerHTML = cuNamesHtml(); var e2 = document.getElementById('ds-cu-in'); if (e2) e2.focus(); if (!ok && el.value.trim()) { try { toast('มีชื่อนี้อยู่แล้ว'); } catch (_) {} } };
+    window.dsCuDel = function (i) { window.custodyNamesDel(i); var box = document.getElementById('ds-cu-names'); if (box) box.innerHTML = cuNamesHtml(); };
+    function tabUse(){
+        var s=load();
+        return '<div class="ds-sec"><h3>การแสดงผล</h3><div class="ds-2"><div class="ds-f"><label for="ds-theme">ธีม</label><select id="ds-theme"><option value="light"'+(s.theme!=='dark'?' selected':'')+'>สว่าง</option><option value="dark"'+(s.theme==='dark'?' selected':'')+'>มืด</option></select></div>'
+          +'<div class="ds-f"><label for="ds-font">ขนาดตัวอักษร</label><select id="ds-font">'+[[100,'ปกติ'],[115,'ใหญ่'],[130,'ใหญ่มาก']].map(function(o){ return '<option value="'+o[0]+'"'+(Number(s.fontScale||100)===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div></div>'
+          +'<div class="ds-note">ธีมมืดและขนาดตัวอักษรมีผลทั้งโปรแกรม ไม่มีผลกับการพิมพ์</div></div>'
+          +'<div class="ds-sec"><h3>รายชื่อผู้เบิกทรัพย์จำนำ</h3><div id="ds-cu-names">'+cuNamesHtml()+'</div><div class="ds-note">ชื่อที่เพิ่มไว้จะขึ้นให้เลือกในหน้า "เบิก-คืนทรัพย์จำนำ" (เก็บไว้ในเครื่องนี้)</div></div>'
+          +'<div class="ds-sec"><h3>การใช้งาน</h3>'+ck('ds-sound','เปิดเสียงเตือน (ตอนเข้าระบบ/รหัสผิด)','',s.sound!==false)
+          +ck('ds-qsc','ยืนยันก่อนบันทึกทุกครั้งในคีย์ด่วน','แสดงสรุปตั๋วเดิม/ตั๋วใหม่ให้เทียบกับตัวตั๋ว (ถ้าพบความผิดปกติจะเตือนเสมอ แม้ปิดข้อนี้)',s.qsConfirm!==false)
+          +ck('ds-warn','แสดงแถบเตือนเมื่อไม่ได้สำรองข้อมูลเกิน 7 วัน','ปิดไว้เป็นค่าเริ่มต้น',s.warnBackup)+'</div>'
+          +'<div class="ds-sec"><h3>รีเซ็ต</h3><div class="ds-row" style="margin-top:0"><button type="button" class="ds-btn warn" id="ds-reset">รีเซ็ตการตั้งค่าทั้งหมด</button></div>'
+          +'<div class="ds-note">รีเซ็ตเฉพาะการตั้งค่าในหน้านี้ (รวมถึง PIN กลับเป็นค่าเริ่มต้น) ข้อมูลบัญชีไม่ถูกลบ การล้างข้อมูลรายวันใช้ปุ่ม "ล้างข้อมูลวันนี้" ในเมนู ข้อมูล</div></div>';
+    }
+    function report(r){ if(!r||r.canceled) return; var msg=r.ok?('กู้คืนข้อมูลสำเร็จ'+(r.dayCount?' ('+r.dayCount+' วัน)':'')):(r.message||(r.requiresLogin?'กรุณาปลดล็อกก่อน':'ทำรายการไม่สำเร็จ')); toast(msg); if(r.ok) render(); }
+    async function render(){
+        var m=ensure(), api=window.pawnDesktop, desk=!!(api&&api.getSettings);
+        var tabs=[['data','ข้อมูล'],['sec','ความปลอดภัย'],['print','การพิมพ์'],['use','การใช้งาน']];
+        var body= tab==='sec'?tabSec(): tab==='print'?tabPrint(): tab==='use'?tabUse(): await tabData();
+        m.innerHTML='<div id="ds-box"><div id="ds-head"><b>ตั้งค่า / ข้อมูล</b><button type="button" onclick="closeDataSettings()">ปิด</button></div><div id="ds-tabs" role="tablist">'
+          +tabs.map(function(t){ return '<button type="button" role="tab" data-tab="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('')+'</div>'+body+'</div>';
+        m.classList.add('on');
+        m.querySelectorAll('[data-tab]').forEach(function(b){ b.addEventListener('click',function(){ tab=b.getAttribute('data-tab'); render(); }); });
+        var q=function(id){ return m.querySelector('#'+id); };
+        if(tab==='data'&&desk){
+            m.querySelectorAll('input[name=dssrc]').forEach(function(r){ r.addEventListener('change',async function(){ await api.setDataSource(r.value); toast('บันทึกแหล่งข้อมูลแล้ว'); render(); }); });
+            m.querySelectorAll('[data-restore]').forEach(function(b){ b.addEventListener('click',async function(){ report(await api.restoreBackupFile(b.getAttribute('data-restore'))); }); });
+            if(q('ds-pick')) q('ds-pick').addEventListener('click',async function(){ var r=await api.pickBackupFolder(); if(r&&r.ok) render(); });
+            if(q('ds-clear')) q('ds-clear').addEventListener('click',async function(){ await api.clearBackupFolder(); render(); });
+            if(q('ds-file')) q('ds-file').addEventListener('click',async function(){ report(await api.selectAndRestoreBackup()); });
+            if(q('ds-full')) q('ds-full').addEventListener('click',function(){ api.openSettings(); });
+        }
+        if(tab==='sec'){
+            q('ds-lock').addEventListener('change',function(){ set('autoLockMin',Number(this.value)); toast('บันทึกแล้ว'); });
+            q('ds-pinsave').addEventListener('click',function(){
+                var s=load(), p0=q('ds-p0').value, p1=q('ds-p1').value, p2=q('ds-p2').value;
+                var curOk= s.pinHash ? hp(p0)===s.pinHash : p0===CORRECT_PIN;
+                if(!curOk){ alert('PIN ปัจจุบันไม่ถูกต้อง'); return; }
+                if(!/^\d{4}$/.test(p1)){ alert('PIN ใหม่ต้องเป็นตัวเลข 4 หลัก'); return; }
+                if(p1!==p2){ alert('PIN ใหม่ทั้งสองช่องไม่ตรงกัน'); return; }
+                var rec=String(Math.floor(10000000+Math.random()*90000000)); s.pinHash=hp(p1); s.recoveryHash=hp('R'+rec); save(s);
+                alert('ตั้ง PIN ใหม่เรียบร้อย\n\nรหัสกู้คืนของคุณคือ  '+rec+'\n\nกรุณาจดเก็บไว้ในที่ปลอดภัย (จะไม่แสดงอีก)'); render();
+            });
+        }
+        if(tab==='print'){
+            q('ds-org').addEventListener('change',function(){ set('org',this.value.trim()); toast('บันทึกแล้ว'); });
+            q('ds-extra').addEventListener('change',function(){ set('headerExtra',this.value.trim()); toast('บันทึกแล้ว'); });
+            q('ds-showdate').addEventListener('change',function(){ set('showDate',this.checked); });
+            q('ds-showlogo').addEventListener('change',function(){ set('showLogo',this.checked); });
+            q('ds-paper').addEventListener('change',function(){ set('paper',this.value); });
+            q('ds-orient').addEventListener('change',function(){ set('orient',this.value); });
+            q('ds-margin').addEventListener('change',function(){ var v=Math.max(0,Math.min(30,Number(this.value)||0)); this.value=v; set('margin',v); });
+            q('ds-preview').addEventListener('click',function(){ closeDS(); openPrintPreview(); });
+        }
+        if(tab==='use'){
+            q('ds-theme').addEventListener('change',function(){ set('theme',this.value); });
+            q('ds-font').addEventListener('change',function(){ set('fontScale',Number(this.value)); });
+            q('ds-qsc').addEventListener('change',function(){ set('qsConfirm',this.checked); });
+            q('ds-sound').addEventListener('change',function(){ set('sound',this.checked); });
+            q('ds-warn').addEventListener('change',function(){ set('warnBackup',this.checked); if(this.checked&&typeof checkBackupReminder==='function') try{checkBackupReminder();}catch(e){} });
+            q('ds-reset').addEventListener('click',function(){ uiConfirm('รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น (รวมถึง PIN)?\nข้อมูลบัญชีจะไม่ถูกลบ').then(function(ok){ if(!ok) return; try{ localStorage.removeItem(KEY); }catch(e){} applyAll(); toast('รีเซ็ตการตั้งค่าแล้ว'); render(); }); });
+        }
+    }
+    window.openDataSettings=function(){ if(typeof sbClose==='function') try{sbClose();}catch(e){} render(); };
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeDS(); });
+    /* เปิดโปรแกรมแล้วข้อมูลว่าง + เลือก "ถามก่อนกู้คืน" -> หาไฟล์สำรองล่าสุดแล้วถามยืนยัน */
+    var asked=false;
+    function wrapInit(){ if(typeof initApp!=='function'||initApp.__dsWrapped) return; var orig=initApp; initApp=function(){ var r=orig.apply(this,arguments); applyAll();
+        setTimeout(async function(){ if(asked) return; var api=window.pawnDesktop; if(!api||!api.getSettings||!api.restoreLatestBackup) return;
+            try{ var any=Object.keys(db||{}).some(function(k){ return typeof hasDayData==='function'?hasDayData(k):true; }); if(any) return;
+                var st=await api.getSettings(); if(!st||!st.config||st.config.dataSource!=='usb-ask') return; asked=true;
+                var res=await api.restoreLatestBackup(); if(res&&res.ok) toast('กู้คืนข้อมูลจากไฟล์สำรองแล้ว');
+            }catch(e){} },1200); return r; }; initApp.__dsWrapped=true; }
+    function boot(){ wrapInit(); applyAll(); }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
+</script>

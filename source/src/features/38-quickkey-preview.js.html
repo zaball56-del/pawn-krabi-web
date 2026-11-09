@@ -1,0 +1,47 @@
+<script id="qs-preview-js">
+(function(){
+  var m=document.getElementById('quick-scan-modal'); if(!m) return;
+  var card=m.firstElementChild; if(!card||card.querySelector('.qs-cols')) return;
+  var h2=card.querySelector('h2'), p=h2&&h2.nextElementSibling, types=card.querySelector('.qs-types');
+  var secs=card.querySelectorAll('.qs-sec'), msg=document.getElementById('qs-msg');
+  var btns=card.querySelector('button[onclick*="submitQuickScan"]').parentElement;
+  var recent=document.getElementById('qs-recent').closest('.mt-4');
+  var cols=document.createElement('div'); cols.className='qs-cols';
+  var L=document.createElement('div'); L.className='qs-left';
+  var R=document.createElement('div'); R.className='qs-right';
+  [h2,p,types].concat(Array.prototype.slice.call(secs)).forEach(function(e){ if(e) L.appendChild(e); });
+  var hh=document.createElement('div'); hh.className='qs-pv-h'; hh.textContent='ตัวอย่างสด · ตรวจก่อนบันทึก';
+  var c1=document.createElement('div'); c1.className='qs-pv-card empty'; c1.id='qs-pv-old';
+  var ar=document.createElement('div'); ar.className='qs-pv-arrow'; ar.textContent='↓ ติดแทนด้วย';
+  var c2=document.createElement('div'); c2.className='qs-pv-card new empty'; c2.id='qs-pv-new';
+  R.appendChild(hh);R.appendChild(c1);R.appendChild(ar);R.appendChild(c2);R.appendChild(msg);R.appendChild(recent);R.appendChild(btns);
+  cols.appendChild(L);cols.appendChild(R);card.appendChild(cols);
+  var NM={'ส':'ส่งขาย','พ':'พ้นกำหนด','ผ':'ผ่อน','ถ':'ไถ่ถอน'};
+  var BG={'ส':'linear-gradient(135deg,#fde68a,#fcd34d)','พ':'linear-gradient(135deg,#ddd6fe,#c4b5fd)','ผ':'linear-gradient(135deg,#bbf7d0,#86efac)','ถ':'linear-gradient(135deg,#fecdd3,#fda4af)'};
+  var AB=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  function v(id){var e=document.getElementById(id);return e?String(e.value||'').trim():''}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function money(s){ if(!s) return '—'; return '฿ '+esc(s.indexOf('.')>-1?s:s)}
+  function card1(t,mo,tk,bk,am){
+    var mn=parseInt(mo,10), ml=(mn>=1&&mn<=12)?AB[mn-1]+' ('+mn+')':'';
+    c1.style.background=BG[t]||''; c1.className='qs-pv-card'+((tk||bk||am)?'':' empty');
+    c1.innerHTML='<div class="t1"><span>ตั๋วเดิม'+(t?' · '+esc(NM[t])+' ('+esc(t)+')':' · ยังไม่เลือกประเภท')+'</span><span>'+esc(ml)+'</span></div><div class="t2">'+(tk?esc(tk):'—')+' <small>/ เล่ม '+(bk?esc(bk):'—')+'</small></div><div class="t3">'+money(am)+'</div>';
+  }
+  function card2(tk,bk,am){
+    c2.className='qs-pv-card new'+((tk||bk||am)?'':' empty');
+    c2.innerHTML='<div class="t1"><span>ตั๋วใหม่</span></div><div class="t2">'+(tk?esc(tk):'—')+' <small>/ เล่ม '+(bk?esc(bk):'—')+'</small></div><div class="t3">'+money(am)+'</div>';
+  }
+  var last='';
+  function tick(){
+    try{
+      if(m.style.display!=='flex') return;
+      var key=[v('qs-type'),v('qs-month'),v('qs-ticket'),v('qs-book'),v('qs-amount'),v('qs-new-ticket'),v('qs-new-book'),v('qs-new-amount')].join('|');
+      if(key===last) return; last=key;
+      var a=key.split('|');
+      card1(a[0],a[1],a[2],a[3],a[4]); card2(a[5],a[6],a[7]);
+    }catch(e){ console.error('qs-preview',e); }
+  }
+  setInterval(tick,200); tick();
+})();
+</script>
+

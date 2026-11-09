@@ -1,0 +1,40 @@
+<script>
+/* v1.8 กล่องสรุปอัตโนมัติหน้าแรก — อ่านค่าจากกล่องคำนวณเดิมอย่างเดียว ไม่คำนวณเงินเอง ไม่ใช้อินเทอร์เน็ต */
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function g(id){ try{ return String(hpGet(id)||'').trim(); }catch(e){ return ''; } }
+  function ensure(){
+    var el=document.getElementById('hp-ai'); if(el) return el;
+    var anchor=document.querySelector('#home-page .hp-grid4'); if(!anchor) return null;
+    el=document.createElement('div'); el.id='hp-ai';
+    anchor.parentNode.insertBefore(el,anchor); return el;
+  }
+  function build(){
+    var el=ensure(); if(!el) return;
+    var pc=g('calc-pledge-count'), p=g('calc-pledge'), rc=g('calc-redemption-count'), r=g('calc-redemption'), bal=g('calc-balance');
+    var pn=Number(cleanNumberString(pc))||0, rn=Number(cleanNumberString(rc))||0;
+    var bar=document.getElementById('ck-bar'), issues=0, bad=false;
+    if(bar && bar.style.display==='flex'){ var m=(bar.textContent||'').match(/พบ\s*(\d+)/); issues=m?Number(m[1]):1; bad=bar.className==='bad'; }
+    var locked=false; try{ locked=!!(window.__isLocked && window.__isLocked(currentDate)); }catch(e){}
+    var t;
+    if(!pn && !rn){
+      t='วันนี้ยังไม่มีรายการจำนำหรือไถ่ถอน กด “คีย์ด่วน” หรือ “นำเข้า สธ.3” เพื่อเริ่มบันทึก';
+    } else {
+      t='จำนำ <b style="color:#c7d2fe">'+esc(pn)+' ราย</b> ('+esc(p)+' บาท) · ไถ่ถอน <b style="color:#99f6e4">'+esc(rn)+' ราย</b> ('+esc(r)+' บาท)';
+      if(rn>pn) t+=' ไถ่ถอนมากกว่าจำนำ '+(rn-pn)+' ราย'; else if(pn>rn) t+=' จำนำมากกว่าไถ่ถอน '+(pn-rn)+' ราย'; else t+=' จำนำและไถ่ถอนเท่ากัน';
+      t+=' ยอดคงเหลือ '+esc(bal);
+    }
+    t+=' · ';
+    t+= issues ? '<b>พบ '+issues+' รายการที่ควรตรวจสอบ'+(bad?' (ร้ายแรง)':'')+'</b>' : '<b class="ok">ตรวจความสอดคล้องแล้ว ไม่พบความผิดปกติ</b>';
+    t+= locked ? ' · ปิดยอดวันนี้แล้ว' : '';
+    el.innerHTML='<div class="ai-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="#0a1020" aria-hidden="true"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></div>'
+      +'<div class="ai-b"><div class="ai-t">สรุปอัตโนมัติของวันนี้ · คำนวณในเครื่อง</div><div class="ai-x">'+t+'</div>'
+      +'<div class="ai-a">'+(issues?'<button type="button" class="p" onclick="openChecks()">ดูรายการที่พบ</button>':'')
+      +'<button type="button"'+(issues?'':' class="p"')+' onclick="openDayClose()">ปิดยอดวัน / เงินเบิก</button></div></div>';
+  }
+  if(typeof renderHome==='function'){
+    var o=renderHome;
+    renderHome=function(){ var r=o.apply(this,arguments); try{ build(); }catch(e){ console.error('hp-ai',e); } return r; };
+  }
+})();
+</script>

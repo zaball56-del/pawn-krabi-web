@@ -1,0 +1,306 @@
+<style id="mob-css">
+@media (max-width:640px){
+/* ===== บัญชีรายวันบนมือถือ ===== */
+html body.app-shell:not(.page-home) header{position:sticky;top:0;z-index:40}
+html body.app-shell:not(.page-home) header > div{flex-direction:row !important;flex-wrap:nowrap !important;gap:6px !important;padding:8px 10px 8px 64px !important;min-height:54px;align-items:center !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1){display:flex !important;flex:1;min-width:0;margin:0 !important;align-items:center}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) > div{display:block !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) h1{color:#fff !important;display:block !important;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:15px !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1){min-width:90px;flex:1 1 auto}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) img{display:none !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) p{display:none !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) h1{font-size:16px !important;white-space:nowrap}
+html body.app-shell:not(.page-home) header > div > div:nth-child(2){flex:none;flex-wrap:nowrap !important;gap:6px !important;margin:0 !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button:not(#hdr-gear):not(#m-add):not(#m-more),
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button[onclick*="openQuickScanModal"],
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button[onclick*="addRow"]:not(#m-add),
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button[onclick*="openPrintPreview"],
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button[onclick*="logout"]{display:none !important}
+html body.app-shell:not(.page-home) #m-add{display:flex !important;width:40px;height:40px;min-width:0 !important;padding:0 !important;border-radius:12px !important;font-size:20px !important;background:rgba(255,255,255,.25) !important;color:#fff !important;align-items:center;justify-content:center;border:0}
+html body.app-shell:not(.page-home) header #hdr-tools>summary{font-size:0 !important;width:40px;height:40px;padding:0 !important;display:flex !important;align-items:center;justify-content:center;border-radius:12px !important}
+html body.app-shell:not(.page-home) header #hdr-tools>summary::after{content:"⋯";font-size:22px;color:#4338ca;line-height:1}
+html body.app-shell:not(.page-home) header #hdr-tools>summary::marker,html body.app-shell:not(.page-home) header #hdr-tools>summary::-webkit-details-marker{display:none}
+html body.app-shell:not(.page-home) header #hdr-tools .hdr-menu-panel{position:fixed !important;left:10px !important;right:10px !important;top:60px !important;max-height:70vh;width:auto !important}
+/* ซ่อนส่วนที่ใหญ่/ซ้ำซ้อน */
+html body.app-shell:not(.page-home) #daily-balance-calculator{display:none !important}
+html body.app-shell:not(.page-home) #ledger-page > div.print-only{display:none !important}
+html body.app-shell:not(.page-home) #ur-bar{display:none !important}
+html body.app-shell:not(.page-home) #ledger-page{padding:6px 6px 96px !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print:not(#daily-balance-calculator){padding:6px !important;border-radius:14px !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child{display:flex !important;flex-wrap:nowrap !important;gap:6px !important;width:100%;align-items:center}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div{display:flex;align-items:center;gap:6px;flex-wrap:nowrap !important;width:100%}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child label{display:none !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child input[type=date]{flex:1;min-width:0;height:40px !important;font-size:15px !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child button{flex:none;height:40px;min-width:40px;padding:0 10px !important;white-space:nowrap}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div > span:last-child{display:none !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2){display:none !important;margin-top:6px;flex-direction:column;align-items:stretch !important;gap:6px !important}
+html body.app-shell.m-search:not(.page-home) #ledger-page > section.no-print > div:nth-child(2){display:flex !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2) > *{width:100% !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2) input,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2) select,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2) button{height:42px;font-size:15px !important}
+html body.app-shell:not(.page-home) #ledger-page > section:not(.no-print) > div.no-print{display:none !important}
+/* ตัวควบคุม: สรุป + แท็บเดือน */
+#m-ctl{display:none}
+html body.app-shell:not(.page-home) #m-ctl{display:block}
+#m-date{font-size:13px;font-weight:700;color:#a7f3d0;margin:0 2px 6px}
+#m-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+#m-sum button{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);border-radius:12px;padding:6px 8px;text-align:left;color:#e8ecf8;font-family:inherit;cursor:pointer}
+#m-sum small{display:block;font-size:10.5px;color:#aab4d4}#m-sum b{display:block;font-size:15px;line-height:1.25;font-variant-numeric:tabular-nums}#m-sum i{display:block;font-style:normal;font-size:10px;color:#94a3b8;white-space:nowrap}
+#m-sum button.k b{color:#5eead4}
+#m-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch}
+#m-tabs button{flex:none;position:relative;border:0;border-radius:999px;padding:8px 12px;background:rgba(255,255,255,.1);color:#c7d2fe;font:700 14px Sarabun,sans-serif;cursor:pointer}
+#m-tabs button.on{background:#6366f1;color:#fff}
+#m-tabs button em{position:absolute;top:-3px;right:-2px;background:#f59e0b;color:#1c1917;font-style:normal;font-size:10px;border-radius:99px;padding:0 5px;line-height:15px}
+/* ตาราง */
+html body.app-shell:not(.page-home) #ledger-page > section:not(.no-print){padding:0 !important;border-radius:16px !important}
+html body.app-shell:not(.page-home) .ledger-scroll{overflow:visible !important;max-height:none !important}
+html body.app-shell:not(.page-home) #ledger-page table{width:100% !important;min-width:0 !important;table-layout:fixed}
+html body.app-shell:not(.page-home) #ledger-page table td,html body.app-shell:not(.page-home) #ledger-page table th{padding:4px 3px !important}
+html body.app-shell:not(.page-home) #ledger-page table tbody input,html body.app-shell:not(.page-home) #ledger-page table tbody select{height:42px !important;font-size:15px !important;font-weight:700;min-width:0;width:100% !important;border-radius:10px !important}
+html body.app-shell:not(.page-home) #ledger-page table thead th{font-size:11px !important;position:static !important}
+html body.app-shell:not(.page-home) #ledger-page table thead tr:first-child th:first-child,html body.app-shell:not(.page-home) #ledger-page table tbody tr > td:first-child{width:46px !important;min-width:0 !important}
+html body.app-shell:not(.page-home) #ledger-page table tbody tr > td:first-child{font-size:11px !important;white-space:nowrap}
+/* แถบล่าง */
+#m-bar{display:none}
+html body.app-shell:not(.page-home) #m-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:44;height:62px;padding:0 6px env(safe-area-inset-bottom);background:#0f172a;border-top:1px solid rgba(255,255,255,.14);align-items:center;justify-content:space-around}
+#m-bar button{border:0;background:none;color:#cbd5e1;font:600 10.5px Sarabun,sans-serif;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;padding:4px 2px;cursor:pointer}
+#m-bar button b{font-size:19px;line-height:1;font-weight:400}
+#m-bar button.main{background:#f59e0b;color:#1c1917;border-radius:16px;flex-direction:row;gap:6px;padding:10px 18px;font-size:14px;font-weight:700}
+#m-bar button.main b{font-size:16px}
+#m-bar button:disabled{opacity:.35}
+html body.app-shell:not(.page-home) #save-indicator{bottom:72px !important;left:8px !important;top:auto !important}
+html body.app-shell:not(.page-home) #toast{bottom:76px !important;left:10px !important;right:10px !important}
+}
+@media (min-width:641px){#m-ctl,#m-bar{display:none !important}}
+
+@media (max-width:640px){
+html body #quick-scan-modal.fixed{align-items:flex-end !important;padding:0 !important}
+html body #quick-scan-modal.fixed > div{max-width:none !important;width:100% !important;max-height:none !important;height:100%;border-radius:0 !important;padding:0 !important;display:flex;flex-direction:column;overflow:hidden !important}
+html body #quick-scan-modal.fixed .qs-cols{display:flex !important;flex-direction:column;min-height:0 !important;flex:1;overflow-y:auto;padding:12px 14px 0;-webkit-overflow-scrolling:touch}
+html body #quick-scan-modal.fixed .qs-left,html body #quick-scan-modal.fixed .qs-right{display:contents !important;padding:0 !important;background:none !important;border:0 !important}
+html body #quick-scan-modal.fixed h2{order:1;font-size:18px !important;margin:0 38px 6px 0 !important}
+html body #quick-scan-modal.fixed .qs-left > p{display:none !important}
+html body #quick-scan-modal.fixed .qs-types{order:2;display:grid !important;grid-template-columns:repeat(4,1fr);gap:8px !important;margin:0 0 8px !important}
+html body #quick-scan-modal.fixed .qs-type-btn{width:auto !important;height:56px !important;min-height:56px !important;font-size:26px !important}
+html body #quick-scan-modal.fixed .qs-pv-h,html body #quick-scan-modal.fixed .qs-pv-arrow{display:none !important}
+html body #quick-scan-modal.fixed #qs-pv-old{order:3;margin:0 0 6px !important;padding:8px 12px !important}
+html body #quick-scan-modal.fixed #qs-pv-new{order:4;margin:0 0 8px !important;padding:8px 12px !important}
+html body #quick-scan-modal.fixed .qs-pv-card .t2{font-size:19px !important;line-height:1.2 !important}
+html body #quick-scan-modal.fixed .qs-pv-card .t1,html body #quick-scan-modal.fixed .qs-pv-card .t3{font-size:11px !important;line-height:1.3 !important;margin:0 !important}
+html body #quick-scan-modal.fixed .qs-sec{margin:0 0 8px !important}
+html body #quick-scan-modal.fixed .qs-sec:not(.new){order:5}
+html body #quick-scan-modal.fixed .qs-sec.new{order:6}
+html body #quick-scan-modal.fixed .qs-sec h3{font-size:13px !important;margin:0 0 4px !important}
+html body #quick-scan-modal.fixed .qs-grid{display:grid !important;grid-template-columns:1fr 1fr !important;gap:6px 8px !important}
+html body #quick-scan-modal.fixed .qs-grid label{font-size:12px !important;margin:0 0 2px !important;display:block}
+html body #quick-scan-modal.fixed .qs-in{height:48px !important;font-size:18px !important}
+html body #quick-scan-modal.fixed #qs-month-name{padding:0 !important;align-self:end;font-size:14px !important;height:48px;display:flex;align-items:center}
+html body #quick-scan-modal.fixed #qs-msg{order:7}
+html body #quick-scan-modal.fixed .qs-right > .mt-4{order:8;margin:6px 0 14px !important}
+html body #quick-scan-modal.fixed .qs-right > .mt-4 > p{display:none}
+html body #quick-scan-modal.fixed .qs-right > div:last-child{order:9;position:sticky;bottom:0;margin:0 -14px;padding:10px 14px calc(10px + env(safe-area-inset-bottom)) !important;background:#0f172a;border-top:1px solid rgba(255,255,255,.15);display:flex !important;gap:8px}
+html body #quick-scan-modal.fixed .qs-right > div:last-child button{height:52px;font-size:16px !important;padding:0 14px !important}
+html body #quick-scan-modal.fixed #qs-next{background:#f59e0b;color:#fff;border-radius:12px;font-weight:800;border:0;white-space:nowrap}
+}
+@media (min-width:641px){#qs-next{display:none !important}}
+
+#cam-ov{display:none;position:fixed;inset:0;z-index:100000;background:#000;flex-direction:column}
+#cam-ov.on{display:flex}
+#cam-ov video{flex:1;min-height:0;width:100%;object-fit:cover}
+#cam-ov .cam-top{position:absolute;top:0;left:0;right:0;padding:14px 16px;color:#fff;font:700 16px Sarabun,sans-serif;background:linear-gradient(#000a,#0000);display:flex;justify-content:space-between;align-items:center}
+#cam-ov .cam-fr{position:absolute;left:6%;right:6%;top:34%;height:22%;border:3px solid #f59e0b;border-radius:14px;box-shadow:0 0 0 100vmax #0006}
+#cam-ov .cam-bot{padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:#0f172a;color:#fff;font:600 15px Sarabun,sans-serif;display:flex;flex-direction:column;gap:8px}
+#cam-ov .cam-bot button,#cam-ov .cam-top button{border:0;border-radius:12px;padding:12px 16px;font:800 16px Sarabun,sans-serif;background:#f59e0b;color:#fff}
+#cam-ov .cam-top button{background:#ffffff30}
+#cam-raw{background:#1e293b;border-radius:10px;padding:8px 12px;min-height:22px;word-break:break-all;font-size:14px}
+.cam-btn{border:0;background:#f59e0b;color:#fff;border-radius:10px;padding:0 12px;height:48px;font-size:20px}
+.qs-camrow{display:flex;gap:8px;align-items:flex-end}.qs-camrow > div{flex:1}
+@media (min-width:641px){.cam-btn{display:none !important}}
+
+/* ---- nicer buttons ---- */
+.cam-btn{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;min-width:84px;padding:0 14px !important;border:0;border-radius:14px !important;color:#fff;font:800 15px Sarabun,sans-serif !important;background:linear-gradient(135deg,#fbbf24,#f97316) !important;box-shadow:0 6px 14px -6px rgba(249,115,22,.8),inset 0 1px 0 rgba(255,255,255,.45);transition:transform .08s}
+.cam-btn:active{transform:scale(.95)}
+.cam-btn svg{width:22px;height:22px;flex:none}
+@media (max-width:640px){
+html body #quick-scan-modal.fixed .qs-right > div:last-child{gap:10px;background:linear-gradient(#0f172a,#0b1224)}
+html body #quick-scan-modal.fixed .qs-right > div:last-child button{height:54px;border-radius:16px !important;font-weight:800;transition:transform .08s}
+html body #quick-scan-modal.fixed .qs-right > div:last-child button:active{transform:scale(.96)}
+html body #quick-scan-modal.fixed #qs-next{flex:0 0 auto;min-width:104px;background:linear-gradient(135deg,#fbbf24,#f97316) !important;box-shadow:0 6px 14px -6px rgba(249,115,22,.8),inset 0 1px 0 rgba(255,255,255,.45);font-size:16px !important}
+html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="submitQuickScan"]{flex:1;background:linear-gradient(135deg,#10b981,#0d9488) !important;box-shadow:0 6px 14px -6px rgba(16,185,129,.8),inset 0 1px 0 rgba(255,255,255,.35);color:#fff !important}
+html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qsClearFields"]{flex:0 0 auto;width:54px;padding:0 !important;font-size:0 !important;background:rgba(255,255,255,.1) !important;border:1.5px solid rgba(255,255,255,.28) !important;color:#fff !important}
+html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qsClearFields"]::before{content:"⟲";font-size:26px;line-height:1}
+html body #quick-scan-modal.fixed .qs-type-btn{box-shadow:0 3px 0 rgba(15,23,42,.12);transition:transform .08s}
+html body #quick-scan-modal.fixed .qs-type-btn:active{transform:translateY(2px);box-shadow:none}
+#m-next{background:linear-gradient(135deg,#fbbf24,#f97316) !important;border-radius:18px !important;box-shadow:0 8px 18px -6px rgba(249,115,22,.85),inset 0 1px 0 rgba(255,255,255,.45) !important}
+}
+#cam-ov .cam-bot button{background:linear-gradient(135deg,#fbbf24,#f97316);border-radius:16px;height:52px;box-shadow:0 6px 14px -6px rgba(249,115,22,.8)}
+#cam-ov .cam-top button{border-radius:999px;padding:8px 16px;background:#ffffff33;backdrop-filter:blur(6px)}
+
+/* tap reliability */
+html body.app-shell:not(.page-home) #m-bar{height:68px;gap:2px;padding-left:2px;padding-right:2px;touch-action:manipulation}
+#m-bar button{flex:1 1 0;min-width:0 !important;height:100%;padding:0 !important;justify-content:center;-webkit-tap-highlight-color:rgba(245,158,11,.35);touch-action:manipulation;user-select:none;-webkit-user-select:none;position:relative}
+#m-bar button.main{flex:1.7 1 0;height:52px;margin:0 4px;padding:0 6px !important}
+#m-bar button.main::after,#m-bar button:not(.main)::after{content:"";position:absolute;left:0;right:0;top:-8px;bottom:-8px}
+#m-bar button:active{transform:scale(.95)}
+html body.app-shell:not(.page-home) #m-bar{z-index:48 !important}html body.sb-open #m-bar{display:none !important}
+#m-bar button.m-press{background:rgba(245,158,11,.35) !important}#m-bar button.main.m-press{filter:brightness(1.15)}
+
+/* ---- scanner v2 ---- */
+#cam-ov{background:#000}
+#cam-ov .cam-top{padding:calc(14px + env(safe-area-inset-top)) 16px 28px;background:linear-gradient(#000c,#0000);z-index:3}
+#cam-ov .cam-top #cam-t{display:flex;align-items:center;gap:8px;font:800 17px Sarabun,sans-serif;letter-spacing:.2px}
+#cam-ov .cam-top #cam-t::before{content:"";width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.3);animation:camPulse 1.4s infinite}
+@keyframes camPulse{50%{box-shadow:0 0 0 9px rgba(34,197,94,0)}}
+#cam-ov .cam-fr{left:7%;right:7%;top:30%;height:26%;border:0;border-radius:20px;box-shadow:0 0 0 100vmax rgba(2,6,23,.62);z-index:2;pointer-events:none;
+ background:
+ linear-gradient(#fbbf24,#fbbf24) left top/34px 5px no-repeat,linear-gradient(#fbbf24,#fbbf24) left top/5px 34px no-repeat,
+ linear-gradient(#fbbf24,#fbbf24) right top/34px 5px no-repeat,linear-gradient(#fbbf24,#fbbf24) right top/5px 34px no-repeat,
+ linear-gradient(#fbbf24,#fbbf24) left bottom/34px 5px no-repeat,linear-gradient(#fbbf24,#fbbf24) left bottom/5px 34px no-repeat,
+ linear-gradient(#fbbf24,#fbbf24) right bottom/34px 5px no-repeat,linear-gradient(#fbbf24,#fbbf24) right bottom/5px 34px no-repeat}
+#cam-ov .cam-fr::after{content:"";position:absolute;left:10px;right:10px;top:8%;height:3px;border-radius:3px;background:linear-gradient(90deg,#0000,#f87171,#0000);box-shadow:0 0 14px 3px rgba(248,113,113,.7);animation:camLaser 1.8s ease-in-out infinite alternate}
+@keyframes camLaser{to{top:90%}}
+#cam-ov .cam-hint{position:absolute;left:0;right:0;top:calc(30% + 26% + 16px);text-align:center;color:#e2e8f0;font:600 14px Sarabun,sans-serif;z-index:3;text-shadow:0 1px 4px #000}
+#cam-ov .cam-bot{background:linear-gradient(#0000,#020617 38%);padding:28px 16px calc(16px + env(safe-area-inset-bottom));z-index:3;position:relative}
+#cam-raw{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(8px);border-radius:14px !important;padding:10px 14px !important;font:700 14px Sarabun,sans-serif;text-align:center;color:#fff}
+#cam-ov .cam-row{display:flex;gap:10px}
+#cam-ov .cam-bot button{flex:1;height:52px;border-radius:16px}
+#cam-ov .cam-bot #cam-pic{background:linear-gradient(135deg,#fbbf24,#f97316)}
+#cam-ov .cam-bot #cam-torch{flex:0 0 56px;font-size:22px;padding:0;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.28);box-shadow:none}
+#cam-ov .cam-bot #cam-torch.on{background:#fde047;color:#78350f;border-color:#fde047}
+
+/* toast must never swallow taps; keep it above the bottom bar */
+#toast{pointer-events:none !important}
+@media (max-width:640px){html body.app-shell:not(.page-home) #toast{bottom:84px !important;left:12px !important;right:12px !important;max-width:none}}
+@media (max-width:640px){
+/* header symmetry: hamburger left, action buttons pinned right */
+html body.app-shell:not(.page-home) header > div{justify-content:flex-start !important;margin:0 !important;max-width:none !important;width:100% !important;padding:8px 12px 8px 68px !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(2){margin-left:auto !important;width:auto !important;min-width:0 !important;flex:none !important;justify-content:flex-end !important}
+}
+
+/* desktop ledger header: logo snug against the menu button, same type as the home header */
+@media (min-width:641px){
+html body.app-shell:not(.page-home) header > div{padding-left:12px !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1){gap:12px;align-items:center}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) img{width:38px !important;height:38px !important;margin:0 !important;flex:none;box-shadow:0 4px 10px rgba(0,0,0,.28)}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) > div{margin:0 !important;padding:0 !important}
+html body.app-shell:not(.page-home) header h1{font:700 17px/1.25 Sarabun,sans-serif !important;letter-spacing:0 !important;margin:0 !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) p{font:400 12px/1.3 Sarabun,sans-serif !important;margin:0 !important}
+}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-type(2){display:none !important}
+</style>
+<div id="m-bar" class="no-print"><button type="button" id="m-undo"><b>↶</b>เลิกทำ</button><button type="button" id="m-find"><b>🔍</b>ค้นหา</button><button type="button" class="main" id="m-quick"><b>⚡</b>คีย์ด่วน</button><button type="button" id="m-addrow"><b>＋</b>เพิ่มแถว</button><button type="button" id="m-print"><b>🖨</b>พิมพ์</button></div>
+<script id="mob-js">
+(function(){
+  var MQ=window.matchMedia('(max-width:640px)'), SEL=null, viewCss=null, lastSig='';
+  var SH={'มกราคม':'ม.ค.','กุมภาพันธ์':'ก.พ.','มีนาคม':'มี.ค.','เมษายน':'เม.ย.','พฤษภาคม':'พ.ค.','มิถุนายน':'มิ.ย.','กรกฎาคม':'ก.ค.','สิงหาคม':'ส.ค.','กันยายน':'ก.ย.','ตุลาคม':'ต.ค.','พฤศจิกายน':'พ.ย.','ธันวาคม':'ธ.ค.'};
+  function $(i){return document.getElementById(i)}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function num(v){var n=Number(String(v==null?'':v).replace(/,/g,''));return isFinite(n)?n:0}
+  function fmt(n){return Math.round(n).toLocaleString('en-US')}
+  function compact(n){n=num(n); if(Math.abs(n)>=1e6) return (n/1e6).toFixed(2)+' ล.'; return fmt(n)}
+  function visible(){ var a=$('app-container'); return MQ.matches&&a&&a.style.display==='flex'&&document.body.classList.contains('app-shell')&&!document.body.classList.contains('page-home')&&$('ledger-page'); }
+  function day(){ try{ return db[currentDate]; }catch(e){ return null; } }
+  function sumRow(d,i){ var a=d&&d.data&&d.data['สรุปประจำวัน']; return (a&&a[i])||{}; }
+  function setup(){
+    var lp=$('ledger-page'); if(!lp||$('m-ctl')) return !!$('m-ctl');
+    var secs=lp.querySelectorAll(':scope > section'); var tableSec=secs[secs.length-1]; if(!tableSec) return false;
+    var c=document.createElement('div'); c.id='m-ctl'; c.className='no-print'; c.innerHTML='<div id="m-date"></div><div id="m-sum"></div><div id="m-tabs"></div>';
+    lp.insertBefore(c,tableSec);
+    var hd=document.querySelector('header > div > div:nth-child(2)');
+    if(hd&&!$('m-add')){ var b=document.createElement('button'); b.id='m-add'; b.type='button'; b.textContent='＋'; b.setAttribute('aria-label','เพิ่มแถว'); b.style.display='none'; b.onclick=function(){ try{addRow()}catch(e){} }; hd.insertBefore(b,hd.firstChild); }
+    var pn=document.querySelector('#hdr-tools .hdr-menu-panel');
+    if(pn&&!$('m-logout')){ var o=document.createElement('button'); o.id='m-logout'; o.type='button'; o.className='menu-item'; o.innerHTML='<i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ'; o.onclick=function(){ try{logout()}catch(e){} }; pn.appendChild(o); }
+    $('m-undo').onclick=function(){ try{undoEdit()}catch(e){} };
+    $('m-find').onclick=function(){ document.body.classList.toggle('m-search'); if(document.body.classList.contains('m-search')){ var s=$('search-ticket'); if(s) setTimeout(function(){s.focus()},50); } };
+    $('m-quick').onclick=function(){ try{openQuickScanModal()}catch(e){} };
+    $('m-addrow').onclick=function(){ try{addRow()}catch(e){} };
+    $('m-print').onclick=function(){ var b=[].slice.call(document.querySelectorAll('header button')).filter(function(x){return /openPrintPreview/.test(x.getAttribute('onclick')||'')})[0]; if(b) b.click(); else try{openPrintPreview()}catch(e){} };
+    $('m-sum').addEventListener('click',function(e){ if(e.target.closest('button')){ SEL='S'; refresh(true); } });
+    $('m-tabs').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; SEL=b.getAttribute('data-s'); refresh(true); });
+    return true;
+  }
+  function defaultSel(d){ var ms=d.months||[]; var mi=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(String(currentDate).slice(5,7))-1]; var i=ms.indexOf(mi); return String(i>=0?i:Math.max(0,ms.length-1)); }
+  function applyView(d){
+    var N=(d.months||[]).length; if(!viewCss){ viewCss=document.createElement('style'); viewCss.id='m-view-css'; document.head.appendChild(viewCss); }
+    var T='#ledger-page table', css='@media (max-width:640px){body.app-shell:not(.page-home) ', rules=[];
+    function hideMonth(i){ rules.push(T+' thead tr:first-child th:nth-child('+(i+2)+')'); for(var k=1;k<=3;k++){ rules.push(T+' thead tr:nth-child(2) th:nth-child('+(3*i+k)+')'); rules.push(T+' tbody tr td:nth-child('+(3*i+k+1)+')'); } }
+    function hideSum(){ rules.push(T+' thead tr:first-child th:nth-child('+(N+2)+')'); for(var k=1;k<=3;k++){ rules.push(T+' thead tr:nth-child(2) th:nth-child('+(3*N+k)+')'); rules.push(T+' tbody tr td:nth-child('+(3*N+k+1)+')'); } }
+    if(SEL==='S'){ for(var i=0;i<N;i++) hideMonth(i); }
+    else { var s=Number(SEL); for(var j=0;j<N;j++) if(j!==s) hideMonth(j); hideSum(); }
+    css=rules.length?('@media (max-width:640px){'+rules.map(function(r){return 'body.app-shell:not(.page-home) '+r}).join(',')+'{display:none !important}}'):'';
+    viewCss.textContent=css;
+    // โหมดสรุป: แสดงเฉพาะแถวที่มีข้อมูลสรุป (แถวที่ 1-5)
+    var rows=document.querySelectorAll('#ledger-page table tbody tr'); for(var r=0;r<rows.length;r++){ rows[r].style.display=(SEL==='S'&&r>4)?'none':''; }
+  }
+  function numpad(){ try{ document.querySelectorAll('#table-body input, table input').forEach(function(i){ var c=i.className||'', t=i.getAttribute('oninput')||'', b=i.getAttribute('onblur')||'', f=i.getAttribute('onfocus')||''; if(i.type!=='text'||i.getAttribute('inputmode'))return; if(/ticket-input-/.test(c)||/'ticket'/.test(t)||/'book'/.test(t)){i.setAttribute('inputmode','numeric');i.setAttribute('enterkeyhint','next');} else if(/amount-input-/.test(c)||/'amount'/.test(b)||/replace\(\/,\/g/.test(f)||/placeholder/.test(i.outerHTML.slice(0,200))&&/จำนวน/.test(i.getAttribute('placeholder')||'')){i.setAttribute('inputmode','decimal');i.setAttribute('enterkeyhint','next');} }); }catch(e){} }
+  function refresh(force){ numpad();
+    if(!visible()){ return; } if(!setup()) return;
+    var d=day(); if(!d||!Array.isArray(d.months)) return;
+    if(SEL===null||(SEL!=='S'&&Number(SEL)>=d.months.length)) SEL=defaultSel(d);
+    var rows=['ย/ม','รับจำนำ','ไถ่ถอน','คงเหลือ'].map(function(t,i){var r=sumRow(d,i);return {t:t,c:r.count,a:r.amount}});
+    var cnt=d.months.map(function(m){ return (d.data[m]||[]).filter(function(r){return r&&String(r.ticket||'').trim()}).length; });
+    var sig=currentDate+'|'+SEL+'|'+JSON.stringify(rows)+'|'+d.months.join(',')+'|'+cnt.join(',')+'|'+document.querySelectorAll('#ledger-page table tbody tr').length;
+    if(!force&&sig===lastSig) return; lastSig=sig;
+    var dt=$('display-date-th'),dn=$('day-name-display'); $('m-date').textContent=dt?('📅 '+dt.textContent.trim()+' '+(dn?dn.textContent.trim():'')):'';
+    $('m-sum').innerHTML=rows.map(function(r,i){ return '<button type="button" class="'+(i===3?'k':'')+'"><small>'+r.t+'</small><b>'+(r.c===''||r.c==null?'-':fmt(num(r.c)))+'</b><i>'+(r.a===''||r.a==null?'&nbsp;':compact(r.a))+'</i></button>'; }).join('');
+    $('m-tabs').innerHTML=d.months.map(function(m,i){ return '<button type="button" data-s="'+i+'" class="'+(String(i)===SEL?'on':'')+'">'+esc(SH[m]||m||('ช่อง '+(i+1)))+(cnt[i]?'<em>'+cnt[i]+'</em>':'')+'</button>'; }).join('')+'<button type="button" data-s="S" class="'+(SEL==='S'?'on':'')+'">สรุป</button>';
+    applyView(d);
+    var u=$('m-undo'),ub=$('ur-u'); if(u&&ub) u.disabled=ub.disabled;
+  }
+  // เชื่อมกับการวาดตารางใหม่
+  function hook(name){ var f=window[name]; if(typeof f!=='function'||f.__mob) return; var w=function(){ var r=f.apply(this,arguments); try{ lastSig=''; setTimeout(function(){refresh(true)},0); }catch(e){} return r; }; w.__mob=1; window[name]=w; try{ eval(name+'=w'); }catch(e){} }
+  function init(){ ['renderTable','changeDate','updateSummaryColumn'].forEach(hook); }
+  init(); setTimeout(init,1500); setTimeout(init,4000);
+  setInterval(function(){ try{ refresh(false); }catch(e){} },700);
+  MQ.addEventListener&&MQ.addEventListener('change',function(){ lastSig=''; refresh(true); if(!MQ.matches&&viewCss) viewCss.textContent=''; });
+  window.addEventListener('resize',function(){ if(!MQ.matches&&viewCss) viewCss.textContent=''; });
+})();
+
+  (function(){ try{
+    var btn=document.createElement('button'); btn.id='m-next'; btn.type='button'; btn.textContent='ถัดไป ⏎'; document.body.appendChild(btn);
+    var st=document.createElement('style'); st.id='m-next-css'; st.textContent='#m-next{display:none;position:fixed;right:10px;z-index:99990;background:#f59e0b;color:#fff;border:0;border-radius:14px;padding:12px 22px;font:800 17px Sarabun,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35)}@media (min-width:641px){#m-next{display:none !important}}'; document.head.appendChild(st);
+    function cur(){ var a=document.activeElement; return a&&a.tagName==='INPUT'&&/numeric|decimal/.test(a.getAttribute('inputmode')||'')&&a.closest('table')?a:null; }
+    function place(){ var a=cur(); if(!a||!window.matchMedia('(max-width:640px)').matches){btn.style.display='none';return;} var vv=window.visualViewport; var bottom=vv?(window.innerHeight-(vv.height+vv.offsetTop)):0; btn.style.bottom=(Math.max(0,bottom)+10)+'px'; btn.style.display='block'; }
+    document.addEventListener('focusin',function(){setTimeout(place,50)}); document.addEventListener('focusout',function(){setTimeout(place,150)});
+    if(window.visualViewport){ visualViewport.addEventListener('resize',place); visualViewport.addEventListener('scroll',place); }
+    btn.addEventListener('pointerdown',function(e){e.preventDefault()});
+    btn.addEventListener('click',function(){ var a=cur(); if(!a)return; a.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',keyCode:13,which:13,bubbles:true,cancelable:true})); setTimeout(function(){ if(document.activeElement===a||!document.activeElement||document.activeElement===document.body){} place(); },80); });
+  }catch(e){} })();
+
+  (function(){ try{
+    var m=document.getElementById('quick-scan-modal'); if(!m)return;
+    ['qs-ticket','qs-book','qs-new-ticket','qs-new-book'].forEach(function(id){var e=document.getElementById(id); if(e){e.setAttribute('inputmode','numeric');}});
+    var bar=m.querySelector('.qs-right > div:last-child'); if(bar&&!document.getElementById('qs-next')){ var nb=document.createElement('button'); nb.type='button'; nb.id='qs-next'; nb.textContent='ถัดไป ⏎'; nb.addEventListener('pointerdown',function(e){e.preventDefault()}); nb.addEventListener('click',function(){ var a=document.activeElement; if(!a||!/^qs-/.test(a.id||''))a=document.getElementById('qs-month'); if(a===document.getElementById('qs-month')&&document.activeElement!==a)a.focus(); a.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',keyCode:13,which:13,bubbles:true,cancelable:true})); }); bar.insertBefore(nb,bar.firstChild); }
+    function fit(){ if(!window.matchMedia('(max-width:640px)').matches||!window.visualViewport){m.style.top='';m.style.height='';m.style.bottom='';return;} var v=visualViewport; m.style.bottom='auto'; m.style.top=v.offsetTop+'px'; m.style.height=v.height+'px'; }
+    if(window.visualViewport){ visualViewport.addEventListener('resize',fit); visualViewport.addEventListener('scroll',fit); }
+    new MutationObserver(fit).observe(m,{attributes:true,attributeFilter:['class']}); fit();
+  }catch(e){} })();
+
+  (function(){ try{
+    var ov=document.createElement('div'); ov.id='cam-ov';
+    ov.innerHTML='<video id="cam-v" playsinline muted autoplay></video><div class="cam-top"><span id="cam-t">สแกนบาร์โค้ด</span><button type="button" id="cam-x">ปิด ✕</button></div><div class="cam-fr"></div><div class="cam-hint">วางบาร์โค้ดให้อยู่กลางกรอบ ถือให้นิ่ง</div><div class="cam-bot"><div id="cam-raw">ส่องบาร์โค้ดให้อยู่ในกรอบสีส้ม</div><div class="cam-row"><button type="button" id="cam-torch" aria-label="ไฟฉาย">🔦</button><button type="button" id="cam-pic">ถ่ายรูปบาร์โค้ดแทน</button></div><input type="file" id="cam-file" accept="image/*" capture="environment" style="display:none"></div>';
+    document.body.appendChild(ov);
+    var stream=null,timer=null,det=null,target=null,busy=false;
+    function $(i){return document.getElementById(i)}
+    function raw(t){$('cam-raw').textContent=t}
+    function stop(){ if(timer){clearInterval(timer);timer=null} if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null} ov.classList.remove('on'); var tb=document.getElementById('cam-torch'); if(tb)tb.classList.remove('on'); }
+    function done(v){ var el=$(target); stop(); if(!el)return; el.value=String(v).trim(); el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); try{ var o=$('qs-msg'); if(o){o.textContent='สแกนได้: '+v;} }catch(e){} el.focus(); }
+    function mk(){ if(det)return det; if(!('BarcodeDetector' in window))return null; try{det=new BarcodeDetector();}catch(e){det=null} return det; }
+    async function tick(){ if(busy||!stream)return; busy=true; try{ var r=await det.detect($('cam-v')); if(r&&r.length){ done(r[0].rawValue); } }catch(e){} busy=false; }
+    async function open(id){ target=id; var d=mk(); ov.classList.add('on'); raw('กำลังเปิดกล้อง...');
+      if(!d){ raw('เบราว์เซอร์นี้ยังไม่รองรับสแกนสด ใช้ปุ่มถ่ายรูปแทนได้ (หรือเปิดด้วย Chrome บน Android)'); }
+      try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}); var v=$('cam-v'); v.srcObject=stream; await v.play(); raw('ส่องบาร์โค้ดให้อยู่ในกรอบสีส้ม'); if(d) timer=setInterval(tick,250); }
+      catch(e){ raw('เปิดกล้องไม่ได้: '+(e&&e.name||e)+' (ตรวจสอบว่ากดอนุญาตใช้กล้อง) · ใช้ปุ่มถ่ายรูปแทนได้'); } }
+    $('cam-x').onclick=stop;
+    $('cam-torch').onclick=async function(){ try{ var t=stream&&stream.getVideoTracks()[0]; var cp=t&&t.getCapabilities&&t.getCapabilities(); if(!cp||!cp.torch){raw('เครื่องนี้เปิดไฟฉายผ่านเว็บไม่ได้');return;} var on=!this.classList.contains('on'); await t.applyConstraints({advanced:[{torch:on}]}); this.classList.toggle('on',on); }catch(e){raw('เปิดไฟฉายไม่ได้');} };
+    $('cam-pic').onclick=function(){ $('cam-file').click() };
+    $('cam-file').onchange=async function(){ var f=this.files&&this.files[0]; this.value=''; if(!f)return; var d=mk(); if(!d){raw('เบราว์เซอร์นี้อ่านบาร์โค้ดจากรูปไม่ได้');return;} raw('กำลังอ่านรูป...'); try{ var bm=await createImageBitmap(f); var r=await d.detect(bm); if(r&&r.length){done(r[0].rawValue);} else raw('อ่านบาร์โค้ดจากรูปไม่ได้ ลองถ่ายใหม่ให้ใกล้และคมขึ้น'); }catch(e){ raw('อ่านรูปไม่ได้: '+(e&&e.message||e)); } };
+    [['qs-ticket','สแกนเลขตั๋วเดิม'],['qs-new-ticket','สแกนเลขตั๋วใหม่']].forEach(function(p){ var inp=$(p[0]); if(!inp)return; var wrap=inp.parentElement; if(!wrap||wrap.querySelector('.cam-btn'))return; var row=document.createElement('div'); row.className='qs-camrow'; var b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกน</span>'; b.setAttribute('aria-label',p[1]); inp.style.flex='1'; inp.parentNode.insertBefore(row,inp); row.appendChild(inp); row.appendChild(b); b.onclick=function(){ $('cam-t').textContent=p[1]; open(p[0]); }; });
+  }catch(e){ try{console.error(e)}catch(_){} } })();
+
+  (function(){ try{
+    var bar=document.getElementById('m-bar'); if(!bar)return; var sx=0,sy=0,id=null,last=0;
+    bar.addEventListener('pointerdown',function(e){ sx=e.clientX; sy=e.clientY; var b=e.target.closest&&e.target.closest('button'); if(b){b.classList.add('m-press'); setTimeout(function(){b.classList.remove('m-press')},220);} });
+    bar.addEventListener('pointerup',function(e){ var b=e.target.closest&&e.target.closest('button'); if(!b||b.disabled)return; if(Math.abs(e.clientX-sx)>16||Math.abs(e.clientY-sy)>16)return; if(Date.now()-last<500)return; last=Date.now(); e.preventDefault(); try{navigator.vibrate&&navigator.vibrate(12)}catch(_){} b.click(); });
+    bar.addEventListener('click',function(e){ if(e.isTrusted&&Date.now()-last<500){ e.stopPropagation(); e.preventDefault(); } },true);
+  }catch(e){} })();
+</script>

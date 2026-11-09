@@ -1,0 +1,161 @@
+<script id="custody-js">
+(function(){
+  var KEY='pawn_krabi_custody';
+  function load(){ try{ var a=JSON.parse(localStorage.getItem(KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function save(a){ try{ localStorage.setItem(KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
+  function norm(v){ try{return normalizeCompareTicket(v)}catch(e){return String(v||'').trim().toLowerCase()} }
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function pad(n){return n<10?'0'+n:''+n}
+  function nowInfo(){var d=new Date();return {ts:d.getTime(),date:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),time:pad(d.getHours())+':'+pad(d.getMinutes())};}
+  function dth(k){var p=k.split('-');return p[2]+'/'+p[1]+'/'+(parseInt(p[0],10)+543)}
+  var NKEY='pawn_krabi_custody_names';
+  function getNames(){ try{ var a=JSON.parse(localStorage.getItem(NKEY)||'[]'); return Array.isArray(a)?a.filter(function(x){return typeof x==='string'&&x.trim()}):[]; }catch(e){ return []; } }
+  function setNames(a){ try{ localStorage.setItem(NKEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
+  window.custodyNamesGet=getNames;
+  window.custodyNamesAdd=function(v){ v=String(v||'').replace(/\s+/g,' ').trim(); if(!v) return false; var a=getNames(); if(a.some(function(x){return x.toLowerCase()===v.toLowerCase()})) return false; a.push(v); return setNames(a); };
+  window.custodyNamesDel=function(i){ var a=getNames(); if(i<0||i>=a.length) return false; a.splice(i,1); return setNames(a); };
+  var REASONS=['ตรวจสอบ','โชว์ลูกค้า','เตรียมขาย','อื่น ๆ'];
+  var mode='out', reason='ตรวจสอบ';
+  // สถานะปัจจุบันของแต่ละตั๋ว: คืนค่า {out:true, ev:เหตุการณ์เบิก} ถ้ายังไม่ได้คืน
+  function openMap(ev){
+    var m={};
+    ev.slice().sort(function(a,b){return a.ts-b.ts}).forEach(function(e){
+      if(e.void) return; var k=norm(e.ticket)+'|'+norm(e.book);
+      if(e.kind==='out') m[k]=e; else if(e.kind==='in') delete m[k];
+    });
+    return m;
+  }
+  window.custodyOpenList=function(){ var m=openMap(load()); return Object.keys(m).map(function(k){return m[k]}); };
+  window.custodyHistory=function(ticket,book){
+    var t=norm(ticket), b=norm(book);
+    return load().filter(function(e){return norm(e.ticket)===t&&(!b||!e.book||norm(e.book)===b)}).sort(function(x,y){return x.ts-y.ts});
+  };
+  // ตรวจว่าตั๋วนี้ถูกไถ่ถอนไปแล้วหรือไม่ (อ่านอย่างเดียว)
+  function redeemedOn(ticket,book){
+    var t=norm(ticket), b=norm(book), hit=null;
+    try{ for(var k in db){ if(k.length!==10||k.indexOf('-')<0) continue; var d=db[k]; if(!d||!d.months||!d.data) continue;
+      d.months.forEach(function(m){ (d.data[m]||[]).forEach(function(r){ if(r&&r.type==='ถ'&&norm(r.ticket)===t&&(!b||!r.book||norm(r.book)===b)){ if(!hit||k>hit) hit=k; } }); }); } }catch(e){}
+    return hit;
+  }
+  var modal;
+  function build(){
+    if(modal) return modal;
+    modal=document.createElement('div'); modal.id='custody-modal'; modal.className='fixed inset-0 z-50 hidden items-center justify-center p-4 no-print';
+    modal.innerHTML='<div class="cu-card" role="dialog" aria-modal="true" aria-label="เบิก-คืนทรัพย์จำนำ">'
+     +'<div class="cu-head"><h3>🔑 เบิก-คืนทรัพย์จำนำ</h3><button class="cu-x" id="cu-close" aria-label="ปิด">×</button></div>'
+     +'<div class="cu-body"><div class="cu-left">'
+     +'<div class="cu-tabs"><button class="cu-tab on out" id="cu-tab-out">เบิกออก</button><button class="cu-tab in" id="cu-tab-in">คืนเข้า</button></div>'
+     +'<div class="cu-row"><div style="flex:1"><label class="cu-l" for="cu-ticket">เลขตั๋ว</label><input class="cu-i" id="cu-ticket" inputmode="numeric" autocomplete="off"></div>'
+     +'<div style="flex:1"><label class="cu-l" for="cu-book">เล่มที่</label><input class="cu-i" id="cu-book" inputmode="numeric" autocomplete="off"></div></div>'
+     +'<label class="cu-l" for="cu-who">ผู้เบิก/ผู้คืน</label><select class="cu-i" id="cu-who"></select><div class="cu-hint" id="cu-who-hint"></div>'
+     +'<div id="cu-reason-wrap"><label class="cu-l">เหตุผล</label><div class="cu-chips" id="cu-chips"></div></div>'
+     +'<label class="cu-l" for="cu-note">หมายเหตุ (ถ้ามี)</label><input class="cu-i" id="cu-note" autocomplete="off">'
+     +'<div class="cu-warn" id="cu-warn"></div>'
+     +'<button class="cu-save" id="cu-save">บันทึกการเบิกออก</button></div>'
+     +'<div class="cu-right"><div class="cu-kpis" id="cu-kpis"></div><div class="cu-h">ของที่ยังไม่ได้คืน</div><div class="cu-list" id="cu-list"></div>'
+     +'<div class="cu-log"><div class="cu-h">ประวัติล่าสุด</div><div id="cu-log"></div></div></div></div></div>';
+    document.body.appendChild(modal);
+    document.getElementById('cu-close').onclick=close;
+    modal.addEventListener('mousedown',function(e){ if(e.target===modal) close(); });
+    document.getElementById('cu-tab-out').onclick=function(){setMode('out')};
+    document.getElementById('cu-tab-in').onclick=function(){setMode('in')};
+    document.getElementById('cu-save').onclick=submit;
+    ['cu-ticket','cu-book'].forEach(function(id){document.getElementById(id).addEventListener('input',warn)});
+    ['cu-ticket','cu-book','cu-who','cu-note'].forEach(function(id){document.getElementById(id).addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); })});
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&modal.style.display==='flex'&&!document.getElementById('ui-dialog')?.style.display.includes('flex')) close(); });
+    return modal;
+  }
+  function renderChips(){
+    var c=document.getElementById('cu-chips'); c.innerHTML='';
+    REASONS.forEach(function(r){ var b=document.createElement('button'); b.type='button'; b.className='cu-chip'+(r===reason?' on':''); b.textContent=r; b.onclick=function(){reason=r;renderChips()}; c.appendChild(b); });
+  }
+  function setMode(m){
+    mode=m; var o=document.getElementById('cu-tab-out'), i=document.getElementById('cu-tab-in');
+    o.classList.toggle('on',m==='out'); i.classList.toggle('on',m==='in');
+    document.getElementById('cu-reason-wrap').style.display=m==='out'?'':'none';
+    var s=document.getElementById('cu-save'); s.textContent=m==='out'?'บันทึกการเบิกออก':'บันทึกการคืนเข้า'; s.className='cu-save'+(m==='in'?' in':'');
+    document.getElementById('cu-who').previousElementSibling.textContent=m==='out'?'ผู้เบิก':'ผู้คืน';
+    warn();
+  }
+  function warn(){
+    var w=document.getElementById('cu-warn'), t=document.getElementById('cu-ticket').value.trim(), b=document.getElementById('cu-book').value.trim();
+    w.className='cu-warn'; w.textContent='';
+    if(!t) return;
+    var m=openMap(load()), k=norm(t)+'|'+norm(b), ex=m[k];
+    if(!ex&&!b){ Object.keys(m).forEach(function(kk){ if(kk.split('|')[0]===norm(t)) ex=m[kk]; }); }
+    if(mode==='out'){
+      if(ex){ w.textContent='⚠ ตั๋วนี้ถูกเบิกออกไปแล้วโดย '+ex.who+' เมื่อ '+dth(ex.date)+' '+ex.time+' และยังไม่ได้คืน'; return; }
+      var r=redeemedOn(t,b); if(r){ w.textContent='⚠ ตั๋วนี้มีรายการไถ่ถอนแล้วเมื่อ '+dth(r)+' — ตรวจสอบก่อนเบิก'; }
+    } else {
+      if(!ex){ w.textContent='⚠ ไม่พบประวัติการเบิกออกของตั๋วนี้ (หรือคืนไปแล้ว)'; }
+      else { w.className='cu-warn info'; w.textContent='เบิกโดย '+ex.who+' เมื่อ '+dth(ex.date)+' '+ex.time+' ('+ex.reason+')'; }
+    }
+  }
+  function render(){
+    var ev=load(), m=openMap(ev), list=Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return a.ts-b.ts}), n=nowInfo();
+    (function fillWho(){
+      var sel=document.getElementById('cu-who'), cur=sel.value, nm=getNames();
+      sel.innerHTML='<option value="">— เลือกชื่อ —</option>'+nm.map(function(x){return '<option value="'+esc(x)+'">'+esc(x)+'</option>'}).join('');
+      if(cur&&nm.indexOf(cur)<0) sel.insertAdjacentHTML('beforeend','<option value="'+esc(cur)+'">'+esc(cur)+'</option>');
+      sel.value=cur||'';
+      document.getElementById('cu-who-hint').innerHTML=nm.length?'<a href="#" onclick="event.preventDefault();openDataSettings()">จัดการรายชื่อในหน้าตั้งค่า</a>':'ยังไม่มีรายชื่อ · <a href="#" onclick="event.preventDefault();openDataSettings()">ไปเพิ่มชื่อผู้เบิกในหน้าตั้งค่า</a>';
+    })();
+    function days(e){ return Math.floor((new Date(n.date+'T00:00:00')-new Date(e.date+'T00:00:00'))/86400000); }
+    var today=list.filter(function(e){return days(e)<=0}).length, d3=list.filter(function(e){return days(e)>=3}).length, d7=list.filter(function(e){return days(e)>=7}).length;
+    document.getElementById('cu-kpis').innerHTML='<div class="cu-kpi"><b>'+list.length+'</b><span>ค้างทั้งหมด</span></div><div class="cu-kpi"><b>'+today+'</b><span>เบิกวันนี้</span></div><div class="cu-kpi w"><b>'+d3+'</b><span>ค้าง 3 วันขึ้นไป</span></div><div class="cu-kpi r"><b>'+d7+'</b><span>ค้าง 7 วันขึ้นไป</span></div>';
+    var L=document.getElementById('cu-list');
+    if(!list.length) L.innerHTML='<div class="cu-empty">ไม่มีของค้างอยู่ — ทุกชิ้นอยู่ในตู้เรียบร้อย ✔</div>';
+    else L.innerHTML=list.map(function(e,i){ var d=days(e); return '<div class="cu-item'+(d>=7?' d7':d>=3?' d3':'')+'"><div class="g"><div class="t">ตั๋ว '+esc(e.ticket)+(e.book?' · เล่ม '+esc(e.book):'')+'</div><div class="s">'+esc(e.who)+' · '+esc(e.reason)+' · '+dth(e.date)+' '+esc(e.time)+(d>0?' · ค้าง '+d+' วัน':' · วันนี้')+(e.note?' · '+esc(e.note):'')+'</div></div><button class="cu-btn" data-ret="'+esc(e.id)+'">คืนเข้า</button></div>'; }).join('');
+    Array.prototype.forEach.call(L.querySelectorAll('[data-ret]'),function(b){ b.onclick=function(){ var e=ev.filter(function(x){return x.id===b.getAttribute('data-ret')})[0]; if(!e) return; setMode('in'); document.getElementById('cu-ticket').value=e.ticket; document.getElementById('cu-book').value=e.book||''; warn(); var w=document.getElementById('cu-who'); if(e.who){ if(!Array.prototype.some.call(w.options,function(o){return o.value===e.who})) w.insertAdjacentHTML('beforeend','<option value="'+esc(e.who)+'">'+esc(e.who)+'</option>'); w.value=e.who; } w.focus(); }; });
+    var lg=ev.slice().sort(function(a,b){return b.ts-a.ts}).slice(0,12);
+    document.getElementById('cu-log').innerHTML=lg.length?lg.map(function(e){ return '<div class="'+(e.void?'v':'')+'"><b>'+(e.kind==='out'?'เบิกออก':'คืนเข้า')+'</b> ตั๋ว '+esc(e.ticket)+(e.book?'/'+esc(e.book):'')+' · '+esc(e.who)+' · '+dth(e.date)+' '+esc(e.time)+(e.void?' (ยกเลิก)':'<button class="cu-btn sm" style="margin-left:auto" data-void="'+esc(e.id)+'">ยกเลิก</button>')+'</div>'; }).join(''):'<div class="cu-empty">ยังไม่มีประวัติ</div>';
+    Array.prototype.forEach.call(document.querySelectorAll('#cu-log [data-void]'),function(b){ b.onclick=function(){ var id=b.getAttribute('data-void'); var go=function(ok){ if(!ok) return; var a=load(); a.forEach(function(x){ if(x.id===id){ x.void=true; x.voidAt=nowInfo().ts; } }); save(a); render(); warn(); }; if(window.uiConfirm) window.uiConfirm('ยกเลิกรายการนี้? (รายการจะยังอยู่ในประวัติแต่ถูกขีดฆ่า)').then(go); else go(true); }; });
+  }
+  function submit(){
+    var t=document.getElementById('cu-ticket').value.trim(), b=document.getElementById('cu-book').value.trim(), who=document.getElementById('cu-who').value.trim(), note=document.getElementById('cu-note').value.trim();
+    if(!t){ toast('กรอกเลขตั๋วก่อน'); return; }
+    if(!who){ toast('เลือกชื่อผู้'+(mode==='out'?'เบิก':'คืน')+'ก่อน'); document.getElementById('cu-who').focus(); return; }
+    var ev=load(), m=openMap(ev), k=norm(t)+'|'+norm(b), ex=m[k];
+    if(!ex&&!b){ Object.keys(m).forEach(function(kk){ if(kk.split('|')[0]===norm(t)) ex=m[kk]; }); }
+    if(mode==='out'&&ex){ toast('ตั๋วนี้ถูกเบิกออกไปแล้ว ต้องคืนเข้าก่อน'); return; }
+    var n=nowInfo(), fin=function(ok){
+      if(!ok) return;
+      var e={id:'c'+n.ts+Math.floor(Math.random()*1000),kind:mode,ticket:t,book:(ex&&!b)?ex.book:b,who:who,reason:mode==='out'?reason:'',note:note,date:n.date,time:n.time,ts:n.ts};
+      if(mode==='in'&&ex) e.outId=ex.id;
+      ev.push(e);
+      if(!save(ev)){ toast('บันทึกไม่สำเร็จ (พื้นที่เก็บข้อมูลเต็ม?)'); return; }
+      toast(mode==='out'?'บันทึกการเบิกออกแล้ว':'บันทึกการคืนเข้าแล้ว');
+      document.getElementById('cu-ticket').value=''; document.getElementById('cu-book').value=''; document.getElementById('cu-note').value='';
+      render(); warn(); document.getElementById('cu-ticket').focus();
+    };
+    if(mode==='in'&&!ex){ if(window.uiConfirm) window.uiConfirm('ไม่พบประวัติการเบิกออกของตั๋วนี้ ต้องการบันทึกการคืนเข้าต่อหรือไม่?').then(fin); else fin(true); }
+    else if(mode==='out'&&redeemedOn(t,b)){ if(window.uiConfirm) window.uiConfirm('ตั๋วนี้มีรายการไถ่ถอนแล้ว ต้องการบันทึกการเบิกออกต่อหรือไม่?').then(fin); else fin(true); }
+    else fin(true);
+  }
+  function toast(m){ if(typeof showToast==='function') showToast(m); }
+  function open(){ build(); modal.classList.remove('hidden'); modal.style.display='flex'; render(); setMode(mode); renderChips(); setTimeout(function(){document.getElementById('cu-ticket').focus()},30); }
+  function close(){ if(!modal) return; modal.style.display='none'; modal.classList.add('hidden'); }
+  window.openCustodyModal=open; window.closeCustodyModal=close;
+  // เมนูข้าง
+  var gs=document.querySelector('#app-sidebar .sb-item[onclick*="openGlobalSearch"]');
+  if(gs){ var bt=document.createElement('button'); bt.className='sb-item'; bt.setAttribute('onclick','sbClose();openCustodyModal()');
+    bt.innerHTML='<span class="sb-ic" style="--c:#2DD4BF"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3m-4 0h4v4m-3 0-2-2"/></svg></span> เบิก-คืนทรัพย์จำนำ';
+    gs.parentNode.insertBefore(bt,gs.nextSibling); }
+  // แสดงประวัติเบิก-คืนในหน้าค้นหาตั๋ว
+  var box=document.getElementById('global-search-results'); var gm=document.getElementById('global-search-modal'); var inp=document.getElementById('global-search-input');
+  if(box&&gm&&inp){
+    var holder=document.createElement('div'); holder.id='gs-custody'; holder.className='gs-cu';
+    var tl=document.getElementById('gs-timeline'); var anchor=tl||box.closest('table');
+    function paint(){
+      var q=inp.value.trim(); if(!q){ holder.innerHTML=''; return; }
+      var h=window.custodyHistory(q,''); if(!h.length){ holder.innerHTML=''; return; }
+      var o=openMap(load()), isOut=Object.keys(o).some(function(k){return k.split('|')[0]===norm(q)});
+      holder.innerHTML='<b>🔑 ประวัติเบิก-คืนทรัพย์</b>'+(isOut?' <span style="color:#b91c1c;font-weight:800">· ตอนนี้ถูกเบิกออกอยู่</span>':'')+h.map(function(e){return '<div'+(e.void?' style="text-decoration:line-through;opacity:.6"':'')+'>'+(e.kind==='out'?'เบิกออก':'คืนเข้า')+' · '+esc(e.who)+(e.reason?' · '+esc(e.reason):'')+' · '+dth(e.date)+' '+esc(e.time)+(e.note?' · '+esc(e.note):'')+'</div>'}).join('');
+      var a=document.getElementById('gs-timeline')||anchor; if(a&&holder.parentNode!==a.parentNode) a.parentNode.insertBefore(holder,a);
+    }
+    new MutationObserver(paint).observe(box,{childList:true});
+    var tb=document.getElementById('gs-timeline'); if(tb) new MutationObserver(paint).observe(tb,{childList:true});
+    paint();
+  }
+})();
+</script>

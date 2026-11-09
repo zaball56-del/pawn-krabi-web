@@ -1,0 +1,26 @@
+<script>
+/* ปุ่มตรวจสอบอัปเดต (เฉพาะโปรแกรม Windows) — เรียกใช้ API เดิมของ desktop เท่านั้น ไม่เกี่ยวกับสูตรคำนวณ */
+(function(){
+    var busy=false, ready=false;
+    function lbl(t){var e=document.getElementById('sb-update-label'); if(e) e.textContent=t;}
+    function say(m){ if(typeof showToast==='function') showToast(m); else alert(m); }
+    window.sbCheckUpdate=async function(){
+        var api=window.pawnDesktop; if(!api||!api.checkForUpdates){ say('ปุ่มนี้ใช้ได้ในโปรแกรม Windows เท่านั้น'); return; }
+        if(ready && api.installUpdate){ uiConfirm('ติดตั้งอัปเดตตอนนี้? โปรแกรมจะปิดและเปิดใหม่อัตโนมัติ (ข้อมูลถูกบันทึกไว้แล้ว)').then(function(ok){ if(ok) api.installUpdate(); }); return; }
+        if(busy) return; busy=true; lbl('กำลังตรวจสอบ…');
+        try{ var r=await api.checkForUpdates(); if(r&&r.message) say(r.message); }
+        catch(e){ say('ตรวจสอบอัปเดตไม่สำเร็จ: '+(e&&e.message||e)); }
+        finally{ busy=false; if(!ready) lbl('ตรวจสอบอัปเดต'); }
+    };
+    function hook(){
+        var api=window.pawnDesktop; if(!api||!api.onUpdateStatus) return;
+        api.onUpdateStatus(function(s){ if(!s) return;
+            if(s.state==='downloading') lbl('กำลังดาวน์โหลด '+(s.percent||0)+'%');
+            else if(s.state==='downloaded'){ ready=true; lbl('ติดตั้งอัปเดตเวอร์ชันใหม่'); say(s.message||'ดาวน์โหลดอัปเดตเสร็จแล้ว กดปุ่มเพื่อติดตั้ง'); }
+            else if(s.state==='available') lbl('พบเวอร์ชันใหม่…');
+            else if(s.state==='current'||s.state==='error'){ if(!ready) lbl('ตรวจสอบอัปเดต'); }
+        });
+    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',hook); else hook();
+})();
+</script>

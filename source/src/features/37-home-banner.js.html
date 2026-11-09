@@ -1,0 +1,46 @@
+<script id="home-banner-js">
+(function(){
+  var ph=document.querySelector('#home-page .hp-photo'); if(!ph) return;
+  ph.setAttribute('role','region'); ph.setAttribute('aria-label','สรุปวันนี้');
+  ph.innerHTML='<div class="hb-l"><small>KRABI MUNICIPAL PAWNSHOP · สถานธนานุบาล</small><b id="hb-title">ระบบบัญชีสถานธนานุบาล</b><span id="hb-sub">เทศบาลเมืองกระบี่ · จังหวัดกระบี่</span></div>'
+   +'<div class="hb-chips"><span class="hb-chip" id="hb-pl"></span><span class="hb-chip" id="hb-rd"></span><span class="hb-chip bal" id="hb-bal"></span><span class="hb-chip" id="hb-new"></span></div>'
+   +'<svg class="hb-spark" id="hb-spark" viewBox="0 0 300 120" aria-hidden="true"></svg>';
+  var TH_D=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  var TH_M=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  function g(id){ try{ return String(hpGet(id)||'').trim(); }catch(e){ return ''; } }
+  function chip(label,main,rest){ return '<span class="k">'+label.replace(/^[＋−=✎]\s*/,'')+'</span><b>'+main+'</b><i>'+(rest||'&nbsp;')+'</i>'; }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+  function update(){
+    try{
+      if(!document.body.classList.contains('page-home')) return;
+      var h=new Date().getHours();
+      var hi = h<5?'สวัสดีตอนค่ำ':h<12?'สวัสดีตอนเช้า':h<17?'สวัสดีตอนบ่าย':h<19?'สวัสดีตอนเย็น':'สวัสดีตอนค่ำ';
+      document.getElementById('hb-title').innerHTML=hi+'<em>ระบบบัญชีสถานธนานุบาล</em>';
+      var p=String(currentDate).split('-'), d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
+      var saved=((document.getElementById('sb-saved')||{}).textContent||'').trim();
+      document.getElementById('hb-sub').textContent='วัน'+TH_D[d.getDay()]+'ที่ '+Number(p[2])+' '+TH_M[d.getMonth()]+' '+(Number(p[0])+543)+(saved&&saved.indexOf('-')<0?' · '+saved:'')+'';
+      document.getElementById('hb-pl').innerHTML=chip('＋ รับจำนำ',esc(g('calc-pledge-count'))+' ราย',esc(g('calc-pledge'))+' บาท');
+      document.getElementById('hb-rd').innerHTML=chip('− ไถ่ถอน',esc(g('calc-redemption-count'))+' ราย',esc(g('calc-redemption'))+' บาท');
+      var bal=g('calc-balance').split(' / ');
+      var balEl=document.getElementById('hb-bal'); balEl.innerHTML=chip('= คงเหลือ',esc(bal[0]||'0 ราย'),esc(bal.slice(1).join(' / ')));
+      balEl.title=g('hp-mode');
+      document.getElementById('hb-new').innerHTML=chip('✎ ติดตั๋วใหม่วันนี้',esc(g('hp-new')||'0 ราย'),'');
+      // เส้นกราฟไถ่ถอน 7 วันล่าสุด (อ่านจากฟังก์ชันเดิม ไม่คำนวณสูตรใหม่)
+      var keys=Object.keys(db).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k)&&k<=currentDate&&db[k]&&db[k].data}).sort().slice(-7);
+      var vals=keys.map(function(k){try{return getDailyRedemptionTotals(db[k]).amount}catch(_){return 0}});
+      var sv=document.getElementById('hb-spark'), W=300, H=92, max=Math.max.apply(null,[1].concat(vals));
+      if(vals.length<2){ sv.innerHTML='<text x="0" y="14">ไถ่ถอน 7 วันล่าสุด: ยังไม่มีข้อมูลย้อนหลัง</text>'; return; }
+      var pts=vals.map(function(v,i){return [i*W/(vals.length-1), 16+(H-16)*(1-v/max)]});
+      var line='M'+pts.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1)}).join(' L');
+      var last=pts[pts.length-1];
+      sv.innerHTML='<defs><linearGradient id="hbg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#5eead4" stop-opacity=".5"/><stop offset="1" stop-color="#5eead4" stop-opacity="0"/></linearGradient></defs>'
+        +'<text x="0" y="12">ไถ่ถอน '+vals.length+' วันล่าสุด (สูงสุด '+esc(formatNumber(max))+' บาท)</text>'
+        +'<path d="'+line+' L'+W+' '+H+' L0 '+H+'Z" fill="url(#hbg)"/><path d="'+line+'" fill="none" stroke="#5eead4" stroke-width="2.5" stroke-linejoin="round"/><circle cx="'+last[0]+'" cy="'+last[1]+'" r="4.5" fill="#fff"/>';
+    }catch(e){ console.error('home-banner',e); }
+  }
+  var r0=window.renderHome;
+  window.renderHome=function(){ var r=r0.apply(this,arguments); update(); return r; };
+  update();
+})();
+</script>
+

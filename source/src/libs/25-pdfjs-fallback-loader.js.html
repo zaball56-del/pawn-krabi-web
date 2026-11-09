@@ -1,0 +1,22 @@
+<script>
+/* ตัวอ่าน PDF (pdf.js ของ Mozilla, Apache-2.0) — โหลดเมื่อต้องใช้จริงเท่านั้น จากไฟล์ในเว็บเอง (pdf.js/3.11.174/) */
+(function(){
+    var loading=null, BASE='pdf.js/3.11.174/';
+    window.__ensurePdfjs=function(){
+        if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+        if(loading) return loading;
+        loading=(async function(){
+            var mainUrl=new URL(BASE+'pdf.min.js',document.baseURI).href, workerUrl=new URL(BASE+'pdf.worker.min.js',document.baseURI).href;
+            var m=await import(mainUrl), lib=(m&&m.getDocument)?m:(m&&m.default)||m;
+            try{ Object.defineProperty(lib.GlobalWorkerOptions,'workerSrc',{configurable:true,get:function(){return workerUrl;},set:function(){}}); }catch(e){ lib.GlobalWorkerOptions.workerSrc=workerUrl; }
+            window.pdfjsLib=lib; return lib;
+        })();
+        loading.catch(function(){ loading=null; });
+        return loading;
+    };
+    ['handlePDFImportFile','handlePDFCompareFile'].forEach(function(name){
+        var orig=window[name]; if(typeof orig!=='function') return;
+        window[name]=async function(ev){ if(!window.pdfjsLib){ try{ await window.__ensurePdfjs(); }catch(e){ console.error('pdf.js load failed',e); } } return orig.call(this,ev); };
+    });
+})();
+</script>

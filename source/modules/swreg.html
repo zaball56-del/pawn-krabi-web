@@ -1,0 +1,11 @@
+<script id="sw-reg-js">
+/* ลงทะเบียน service worker เพื่อให้เปิดโปรแกรมได้แม้เน็ตหลุด (เฉพาะ https / localhost) */
+(function(){ try{
+  if(!('serviceWorker' in navigator)) return;
+  var ok = location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
+  if(!ok) return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){ try{ reg.update(); }catch(e){} }).catch(function(e){ try{ console.warn('sw',e); }catch(_){} });
+  });
+}catch(e){} })();
+</script>

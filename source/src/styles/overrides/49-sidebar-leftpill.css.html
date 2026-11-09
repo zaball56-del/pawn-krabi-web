@@ -1,0 +1,15 @@
+<style id="sb-leftpill">
+@media (min-width:1024px){
+  #app-sidebar{flex-direction:column !important;align-items:stretch !important;left:14px !important;top:72px !important;max-width:none !important;width:236px !important;max-height:calc(100vh - 90px);padding:8px !important;gap:4px !important;overflow:visible !important}
+  body.sb-open #sb-toggle{position:fixed}
+  #app-sidebar .sb-gw{display:block !important}
+  #app-sidebar .sb-gw.first .sb-gb{display:flex !important;flex-direction:column;gap:3px !important}
+  #app-sidebar .sb-gw.first{padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:2px}
+  #app-sidebar .sb-gw:not(.first) .sb-grp{width:100% !important;justify-content:flex-start;height:36px}
+  #app-sidebar .sb-gw:not(.first) .sb-grp .ch{transform:rotate(-90deg)}
+  #app-sidebar .sb-gw:not(.first) .sb-grp:not(.shut) .ch{transform:rotate(0)}
+  #app-sidebar .sb-gw:not(.first) .sb-grp::after{content:"›";margin-left:auto;font-size:16px;opacity:.7}
+  #app-sidebar .sb-gw:not(.first) .sb-gb{top:0 !important;left:calc(100% + 10px) !important;min-width:250px}
+  #app-sidebar .sb-item{width:100%}
+}
+</style>

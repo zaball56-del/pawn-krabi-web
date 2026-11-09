@@ -1,0 +1,42 @@
+<script id="pc-cards-js">
+(function(){
+  var tb=document.getElementById('pdf-compare-tbody'), res=document.getElementById('pdf-compare-results'); if(!tb||!res) return;
+  var host=document.createElement('div'); host.id='pc-cards'; var tw=res.querySelector('.border.rounded-lg.overflow-auto'); (tw?tw.parentNode:res).insertBefore(host,tw?tw.nextSibling:null);
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function num(t){var x=parseFloat(String(t).replace(/[^0-9.\-]/g,''));return isNaN(x)?null:x}
+  function build(){
+    host.innerHTML='';
+    var rows=Array.prototype.slice.call(tb.children);
+    if(!rows.length) return;
+    if(rows.length===1&&rows[0].children.length===1){host.innerHTML='<div class="pc-empty">'+esc(rows[0].textContent)+'</div>';return;}
+    rows.forEach(function(tr){
+      var td=tr.children; if(td.length<7) return;
+      var st=td[0].firstChild?td[0].firstChild.textContent.trim():'';
+      var kind=/compare-ok/.test(tr.className)?'ok':(/compare-error/.test(tr.className)?'er':'wn');
+      var mon=td[1].textContent.trim(), tk=td[2].textContent.trim(), bk=td[3].textContent.trim(), la=td[4].textContent.trim(), pa=td[5].textContent.trim();
+      var det=td[6], dtxt=det.firstChild&&det.firstChild.nodeType===3?det.firstChild.textContent.trim():'';
+      var card=document.createElement('div'); card.className='pc-card '+kind;
+      var h='<div class="pc-h"><span class="pc-bd">'+esc(st)+'</span><span class="pc-tk">'+esc(tk)+'</span><span class="pc-sub">เล่ม '+esc(bk)+' · '+esc(mon)+'</span></div>';
+      if(kind!=='ok'){
+        var a=num(la), b=num(pa), diff=(a!==null&&b!==null&&Math.abs(a-b)>0.009)?'<span class="pc-df">ต่าง '+Math.abs(b-a).toLocaleString('en-US',{maximumFractionDigits:2})+' บาท</span>':'';
+        h+='<div class="pc-cmp"><div class="pc-bx"><small>ยอดที่คีย์</small><b>'+esc(la)+'</b></div>→<div class="pc-bx"><small>ยอดใน PDF</small><b>'+esc(pa)+'</b></div>'+diff+'<div class="pc-ctl"></div></div>';
+        if(dtxt) h+='<div class="pc-det">'+esc(dtxt)+'</div>';
+      }
+      card.innerHTML=h;
+      var ctl=card.querySelector('.pc-ctl');
+      if(ctl) Array.prototype.slice.call(det.children).forEach(function(c){ctl.appendChild(c);}); // ย้ายตัวควบคุมจริง (id/onclick เดิม)
+      host.appendChild(card);
+    });
+    var sel=document.getElementById('pdf-compare-filter'), s0=document.querySelector('#pdf-compare-summary > div .text-xl');
+    var n=s0?parseInt(s0.textContent,10):0;
+    if(sel&&sel.value!=='ok'&&sel.value!=='all'&&n>0){
+      var b=document.createElement('button'); b.type='button'; b.className='pc-okline'; b.innerHTML='<span>✓ ตรงกัน '+n+' รายการ</span><span style="font-weight:600">แสดงรายการ ▾</span>';
+      b.onclick=function(){sel.value='ok'; if(typeof filterPDFCompareResults==='function') filterPDFCompareResults();};
+      host.appendChild(b);
+    }
+  }
+  new MutationObserver(function(){try{build()}catch(e){console.error('pc-cards',e)}}).observe(tb,{childList:true});
+  try{build()}catch(e){}
+})();
+</script>
+

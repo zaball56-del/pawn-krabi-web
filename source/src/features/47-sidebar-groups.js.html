@@ -1,0 +1,43 @@
+<script id="sb-groups-js">
+(function(){
+  var GROUPS=[
+    ['ใช้ทุกวัน',['หน้าแรก','บัญชีรายวัน','คีย์ด่วน','ค้นหาตั๋ว','ปิดยอดวัน'],true],
+    ['นำเข้าและตรวจสอบ',['นำเข้า สธ.3','นำเข้า สธ.2','ฐานข้อมูลตั๋วตั้งต้น','ตรวจขนาดข้อมูล','ตรวจ PDF','ตรวจความสอดคล้อง'],false],
+    ['รายงาน',['รายงาน','สรุปรายเดือน'],false],
+    ['ข้อมูลและระบบ',['ประวัติการแก้ไข','จุดกู้คืน','สำรองข้อมูล','ลบข้อมูลเก่า','ตั้งค่า','ตรวจสอบอัปเดต','น้อง'],false]
+  ];
+  var openState={}; try{ openState=JSON.parse(localStorage.getItem('pawn_sb_groups')||'{}'); }catch(e){}
+  function save(){ try{ localStorage.setItem('pawn_sb_groups',JSON.stringify(openState)); }catch(e){} }
+  function build(){
+    var sb=document.getElementById('app-sidebar'); if(!sb) return;
+    var items=[].slice.call(sb.querySelectorAll('.sb-item')).filter(function(b){ return !b.closest('.sb-gb'); });
+    if(!items.length) return;
+    var fresh=!sb.querySelector('.sb-grp');
+    var anchor=items[0];
+    var bodies=GROUPS.map(function(){return [];});
+    items.forEach(function(b){
+      var t=(b.textContent||'').trim(), gi=-1;
+      GROUPS.forEach(function(g,i){ if(gi<0 && g[1].some(function(k){return t.indexOf(k)===0 || t.indexOf(k)>=0 && k.length>4;})) gi=i; });
+      if(gi<0) gi=GROUPS.length-1;
+      bodies[gi].push(b);
+    });
+    var frag=document.createDocumentFragment();
+    GROUPS.forEach(function(g,i){
+      if(!bodies[i].length) return;
+      var shut = !g[2];
+      var h=document.createElement('button'); h.type='button'; h.className='sb-grp'+(shut?' shut':'');
+      h.innerHTML='<span class="ch">▼</span><span>'+g[0]+'</span><span class="n">'+bodies[i].filter(function(b){return b.style.display!=='none';}).length+'</span>';
+      var body=document.createElement('div'); body.className='sb-gb'+(shut?' shut':'');
+      bodies[i].forEach(function(b){ body.appendChild(b); });
+      h.onclick=function(){ var s=!h.classList.contains('shut'); if(!s===false && window.innerWidth>=1024){ [].forEach.call(document.querySelectorAll('.sb-gw:not(.first) .sb-grp'),function(x){ if(x!==h){ x.classList.add('shut'); x.nextSibling.classList.add('shut'); } }); } h.classList.toggle('shut',s); body.classList.toggle('shut',s);  };
+      var w=document.createElement('div'); w.className='sb-gw'+(i===0?' first':''); w.appendChild(h); w.appendChild(body); frag.appendChild(w);
+    });
+    var sep=sb.querySelector('.sb-sep'); if(sep) sep.style.display='none';
+    var ver=sb.querySelector('.sb-ver');
+    if(ver) sb.insertBefore(frag,ver); else sb.appendChild(frag);
+  }
+  function go(){ try{ build(); }catch(e){} }
+  setTimeout(go,1500); setTimeout(go,4000);
+  var o=window.sbToggle; if(typeof o==='function'){ window.sbToggle=function(){ go(); return o.apply(this,arguments); }; }
+})();
+</script>

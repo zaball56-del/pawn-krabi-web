@@ -1,0 +1,46 @@
+<script id="tidy-buttons-js">
+(function(){
+  function q(s,r){return (r||document).querySelector(s)}
+  function qa(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+  function byOnclick(frag,root){return qa('[onclick]',root).filter(function(e){return (e.getAttribute('onclick')||'').indexOf(frag)>-1})}
+  function rename(summary,text){
+    if(!summary) return;
+    var n=Array.prototype.slice.call(summary.childNodes).filter(function(x){return x.nodeType===3&&x.nodeValue.trim()})[0];
+    if(n) n.nodeValue=' '+text;
+  }
+  try{
+    var hdr=q('header');
+    // 1) เมนูเดือน/แถว -> "ตาราง", เมนู PDF -> "นำเข้า / ตรวจ PDF"
+    qa('details.hdr-menu>summary',hdr).forEach(function(s){
+      var t=s.textContent.replace(/\s+/g,' ').trim();
+      if(t==='เดือน / แถว') rename(s,'ตาราง');
+      else if(t==='PDF') rename(s,'นำเข้า / ตรวจ PDF');
+    });
+    // 2) ย้ายปุ่มฟันเฟือง (ตั้งค่า) เข้าเมนู "ข้อมูล" และเอาปุ่มเดี่ยวออก
+    var gear=q('#hdr-gear');
+    var dataMenu=qa('details.hdr-menu',hdr).filter(function(d){return /ข้อมูล/.test(q('summary',d).textContent)})[0];
+    if(gear && dataMenu && !q('#tidy-settings-item',dataMenu)){
+      var panel=q('.hdr-menu-panel',dataMenu);
+      var sep=q('.menu-sep',panel);
+      var b=document.createElement('button');
+      b.type='button';b.id='tidy-settings-item';b.className='menu-item';
+      b.setAttribute('onclick','openDataSettings()');
+      b.innerHTML='<i class="fa-solid fa-gear"></i> ตั้งค่า / ข้อมูล…';
+      panel.insertBefore(b,sep||null);
+      gear.parentNode.removeChild(gear);
+    }
+    // 3) ใต้ตาราง: เก็บ "เพิ่มแถว" ตัด "ตัดแถวว่าง" (ยังมีในเมนูตาราง)
+    var bar=q('#ledger-page .border-t.no-print')||q('.p-3.text-center.no-print.border-t');
+    if(bar) byOnclick('trimEmptyRows',bar).forEach(function(e){e.parentNode.removeChild(e)});
+    // 4) เมนูซ้าย: ตัด "สำรองข้อมูล (.json)" (ซ้ำกับเมนูข้อมูล)
+    qa('.sb-item').forEach(function(e){ if((e.getAttribute('onclick')||'').indexOf('exportJSON')>-1) e.parentNode.removeChild(e); });
+    // 5) หน้าแรก: ปุ่มลัดเหลือ คีย์ด่วน / ค้นหาตั๋ว / เปิดบัญชีรายวัน
+    qa('#home-page .hp-tile').forEach(function(e){
+      var o=e.getAttribute('onclick')||'';
+      if(o.indexOf('openPDFImportModal')>-1||o.indexOf('openPrintPreview')>-1) e.parentNode.removeChild(e);
+    });
+    var st=document.createElement('style');st.textContent='@media screen{#home-page .hp-grid5{grid-template-columns:repeat(3,minmax(0,1fr)) !important}}';document.head.appendChild(st);
+  }catch(err){ console.error('tidy-buttons',err); }
+})();
+</script>
+

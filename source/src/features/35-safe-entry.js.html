@@ -1,0 +1,15 @@
+<script id="safe-entry-js">
+(function(){
+  // 1) บันทึกค่าที่ยังพิมพ์ค้างในตารางก่อนปิด/ซ่อนหน้า (สั่งออกจากช่อง -> onblur เดิมบันทึกให้)
+  function flush(){
+    try{
+      var a=document.activeElement;
+      if(a && a.tagName==='INPUT' && a.closest && a.closest('.ledger-scroll')) a.blur();
+    }catch(_){}
+  }
+  window.addEventListener('pagehide',flush,true);
+  window.addEventListener('beforeunload',flush,true);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') flush(); },true);
+})();
+</script>
+

@@ -1,0 +1,3164 @@
+<script>
+        function playSciFiSound(type) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                const now = ctx.currentTime;
+
+                if (type === 'access_granted') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+                    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.3);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                } else if (type === 'access_denied') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.setValueAtTime(100, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+            } catch (e) {
+                // Ignore if audio blocked
+            }
+        }
+
+        let currentSortOrder = "normal";
+        const CORRECT_PIN = "1234"; // เปลี่ยน PIN ได้ในโค้ด หากต้องการ
+        function checkLogin() {
+            const pin = document.getElementById('login-pin').value;
+            const errorMsg = document.getElementById('login-error');
+            if (pin !== CORRECT_PIN) {
+                errorMsg.textContent = 'รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่';
+                errorMsg.classList.remove('hidden');
+                playSciFiSound('access_denied');
+                document.getElementById('login-pin').select();
+                return;
+            }
+            errorMsg.classList.add('hidden');
+            playSciFiSound('access_granted');
+            const leftDoor = document.getElementById('vault-left');
+            const rightDoor = document.getElementById('vault-right');
+            const loginCard = document.querySelector('#login-modal .cyber-box');
+            if (loginCard) loginCard.style.opacity = '0';
+            if (leftDoor) leftDoor.classList.add('vault-open-left');
+            if (rightDoor) rightDoor.classList.add('vault-open-right');
+            setTimeout(() => {
+                document.getElementById('login-modal').style.display = 'none';
+                const app = document.getElementById('app-container');
+                app.classList.remove('hidden'); app.style.display = 'flex';
+                applyAppTheme();
+                initApp();
+                setSaveIndicator('saved', 'โหมดเครื่องนี้ · บันทึกอัตโนมัติ');
+            }, 450);
+        }
+        function handleLoginKeyPress(event) { if (event.key === 'Enter') checkLogin(); }
+        function logout() { location.reload(); }
+
+        // ฐานข้อมูลสำรองใน IndexedDB ช่วยลดความเสี่ยงเมื่อ localStorage เต็มหรือเบราว์เซอร์ปิดหน้าเร็ว
+        // หากเบราว์เซอร์ที่เปิดไฟล์ HTML ไม่รองรับ IndexedDB ระบบจะใช้ localStorage ตามเดิม
+        const DB_STORAGE_NAME = 'pawn_krabi_reliable_storage';
+        const DB_STORAGE_STORE = 'snapshots';
+        let indexedDBHandle = null;
+        let indexedDBSaveTimer = null;
+        let lastLocalSaveAt = 0;
+
+        function openReliableDatabase() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) return reject(new Error('IndexedDB ไม่รองรับ'));
+                let request;
+                try {
+                    request = indexedDB.open(DB_STORAGE_NAME, 1);
+                } catch (error) {
+                    reject(error);
+                    return;
+                }
+                request.onupgradeneeded = () => {
+                    const idb = request.result;
+                    if (!idb.objectStoreNames.contains(DB_STORAGE_STORE)) {
+                        idb.createObjectStore(DB_STORAGE_STORE, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = () => {
+                    indexedDBHandle = request.result;
+                    indexedDBHandle.onversionchange = () => {
+                        indexedDBHandle.close();
+                        indexedDBHandle = null;
+                    };
+                    resolve(indexedDBHandle);
+                };
+                request.onerror = () => reject(request.error || new Error('เปิด IndexedDB ไม่สำเร็จ'));
+                request.onblocked = () => reject(new Error('IndexedDB ถูกบล็อก'));
+            });
+        }
+
+        async function readIndexedDBSnapshot() {
+            const idb = indexedDBHandle || await openReliableDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = idb.transaction(DB_STORAGE_STORE, 'readonly');
+                const request = tx.objectStore(DB_STORAGE_STORE).get('main');
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => reject(request.error || new Error('อ่าน IndexedDB ไม่สำเร็จ'));
+            });
+        }
+
+        // เก็บจุดกู้คืนก่อนนำเข้าไฟล์ใหม่ โดยไม่เขียนทับ snapshot หลัก
+        async function savePreImportRecoverySnapshot(data) {
+            const idb = indexedDBHandle || await openReliableDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = idb.transaction(DB_STORAGE_STORE, 'readwrite');
+                tx.objectStore(DB_STORAGE_STORE).put({
+                    id: 'pre_import',
+                    savedAt: Date.now(),
+                    data: JSON.parse(JSON.stringify(data))
+                });
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => reject(tx.error || new Error('บันทึกจุดกู้คืนไม่สำเร็จ'));
+                tx.onabort = () => reject(tx.error || new Error('ยกเลิกการบันทึกจุดกู้คืน'));
+            });
+        }
+
+        async function restorePreImportBackup() {
+            try {
+                const idb = indexedDBHandle || await openReliableDatabase();
+                const recovery = await new Promise((resolve, reject) => {
+                    const tx = idb.transaction(DB_STORAGE_STORE, 'readonly');
+                    const request = tx.objectStore(DB_STORAGE_STORE).get('pre_import');
+                    request.onsuccess = () => resolve(request.result || null);
+                    request.onerror = () => reject(request.error || new Error('อ่านจุดกู้คืนไม่สำเร็จ'));
+                });
+                if (!recovery || !recovery.data || typeof recovery.data !== 'object') {
+                    alert('ยังไม่มีจุดกู้คืนจากการนำเข้าครั้งล่าสุด');
+                    return;
+                }
+                const savedTime = new Date(Number(recovery.savedAt || 0)).toLocaleString('th-TH');
+                if (!confirm(`ต้องการกู้คืนข้อมูลที่บันทึกไว้ก่อนนำเข้าครั้งล่าสุดหรือไม่?\nจุดกู้คืน: ${savedTime}\n\nข้อมูลปัจจุบันจะถูกแทนที่`)) return;
+                const previousDb = db;
+                db = recovery.data;
+                if (!saveDB()) {
+                    db = previousDb;
+                    throw new Error('บันทึกข้อมูลที่กู้คืนไม่สำเร็จ');
+                }
+                renderTable();
+                showToast('กู้คืนข้อมูลก่อนนำเข้าสำเร็จ');
+            } catch (error) {
+                console.error('Restore pre-import backup failed:', error);
+                alert('กู้คืนไม่สำเร็จ: ' + (error.message || 'เกิดข้อผิดพลาด'));
+            }
+        }
+
+        function writeIndexedDBSnapshot(snapshot) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const idb = indexedDBHandle || await openReliableDatabase();
+                    const tx = idb.transaction(DB_STORAGE_STORE, 'readwrite');
+                    tx.objectStore(DB_STORAGE_STORE).put({
+                        id: 'main',
+                        savedAt: Date.now(),
+                        data: snapshot
+                    });
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => reject(tx.error || new Error('บันทึก IndexedDB ไม่สำเร็จ'));
+                    tx.onabort = () => reject(tx.error || new Error('ยกเลิกการบันทึก IndexedDB'));
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        async function restoreReliableDatabase() {
+            try {
+                const snapshot = await readIndexedDBSnapshot();
+                if (!snapshot || !snapshot.data) return;
+                let restored = snapshot.data;
+                if (typeof restored === 'string') {
+                    try { restored = JSON.parse(restored); } catch (_) { return; }
+                }
+                if (!restored || typeof restored !== 'object' || Array.isArray(restored)) return;
+                let localSavedAt = 0;
+                try {
+                    localSavedAt = Number(localStorage.getItem('pawn_krabi_saved_at') || 0);
+                } catch (_) {}
+                if (Number(snapshot.savedAt || 0) > localSavedAt) {
+                    db = restored;
+                    try {
+                        localStorage.setItem('pawn_krabi_master_db', serializeDBCompact());
+                        localStorage.setItem('pawn_krabi_saved_at', String(snapshot.savedAt));
+                    } catch (_) {}
+                    console.info('กู้คืนฐานข้อมูลจาก IndexedDB สำเร็จ');
+                }
+            } catch (error) {
+                // เปิดไฟล์แบบ file:// บางเบราว์เซอร์อาจปิดกั้น IndexedDB จึงไม่หยุดการทำงานหลัก
+                console.info('ไม่สามารถใช้ IndexedDB ได้ จะใช้ Local Storage แทน:', error);
+            }
+        }
+
+        function scheduleIndexedDBSave(serializedData) {
+            if (indexedDBSaveTimer) clearTimeout(indexedDBSaveTimer);
+            indexedDBSaveTimer = setTimeout(() => {
+                writeIndexedDBSnapshot(serializedData).catch(error => {
+                    console.warn('บันทึกฐานข้อมูลสำรองไม่สำเร็จ:', error);
+                    setSaveIndicator('local', 'บันทึกในเครื่องแล้ว · สำรองเพิ่มไม่ได้');
+                });
+            }, 350);
+        }
+
+        function setSaveIndicator(state, message) {
+            const indicator = document.getElementById('save-indicator');
+            const label = document.getElementById('save-indicator-text');
+            if (!indicator || !label) return;
+            indicator.dataset.state = state;
+            label.textContent = message;
+            indicator.classList.remove('hidden');
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await restoreReliableDatabase();
+            setTimeout(() => document.getElementById('login-pin')?.focus(), 100);
+        });
+
+        window.addEventListener('pagehide', () => {
+            try {
+                if (!db || typeof db !== 'object' || Object.keys(db).length === 0) return; // ไม่เขียนทับด้วยฐานว่าง
+                localStorage.setItem('pawn_krabi_master_db', serializeDBCompact());
+                localStorage.setItem('pawn_krabi_saved_at', String(Date.now()));
+            } catch (_) {
+                // IndexedDB mirror remains the fallback when localStorage is unavailable.
+            }
+        });
+
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const thaiDays = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+        
+        function readLocalDatabaseSafely() {
+            try {
+                const raw = localStorage.getItem('pawn_krabi_master_db');
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+            } catch (error) {
+                console.error('อ่านฐานข้อมูลจาก Local Storage ไม่สำเร็จ:', error);
+                return {};
+            }
+        }
+        let db = readLocalDatabaseSafely();
+        let currentDate = ""; 
+
+        function getTodayLocalDateStr() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatNumber(val) {
+            if (val === '' || val === null || val === undefined) return '';
+            // เก็บเครื่องหมายลบไว้ เพื่อให้ยอดติดลบแสดงตรงกับค่าที่คำนวณจริง
+            const raw = String(val).trim().replace(/,/g, '');
+            const negative = raw.startsWith('-');
+            let cleanVal = raw.replace(/-/g, '').replace(/[^0-9.]/g, '');
+            if (cleanVal === '') return '';
+            const decimalParts = cleanVal.split('.');
+            cleanVal = decimalParts.shift() + (decimalParts.length ? '.' + decimalParts.join('') : '');
+            let num = Number((negative ? '-' : '') + cleanVal);
+            if (!Number.isFinite(num) || num === 0) return '';
+            return num.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+        }
+
+        // ปัดเศษจำนวนเงินเป็น 2 ตำแหน่ง ป้องกันความคลาดเคลื่อนทศนิยมของ JavaScript
+        function roundMoney(value) {
+            const number = Number(value) || 0;
+            return Math.round((number + Number.EPSILON) * 100) / 100;
+        }
+
+        function cleanNumberString(val) {
+             if (val === '' || val === null || val === undefined) return 0;
+             let cleanVal = String(val).replace(/[^0-9.-]/g, '');
+             let num = Number(cleanVal);
+             return isNaN(num) ? 0 : num;
+        }
+
+        function checkBackupReminder() {
+            let lastBackup = localStorage.getItem('pawn_krabi_last_backup');
+            let showWarning = false;
+            if (!lastBackup) {
+                showWarning = true;
+            } else {
+                let diffTime = Math.abs(new Date() - new Date(lastBackup));
+                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays > 7) showWarning = true;
+            }
+            if (showWarning) {
+                document.getElementById('backup-warning').classList.remove('hidden');
+            } else {
+                document.getElementById('backup-warning').classList.add('hidden');
+            }
+        }
+
+        function openQuickScanModal() {
+            const m = document.getElementById('quick-scan-modal');
+            m.classList.remove('hidden'); m.style.display = 'flex';
+            qsClearFields(false); qsSetMsg('', ''); qsRenderRecent();
+            setTimeout(() => { if (m.contains(document.activeElement)) return; const b = document.querySelector('.qs-type-btn'); if (b) b.focus(); }, 100); // ไม่แย่งโฟกัสถ้าเริ่มกรอก/ยิงบาร์โค้ดแล้ว
+        }
+
+        function closeQuickScanModal() {
+            document.getElementById('quick-scan-modal').style.display = 'none';
+            document.getElementById('quick-scan-modal').classList.add('hidden');
+        }
+
+        function handleQSEnter(e, nextElementId) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (nextElementId === 'submit') {
+                    submitQuickScan();
+                } else {
+                    document.getElementById(nextElementId).focus();
+                    if(document.getElementById(nextElementId).tagName === 'INPUT'){
+                        document.getElementById(nextElementId).select();
+                    }
+                }
+            }
+        }
+
+        // ---------- คีย์ด่วน: ติดตั๋วใหม่ (ข้อมูลตั๋วใหม่เก็บแยกในแถว ไม่เข้าสูตรคำนวณ) ----------
+        function qsEl(id) { return document.getElementById(id); }
+        function qsSetMsg(text, kind) { const el = qsEl('qs-msg'); if (!el) return; el.textContent = text || ''; el.className = 'qs-msg' + (kind ? ' ' + kind : ''); }
+        function qsPaintType() { const v = qsEl('qs-type').value; document.querySelectorAll('.qs-type-btn').forEach(b => b.classList.toggle('on', b.dataset.type === v)); }
+        function qsPickType(t) {
+            const el = qsEl('qs-type'); el.value = (el.value === t) ? '' : t; qsPaintType(); qsSetMsg('', '');
+            if (el.value) qsEl(qsEl('qs-month').value ? 'qs-ticket' : 'qs-month').focus();
+        }
+        function qsMonthHint() {
+            const n = parseInt(qsEl('qs-month').value, 10), el = qsEl('qs-month-name');
+            if (isNaN(n) || n < 1 || n > 12) { el.textContent = ''; return; }
+            const name = thaiMonths[n - 1], open = getCurrentDayData().months.indexOf(name) !== -1;
+            el.textContent = open ? name + ' ✓' : name + ' (ยังไม่เปิดคอลัมน์)';
+            el.style.color = open ? '#047857' : '#be123c';
+        }
+        function qsClearFields(keepContext) {
+            ['qs-ticket', 'qs-book', 'qs-amount', 'qs-new-ticket', 'qs-new-book', 'qs-new-amount'].forEach(id => { qsEl(id).value = ''; });
+            if (!keepContext) { qsEl('qs-type').value = ''; qsEl('qs-month').value = ''; }
+            qsPaintType(); qsMonthHint();
+        }
+        function qsModalKey(e) {
+            if (e.key === 'Escape') { closeQuickScanModal(); return; }
+            if (e.target && e.target.tagName !== 'INPUT' && ['ส', 'พ', 'ผ', 'ถ'].includes(e.key)) { e.preventDefault(); qsPickType(e.key); }
+        }
+        function qsIdKey(book, ticket) { return normalizeCompareTicket(book) + '|' + normalizeCompareTicket(ticket); }
+        function qsFindLinkedNew(book, ticket, exceptRow) {
+            const key = qsIdKey(book, ticket);
+            for (const dKey in db) {
+                const d = db[dKey];
+                if (!d || !Array.isArray(d.months) || !d.data) continue;
+                for (const m of d.months) {
+                    if (!m || !Array.isArray(d.data[m])) continue;
+                    for (const r of d.data[m]) {
+                        if (r && r !== exceptRow && r.newTicket && qsIdKey(r.newBook, r.newTicket) === key) return { date: dKey, month: m, ticket: r.ticket };
+                    }
+                }
+            }
+            return null;
+        }
+        function qsRenderRecent() {
+            const box = qsEl('qs-recent'); if (!box) return;
+            const d = db[currentDate], items = [];
+            if (d && Array.isArray(d.months)) d.months.forEach(m => {
+                if (!m || !d.data || !Array.isArray(d.data[m])) return;
+                d.data[m].forEach((r, i) => { if (r && r.attachedAt) items.push({ m, i, r }); });
+            });
+            items.sort((a, b) => String(b.r.attachedAt).localeCompare(String(a.r.attachedAt)));
+            const all = qsEl('qs-show-all') && qsEl('qs-show-all').checked;
+            const list = all ? items : items.slice(0, 8);
+            qsEl('qs-recent-count').textContent = items.length ? '(' + items.length + ' รายการ)' : '';
+            if (!list.length) { box.innerHTML = '<div class="text-xs text-slate-400">ยังไม่มีรายการที่ติดวันนี้</div>'; return; }
+            box.innerHTML = list.map(({ m, i, r }) => {
+                const amt = (r.amount !== '' && cleanNumberString(r.amount) !== 0) ? ' · ' + formatNumber(r.amount) : '';
+                const nAmt = (r.newAmount !== undefined && r.newAmount !== '' && cleanNumberString(r.newAmount) !== 0) ? ' · ' + formatNumber(r.newAmount) : '';
+                const oldTxt = '<b>' + escapeHtml(r.type || '-') + '</b> ' + escapeHtml(m) + ' แถว ' + (i + 1) + '<br>เดิม: ' + (r.book ? 'เล่ม ' + escapeHtml(r.book) + ' ' : '') + '<b>' + escapeHtml(r.ticket) + '</b>' + amt;
+                const newTxt = r.newTicket ? '<br><span style="color:#047857">ใหม่: ' + (r.newBook ? 'เล่ม ' + escapeHtml(r.newBook) + ' ' : '') + '<b>' + escapeHtml(r.newTicket) + '</b>' + nAmt + '</span>' : '<br><span style="color:#94a3b8">ไม่มีตั๋วใหม่</span>';
+                const btn = r.newTicket ? '<button type="button" data-m="' + escapeHtml(m) + '" data-i="' + i + '" onclick="qsUnlink(this)">ยกเลิกการติด</button>' : '';
+                return '<div class="qs-item"><div>' + oldTxt + newTxt + '</div>' + btn + '</div>';
+            }).join('');
+        }
+        function qsUnlink(btn) {
+            const m = btn.dataset.m, i = Number(btn.dataset.i);
+            const row = db[currentDate] && db[currentDate].data && db[currentDate].data[m] && db[currentDate].data[m][i];
+            if (!row || !row.newTicket) return;
+            if (!confirm('ยกเลิกการผูกตั๋วใหม่ ' + row.newTicket + ' ออกจากตั๋วเดิม ' + row.ticket + ' ?\n(แถวในตารางยังอยู่เหมือนเดิม)')) return;
+            delete row.newTicket; delete row.newBook; delete row.newAmount;
+            saveDB(); renderTable(); qsRenderRecent(); qsSetMsg('ยกเลิกการติดตั๋วใหม่แล้ว', 'ok');
+        }
+        function submitQuickScan() {
+            const type = qsEl('qs-type').value;
+            const mNum = parseInt(qsEl('qs-month').value, 10);
+            const oldTicket = qsEl('qs-ticket').value.trim(), oldBook = qsEl('qs-book').value.trim();
+            const oldAmountRaw = qsEl('qs-amount').value.replace(/,/g, '').trim();
+            const newTicket = qsEl('qs-new-ticket').value.trim(), newBook = qsEl('qs-new-book').value.trim();
+            const newAmountRaw = qsEl('qs-new-amount').value.replace(/,/g, '').trim();
+            const fail = (msg, id) => { qsSetMsg(msg, 'err'); if (id) { qsEl(id).focus(); if (qsEl(id).select) qsEl(id).select(); } return false; };
+
+            if (!type) return fail('กรุณากดเลือกประเภท ส / พ / ผ / ถ');
+            if (isNaN(mNum) || mNum < 1 || mNum > 12) return fail('กรุณาใส่เดือนเป็นรหัสตัวเลข 1–12', 'qs-month');
+            if (!oldTicket) return fail('กรุณาใส่เลขตั๋วเดิม', 'qs-ticket');
+            if (!newTicket && (newBook || newAmountRaw)) return fail('มีเล่มที่/ยอดเงินตั๋วใหม่ แต่ยังไม่ได้ใส่เลขตั๋วใหม่', 'qs-new-ticket');
+            if (newTicket && qsIdKey(oldBook, oldTicket) === qsIdKey(newBook, newTicket)) return fail('เลขตั๋วใหม่ซ้ำกับตั๋วเดิม', 'qs-new-ticket');
+
+            const monthName = thaiMonths[mNum - 1];
+            const dayData = getCurrentDayData();
+            if (dayData.months.indexOf(monthName) === -1) return fail('ยังไม่ได้เปิดคอลัมน์เดือน "' + monthName + '" ในตารางวันนี้ (เลือกหัวคอลัมน์หรือกดเพิ่มเดือนก่อน)', 'qs-month');
+
+            let rows = dayData.data[monthName];
+            // 1) ตั๋วเดิมมีในตารางวันนี้แล้ว (เช่นนำเข้าจาก PDF) -> ปรับแถวเดิม ไม่เพิ่มซ้ำ
+            let idx = -1;
+            for (let i = 0; i < dayData.totalRows; i++) {
+                const r = rows[i];
+                if (!r || !String(r.ticket || '').trim()) continue;
+                if (normalizeCompareTicket(r.ticket) !== normalizeCompareTicket(oldTicket)) continue;
+                if (r.book && oldBook && normalizeCompareTicket(r.book) !== normalizeCompareTicket(oldBook)) continue;
+                idx = i; break;
+            }
+            const updating = idx >= 0;
+            let useTypedAmount = true;
+            if (updating) {
+                const r = rows[idx];
+                if (r.type && r.type !== type && !confirm('แถวที่ ' + (idx + 1) + ' มีประเภท "' + r.type + '" อยู่แล้ว\nต้องการเปลี่ยนเป็น "' + type + '" หรือไม่?')) return false;
+                const tableAmt = cleanNumberString(r.amount), typedAmt = cleanNumberString(oldAmountRaw);
+                if (oldAmountRaw !== '' && tableAmt !== 0 && tableAmt !== typedAmt &&
+                    !confirm('ยอดในตารางคือ ' + formatNumber(tableAmt) + ' แต่ที่กรอกคือ ' + formatNumber(typedAmt) + '\nตกลง = ใช้ยอดที่กรอก · ยกเลิก = คงยอดในตาราง')) useTypedAmount = false;
+                if (newTicket && r.newTicket && qsIdKey(r.newBook, r.newTicket) !== qsIdKey(newBook, newTicket) &&
+                    !confirm('แถวนี้ผูกตั๋วใหม่ ' + r.newTicket + ' ไว้แล้ว\nต้องการเปลี่ยนเป็น ' + newTicket + ' หรือไม่?')) return false;
+            }
+            // 2) ตั๋วใหม่ต้องไม่ซ้ำกับที่เคยติดไว้ (เทียบเล่มที่ + เลขตั๋ว)
+            if (newTicket) {
+                const dup = qsFindLinkedNew(newBook, newTicket, updating ? rows[idx] : null);
+                if (dup && !confirm('ตั๋วใหม่ ' + (newBook ? 'เล่ม ' + newBook + ' ' : '') + 'เลข ' + newTicket + ' เคยถูกติดไว้แล้ว\nวันที่ ' + dup.date + ' · ' + dup.month + ' · ตั๋วเดิม ' + dup.ticket + '\n\nต้องการบันทึกซ้ำหรือไม่?')) return false;
+            }
+            // 3) ไม่พบตั๋วเดิม -> เพิ่มในแถวว่างแถวแรก (เหมือนเดิม)
+            if (!updating) {
+                for (let i = 0; i < dayData.totalRows; i++) {
+                    const r = rows[i] || { type: '', ticket: '', amount: '' };
+                    if (!r.type && !r.ticket && !r.amount) { idx = i; break; }
+                }
+                if (idx === -1) { addRow(); idx = dayData.totalRows - 1; rows = dayData.data[monthName]; }
+                if (!rows[idx]) rows[idx] = { type: '', ticket: '', amount: '', count: '', origIdx: idx, timestamp: '' };
+            }
+            const row = rows[idx];
+            row.type = type;
+            if (!updating) { row.ticket = oldTicket; row.amount = cleanNumberString(oldAmountRaw); }
+            else if (useTypedAmount && oldAmountRaw !== '') row.amount = cleanNumberString(oldAmountRaw);
+            if (oldBook) row.book = oldBook;
+            if (newTicket) { row.newTicket = newTicket; row.newBook = newBook; row.newAmount = newAmountRaw === '' ? '' : cleanNumberString(newAmountRaw); }
+            row.timestamp = new Date().toLocaleTimeString('th-TH');
+            row.attachedAt = new Date().toISOString();
+
+            saveDB();
+            renderTable();
+            try { recalculateFutureBroughtForwardBalances(currentDate); } catch (_) {} // เหมือนการเลือกประเภท/ใส่ยอดในตาราง
+            const msg = (updating ? 'ปรับแถวที่ ' : 'เพิ่มแถวที่ ') + (idx + 1) + ' · ' + monthName + ' · ' + type + ' · ' + oldTicket + (newTicket ? ' → ' + newTicket : '');
+            qsSetMsg('บันทึกแล้ว: ' + msg, 'ok'); showToast(msg);
+            qsClearFields(true); qsRenderRecent(); qsEl('qs-ticket').focus();
+            return true;
+        }
+
+        function handleEnterKey(e, fieldType, colIdx, rowIdx) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                let nextSelector = '';
+                
+                if (fieldType === 'type') {
+                    nextSelector = `.ticket-input-${colIdx}-${rowIdx}`;
+                } else if (fieldType === 'ticket') {
+                    nextSelector = `.amount-input-${colIdx}-${rowIdx}`;
+                } else if (fieldType === 'amount') {
+                    let nextRow = rowIdx + 1;
+                    let dayData = getCurrentDayData();
+                    if (nextRow >= dayData.totalRows) {
+                        if (e.target && e.target.blur) e.target.blur(); // บันทึกค่าที่พิมพ์ก่อนวาดตารางใหม่
+                        addRow(); 
+                    }
+                    nextSelector = `.type-select-${colIdx}-${nextRow}`;
+                } else if (fieldType === 'sum-type') {
+                    nextSelector = `.sum-count-input-${colIdx}-${rowIdx}`;
+                } else if (fieldType === 'sum-count') {
+                    nextSelector = `.sum-amount-input-${colIdx}-${rowIdx}`;
+                } else if (fieldType === 'sum-amount') {
+                    let nextRow = rowIdx + 1;
+                    let dayData = getCurrentDayData();
+                    if (nextRow >= dayData.totalRows) {
+                        if (e.target && e.target.blur) e.target.blur();
+                        addRow();
+                    }
+                    nextSelector = `.sum-type-input-${colIdx}-${nextRow}`;
+                }
+                
+                if (nextSelector) {
+                    setTimeout(() => {
+                        let nextInput = document.querySelector(nextSelector);
+                        if (nextInput) {
+                            nextInput.focus();
+                            if (nextInput.tagName === 'INPUT') nextInput.select();
+                        }
+                    }, 50);
+                }
+            }
+        }
+
+        function changeDayOffset(offset) {
+            if(!currentDate) return;
+            let dObj = new Date(currentDate);
+            dObj.setDate(dObj.getDate() + offset);
+            let y = dObj.getFullYear();
+            let m = String(dObj.getMonth() + 1).padStart(2, '0');
+            let d = String(dObj.getDate()).padStart(2, '0');
+            let newDateStr = `${y}-${m}-${d}`;
+            document.getElementById('doc-date').value = newDateStr;
+            changeDate();
+        }
+
+        function initApp() {
+            let dbMigrated = false;
+            let newDb = {};
+            for (let key in db) {
+                let parts = key.split('-');
+                if (parts.length === 3) {
+                    let y = parseInt(parts[0], 10);
+                    if (y > 2500) { 
+                        y -= 543;
+                        let newKey = `${y}-${parts[1]}-${parts[2]}`;
+                        newDb[newKey] = db[key];
+                        dbMigrated = true;
+                    } else {
+                        newDb[key] = db[key];
+                    }
+                } else {
+                    newDb[key] = db[key];
+                }
+            }
+            if (dbMigrated) {
+                db = newDb;
+                localStorage.setItem('pawn_krabi_master_db', JSON.stringify(db));
+            }
+
+            if (db && Object.prototype.hasOwnProperty.call(db, '') && !hasDayData('')) {
+                delete db['']; dbMigrated = true; // ลบคีย์วันที่ว่างที่เคยเกิดจากการล้างช่องวันที่
+                try { localStorage.setItem('pawn_krabi_master_db', serializeDBCompact()); } catch (_) {}
+            }
+            const todayStr = getTodayLocalDateStr();
+            currentDate = localStorage.getItem('pawn_krabi_selected_date') || todayStr;
+
+            if (currentDate) {
+                let parts = currentDate.split('-');
+                if (parts.length === 3) {
+                    let y = parseInt(parts[0], 10);
+                    if (y > 2500) {
+                        y -= 543;
+                        currentDate = `${y}-${parts[1]}-${parts[2]}`;
+                        localStorage.setItem('pawn_krabi_selected_date', currentDate);
+                    }
+                }
+            }
+
+            document.getElementById('doc-date').value = currentDate;
+            updateHeaderInfo(currentDate);
+            getCurrentDayData();
+            if (syncBroughtForwardForDate(currentDate, false)) saveDB();
+            renderTable();
+            checkBackupReminder();
+        }
+
+        function updateHeaderInfo(dateStr) {
+            let thaiYear = new Date().getFullYear() + 543;
+            if (dateStr) {
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    let y = Number(parts[0]);
+                    let m = Number(parts[1]) - 1;
+                    let d = Number(parts[2]);
+                    
+                    let dObj = new Date(y, m, d, 12, 0, 0);
+                    let dayOfWeek = thaiDays[dObj.getDay()];
+                    thaiYear = y + 543;
+                    
+                    let formattedDateTH = `${String(d).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}/${thaiYear}`;
+                    document.getElementById('print-date-text').innerText = formattedDateTH;
+                    document.getElementById('display-date-th').innerText = formattedDateTH;
+                    document.getElementById('print-day-name').innerText = dayOfWeek;
+                    document.getElementById('day-name-display').innerText = `(${dayOfWeek})`;
+                }
+            }
+            document.getElementById('print-year-text').innerText = thaiYear;
+        }
+
+        function hasDayData(dateStr) {
+            if (!db[dateStr]) return false;
+            let dayData = db[dateStr];
+            let summaryMonth = "สรุปประจำวัน";
+            let sumRows = dayData.data[summaryMonth] || [];
+            
+            let oCount = cleanNumberString(sumRows[0]?.count);
+            let oAmt = cleanNumberString(sumRows[0]?.amount);
+            if (oCount !== 0 || oAmt !== 0) return true;
+
+            let pCount = cleanNumberString(sumRows[1]?.count);
+            let pAmt = cleanNumberString(sumRows[1]?.amount);
+            if (pCount !== 0 || pAmt !== 0) return true;
+
+            let rCount = cleanNumberString(sumRows[3]?.count);
+            let rAmt = cleanNumberString(sumRows[3]?.amount);
+            if (rCount !== 0 || rAmt !== 0) return true;
+
+            if (dayData.months) {
+                for (let mName of dayData.months) {
+                    if (mName && dayData.data[mName]) {
+                        for (let row of dayData.data[mName]) {
+                            if (row) {
+                                let amt = cleanNumberString(row.amount);
+                                let tkt = row.ticket ? String(row.ticket).trim() : '';
+                                let typ = row.type ? String(row.type).trim() : '';
+                                if (amt > 0 || tkt !== '' || typ !== '') return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function hasDayDataIn(source, key) {
+            const saved = db; db = source;
+            try { return hasDayData(key); } catch (_) { return true; } finally { db = saved; }
+        }
+
+        function getLatestAvailablePreviousDate(dateStr) {
+            let parts = dateStr.split('-');
+            if (parts.length < 3) return null;
+            let y = Number(parts[0]);
+            let m = Number(parts[1]) - 1;
+            let d = Number(parts[2]);
+            let dObj = new Date(y, m, d, 12, 0, 0);
+            
+            for (let i = 1; i <= 365; i++) {
+                dObj.setDate(dObj.getDate() - 1);
+                let prevY = dObj.getFullYear();
+                let prevM = String(dObj.getMonth() + 1).padStart(2, '0');
+                let prevDay = String(dObj.getDate()).padStart(2, '0');
+                let testDateStr = `${prevY}-${prevM}-${prevDay}`;
+                
+                if (hasDayData(testDateStr)) {
+                    return testDateStr;
+                }
+            }
+            return null;
+        }
+
+        // หาวันก่อนหน้าล่าสุดที่มีคอลัมน์เดือนนี้ (ข้ามวันที่มีแต่ยอดสรุป ไม่มีคอลัมน์เดือน เช่น วันหยุด)
+        function getPrevDateForMonth(dateStr, monthName) {
+            let d = getLatestAvailablePreviousDate(dateStr), guard = 0;
+            while (d && guard++ < 400) {
+                const day = db[d];
+                if (day && Array.isArray(day.months) && day.months.includes(monthName)) return d;
+                d = getLatestAvailablePreviousDate(d);
+            }
+            return null;
+        }
+
+        function getPreviousDaySummary() {
+            let prevDate = getLatestAvailablePreviousDate(currentDate);
+            if (!prevDate || !db[prevDate]) return { count: 0, amount: 0 };
+            
+            let prevDay = db[prevDate];
+            let summaryMonth = "สรุปประจำวัน";
+            let rows = prevDay.data[summaryMonth] || [];
+            
+            let remainingRow = rows[3] || { count: 0, amount: 0 };
+            let c = cleanNumberString(remainingRow.count);
+            let a = cleanNumberString(remainingRow.amount);
+            
+            return { count: c, amount: a };
+        }
+
+        // คำนวณยอดยกไปสุทธิของเดือนตามสูตรที่กำหนด:
+        // ยอดยกไปสุทธิ = ยอดยกมาใต้เดือน - ยอดรวมรายการของเดือน
+        // ใช้ยอดรวมรายการชุดเดียวกับที่แสดงท้ายคอลัมน์ (ประเภท ถ, ส, พ, ผ)
+        // ตั๋วใหม่ของเดือนปัจจุบันจาก สธ.2 (รวมจำนำใหม่ + ต่อตั๋ว) บวกเข้ายอดยกไปสุทธิของเดือนนั้น
+        function getSor2AddForMonth(day, monthName) {
+            const z = { count: 0, amount: 0 };
+            try {
+                const s = day && day.sor2;
+                if (!s || !monthName || s.mn !== monthName) return z;
+                return { count: Number(s.n) || 0, amount: roundMoney(Number(s.amt) || 0) };
+            } catch (e) { return z; }
+        }
+
+        function getMonthCarriedBalance(dateStr, targetMonthName) {
+            const day = db[dateStr];
+            if (!day || !Array.isArray(day.months)) return 0;
+            const colIdx = day.months.indexOf(targetMonthName);
+            if (colIdx === -1) return 0;
+
+            const opening = (day.bf && day.bf[colIdx] !== undefined)
+                ? cleanNumberString(day.bf[colIdx]) : 0;
+            const monthlyTotal = getMonthlyRedemptionTotals(day, targetMonthName).amount;
+            return roundMoney(opening + getSor2AddForMonth(day, targetMonthName).amount - monthlyTotal);
+        }
+
+        function getMonthCarriedCount(dateStr, targetMonthName) {
+            const day = db[dateStr];
+            if (!day || !Array.isArray(day.months)) return 0;
+            const colIdx = day.months.indexOf(targetMonthName);
+            if (colIdx === -1) return 0;
+            const openingCount = (day.bfCount && day.bfCount[colIdx] !== undefined)
+                ? cleanNumberString(day.bfCount[colIdx]) : 0;
+            const monthlyCount = getMonthlyRedemptionTotals(day, targetMonthName).count;
+            return openingCount + getSor2AddForMonth(day, targetMonthName).count - monthlyCount;
+        }
+
+        function getPreviousDayCarriedForMonth(targetMonthName) {
+            const prevDate = getLatestAvailablePreviousDate(currentDate);
+            if (!prevDate) return 0;
+            return getMonthCarriedBalance(prevDate, targetMonthName);
+        }
+
+        // ยอดสรุปประจำวันเป็นข้อมูลที่ผู้ใช้กรอกเองทั้งหมด
+        // ปิดการคำนวณอัตโนมัติในส่วน ย/ม, รับจำนำ, ไถ่ถอน และคงเหลือ
+        // ฟังก์ชันเหล่านี้คงชื่อไว้เพื่อไม่ให้ส่วนอื่นของระบบที่เรียกใช้เกิดข้อผิดพลาด
+        function isRedemptionSummaryType(type) {
+            return ['ถ', 'ส', 'พ', 'ผ'].includes(String(type || '').trim());
+        }
+
+        function calculateDailySummaryValues(dateStr) {
+            // ไม่เขียนหรือคำนวณค่าใด ๆ ในยอดสรุปประจำวัน
+            return false;
+        }
+
+        function recalculateDailySummaryForDate(dateStr) {
+            // ยอดสรุปประจำวันเป็นค่าที่ผู้ใช้กรอกเอง จึงไม่คำนวณใหม่อัตโนมัติ
+            return false;
+        }
+
+        function recalculateDailySummariesThrough(dateStr) {
+            // ปิดการคำนวณยอดสรุปย้อนหลังอัตโนมัติ
+            return false;
+        }
+
+        // อัปเดต ย/ม ของสรุปประจำวันจากผลรวมยอดยกมารายเดือน ทั้งจำนวนรายและจำนวนเงิน
+        // ทำงานแม้ไม่มีวันก่อนหน้า เพื่อไม่ให้ช่องจำนวนรายว่างหรือไม่รวมยอดเดือน
+        function syncDailyOpeningFromMonthlyBF(dateStr, updateVisible = false) {
+            const day = db[dateStr];
+            if (!day || !Array.isArray(day.months)) return false;
+            if (!day.data) day.data = {};
+            const summaryKey = 'สรุปประจำวัน';
+            if (!Array.isArray(day.data[summaryKey])) day.data[summaryKey] = [];
+            while (day.data[summaryKey].length < 4) {
+                const r = day.data[summaryKey].length;
+                day.data[summaryKey].push({ type: summaryLabels[r] || '', ticket: '', amount: '', count: '' });
+            }
+            const opening = day.data[summaryKey][0];
+            let totalCount = 0;
+            let totalAmount = 0;
+            // ให้ ย/ม รายวันรับยอดคงเหลือจากวันก่อนหน้าโดยตรง เพื่อไม่ให้จำนวนราย
+            // คลาดเคลื่อนจากการรวมยอดยกมารายเดือนที่อาจคำนวณคนละฐานข้อมูล
+            const prevDate = getLatestAvailablePreviousDate(dateStr);
+            const prevDay = prevDate ? db[prevDate] : null;
+            const prevSummary = prevDay && prevDay.data ? prevDay.data[summaryKey] : null;
+            const prevBalance = Array.isArray(prevSummary) ? prevSummary[3] : null;
+            if (prevBalance && (prevBalance.count !== '' || prevBalance.amount !== '')) {
+                totalCount = cleanNumberString(prevBalance.count ?? 0);
+                totalAmount = cleanNumberString(prevBalance.amount ?? 0);
+            } else {
+                // ถ้าไม่มีสรุปคงเหลือของวันก่อนหน้า ให้ใช้ผลรวมยอดยกมารายเดือนเป็น fallback
+                day.months.forEach((monthName, idx) => {
+                    if (!monthName) return;
+                    totalCount += cleanNumberString(day.bfCount?.[idx] ?? 0);
+                    totalAmount += cleanNumberString(day.bf?.[idx] ?? 0);
+                });
+            }
+            const changed = cleanNumberString(opening.count) !== totalCount || cleanNumberString(opening.amount) !== totalAmount || opening.type !== 'ย/ม';
+            opening.count = totalCount;
+            opening.amount = totalAmount;
+            opening.type = 'ย/ม';
+
+            if (updateVisible && dateStr === currentDate) {
+                const summaryColIdx = day.months.length;
+                const countInput = document.querySelector(`.sum-count-input-${summaryColIdx}-0`);
+                const amountInput = document.querySelector(`.sum-amount-input-${summaryColIdx}-0`);
+                if (countInput) countInput.value = totalCount ? formatNumber(totalCount) : '';
+                if (amountInput) amountInput.value = totalAmount ? formatNumber(totalAmount) : '';
+                updateDailyBalanceCalculator();
+            }
+            return changed;
+        }
+
+        // ดึงยอดยกมาของแต่ละเดือนจากวันก่อนหน้าล่าสุดที่มีข้อมูล แล้วรวมเข้า ย/ม รายวัน
+        // เมื่อเปิด/รีเฟรชวันปัจจุบัน ให้ forceUpdate เพื่อไม่ใช้ยอดยกมาค้างจากการบันทึกครั้งก่อน
+        // จับคู่เดือนด้วยชื่อเดือน ไม่ใช่ตำแหน่งคอลัมน์
+        function syncBroughtForwardForDate(dateStr, forceUpdate = false) {
+            const day = db[dateStr];
+            if (!day || !Array.isArray(day.months)) return false;
+            const prevDate = getLatestAvailablePreviousDate(dateStr);
+            const prevDay = prevDate ? db[prevDate] : null;
+            let changed = false;
+
+            if (!Array.isArray(day.bf)) day.bf = [];
+            if (!Array.isArray(day.bfCount)) day.bfCount = [];
+            while (day.bf.length < day.months.length) { day.bf.push(0); changed = true; }
+            while (day.bfCount.length < day.months.length) { day.bfCount.push(0); changed = true; }
+
+            if (prevDay) {
+                day.months.forEach((monthName, idx) => {
+                    if (!monthName) return;
+                    const srcDate = getPrevDateForMonth(dateStr, monthName);
+                    if (!srcDate) return;
+                    const carried = getMonthCarriedBalance(srcDate, monthName);
+                    const carriedCount = getMonthCarriedCount(srcDate, monthName);
+                    // ป้องกันข้อมูลยอดยกมาที่ผู้ใช้บันทึกไว้หายเมื่อรีเฟรช:
+                    // ตอนเปิดหน้าให้เติมเฉพาะช่องว่าง/ศูนย์ แต่เมื่อแก้ข้อมูลย้อนหลัง
+                    // ให้ forceUpdate=true เพื่อส่งยอดใหม่ไปยังวันถัดไป
+                    const currentAmount = cleanNumberString(day.bf[idx]);
+                    const currentCount = cleanNumberString(day.bfCount[idx]);
+                    const hasAmount = day.bf[idx] !== '' && day.bf[idx] !== null && day.bf[idx] !== undefined && currentAmount !== 0;
+                    const hasCount = day.bfCount[idx] !== '' && day.bfCount[idx] !== null && day.bfCount[idx] !== undefined && currentCount !== 0;
+                    if ((forceUpdate || !hasAmount) && currentAmount !== carried) { day.bf[idx] = carried; changed = true; }
+                    if ((forceUpdate || !hasCount) && currentCount !== carriedCount) { day.bfCount[idx] = carriedCount; changed = true; }
+                });
+            }
+
+            // สำคัญ: รวม ย/ม จากทุกเดือนเสมอ ไม่ผูกไว้เฉพาะกรณีที่มีวันก่อนหน้า
+            if (syncDailyOpeningFromMonthlyBF(dateStr, dateStr === currentDate)) changed = true;
+            if (recalculateDailySummaryForDate(dateStr)) changed = true;
+            return changed;
+        }
+
+        // เมื่อยอดของวันย้อนหลังเปลี่ยน ให้คำนวณวันถัดไปตามลำดับวันที่
+        // รวมทั้ง ย/ม รายวันและยอดยกมารายเดือน โดยไม่ต้องล้างข้อมูล
+        function recalculateFutureBroughtForwardBalances(fromDate) {
+            const futureDates = Object.keys(db)
+                .filter(dateStr => dateStr > fromDate && db[dateStr] && Array.isArray(db[dateStr].months))
+                .sort();
+            let changed = false;
+            futureDates.forEach(dateStr => {
+                if (syncBroughtForwardForDate(dateStr, true)) changed = true;
+            });
+            if (changed) saveDB();
+        }
+
+        function getCurrentDayData() {
+            const INITIAL_ROWS = 60;
+            let createdNewDay = false;
+            
+            if (!db[currentDate]) {
+                createdNewDay = true;
+                // วันใหม่: สืบทอดชื่อเดือนและยอดคงเหลือจากวันทำการล่าสุดโดยอัตโนมัติ
+                const previousDate = getLatestAvailablePreviousDate(currentDate);
+                const previousDay = previousDate ? db[previousDate] : null;
+                // ใช้ 6 คอลัมน์เป็นฐานเสมอ แต่ยังเก็บคอลัมน์เพิ่มเติมที่ผู้ใช้เพิ่มไว้ในวันก่อนหน้า
+                let defaultMonths = previousDay && Array.isArray(previousDay.months)
+                    ? previousDay.months.slice() : ["", "", "", "", "", ""];
+                while (defaultMonths.length < 6) defaultMonths.push("");
+                let defaultBf = defaultMonths.map(monthName =>
+                    monthName && previousDay && previousDay.months.includes(monthName)
+                        ? getMonthCarriedBalance(previousDate, monthName) : 0
+                );
+                let defaultBfCount = defaultMonths.map(monthName =>
+                    monthName && previousDay && previousDay.months.includes(monthName)
+                        ? getMonthCarriedCount(previousDate, monthName) : 0
+                );
+
+                db[currentDate] = {
+                    months: defaultMonths,
+                    bf: defaultBf,
+                    bfCount: defaultBfCount,
+                    customTotals: [],
+                    customCarried: [],
+                    totalRows: INITIAL_ROWS,
+                    data: {}
+                };
+                
+                db[currentDate].months.forEach(m => {
+                    if (m !== undefined && m !== "") {
+                        db[currentDate].data[m] = new Array(INITIAL_ROWS).fill(null).map((_, i) => ({ type: '', ticket: '', amount: '', count: '', origIdx: i, timestamp: '' }));
+                    }
+                });
+                db[currentDate].data["สรุปประจำวัน"] = new Array(INITIAL_ROWS).fill(null).map((_, i) => {
+                    let defLbl = i < summaryLabels.length ? summaryLabels[i] : '';
+                    return { type: defLbl, ticket: '', amount: '', count: '', origIdx: i, timestamp: '' };
+                });
+            }
+            
+            if (!Array.isArray(db[currentDate].months)) {
+                db[currentDate].months = ["", "", "", "", "", ""];
+            }
+            // วันที่เก่าที่มีน้อยกว่า 6 คอลัมน์ ให้เติมช่องว่างต่อท้ายโดยไม่ย้าย/เขียนทับข้อมูลเดิม
+            while (db[currentDate].months.length < 6) db[currentDate].months.push("");
+
+            if (!Array.isArray(db[currentDate].bf)) {
+                db[currentDate].bf = new Array(db[currentDate].months.length).fill(0);
+            }
+            while (db[currentDate].bf.length < db[currentDate].months.length) db[currentDate].bf.push(0);
+
+            if (!Array.isArray(db[currentDate].bfCount)) {
+                db[currentDate].bfCount = new Array(db[currentDate].months.length).fill(0);
+            }
+            while (db[currentDate].bfCount.length < db[currentDate].months.length) db[currentDate].bfCount.push(0);
+
+            if (!Array.isArray(db[currentDate].customTotals)) {
+                db[currentDate].customTotals = new Array(db[currentDate].months.length).fill('');
+            }
+            while (db[currentDate].customTotals.length < db[currentDate].months.length) db[currentDate].customTotals.push('');
+
+            if (!Array.isArray(db[currentDate].customCarried)) {
+                db[currentDate].customCarried = new Array(db[currentDate].months.length).fill('');
+            }
+            while (db[currentDate].customCarried.length < db[currentDate].months.length) db[currentDate].customCarried.push('');
+            if (!db[currentDate].totalRows) {
+                db[currentDate].totalRows = INITIAL_ROWS;
+            } else if (db[currentDate].totalRows < 5) {
+                db[currentDate].totalRows = 5; // ขั้นต่ำให้แถวสรุปประจำวันแสดงครบ
+            }
+            
+            let summaryMonth = "สรุปประจำวัน";
+            if (!db[currentDate].data[summaryMonth]) {
+                db[currentDate].data[summaryMonth] = new Array(db[currentDate].totalRows).fill(null).map((_, i) => {
+                    let defLbl = i < summaryLabels.length ? summaryLabels[i] : '';
+                    return { type: defLbl, ticket: '', amount: '', count: '', origIdx: i, timestamp: '' };
+                });
+            } else {
+                while(db[currentDate].data[summaryMonth].length < db[currentDate].totalRows) {
+                    let newIdx = db[currentDate].data[summaryMonth].length;
+                    let defLbl = newIdx < summaryLabels.length ? summaryLabels[newIdx] : '';
+                    db[currentDate].data[summaryMonth].push({ type: defLbl, ticket: '', amount: '', count: '', origIdx: newIdx, timestamp: '' });
+                }
+                for(let i = 0; i < summaryLabels.length; i++) {
+                    if(db[currentDate].data[summaryMonth][i]) {
+                        db[currentDate].data[summaryMonth][i].type = summaryLabels[i];
+                    }
+                }
+            }
+
+            db[currentDate].months.forEach(m => {
+                if (m !== undefined && m !== "") {
+                    if (!db[currentDate].data[m]) {
+                        db[currentDate].data[m] = new Array(db[currentDate].totalRows).fill(null).map((_, i) => ({ type: '', ticket: '', amount: '', count: '', origIdx: i, timestamp: '' }));
+                    }
+                    while(db[currentDate].data[m].length < db[currentDate].totalRows) {
+                        let newIdx = db[currentDate].data[m].length;
+                        db[currentDate].data[m].push({ type: '', ticket: '', amount: '', count: '', origIdx: newIdx, timestamp: '' });
+                    }
+                    db[currentDate].data[m].forEach((item, i) => {
+                        if (item && item.origIdx === undefined) {
+                            item.origIdx = i;
+                        }
+                    });
+                }
+            });
+
+            // ยอดสรุปประจำวันเก็บตามข้อมูลของวันที่เปิดอยู่ ไม่อ่าน/ปนค่าจากวันที่แสดงก่อนหน้า
+
+            // บันทึกเมื่อสร้างวันใหม่หรือเมื่อเติมคอลัมน์/อาร์เรย์พื้นฐาน เพื่อให้หกคอลัมน์และยอดเดิมคงอยู่
+            if (createdNewDay) saveDB();
+            return db[currentDate];
+        }
+
+        // บีบขนาดข้อมูลตอนบันทึก: ตัดแถวว่างท้ายรายการของแต่ละเดือน (ไม่แตะสรุปประจำวัน)
+        // ทำเฉพาะเมื่อลำดับแถวยังเป็นลำดับเดิม (origIdx === index) เพื่อไม่ให้ลำดับเพี้ยน
+        // ตอนโหลด getCurrentDayData จะเติมแถวว่างกลับให้ครบตาม totalRows เหมือนเดิม
+        function isBlankStoredRow(r) {
+            if (!r) return true;
+            return String(r.type ?? '').trim() === '' && String(r.ticket ?? '').trim() === '' &&
+                   String(r.amount ?? '').trim() === '' && String(r.count ?? '').trim() === '' &&
+                   !r.importSource;
+        }
+        function stripTrailingBlankRows(key, value) {
+            if (key === 'สรุปประจำวัน' || !Array.isArray(value) || !value.length) return value;
+            const first = value[0];
+            if (!first || typeof first !== 'object' || !('origIdx' in first)) return value;
+            for (let i = 0; i < value.length; i++) {
+                if (!value[i] || value[i].origIdx !== i) return value;
+            }
+            let end = value.length;
+            while (end > 0 && isBlankStoredRow(value[end - 1])) end--;
+            return end === value.length ? value : value.slice(0, end);
+        }
+        function serializeDBCompact() { return JSON.stringify(db, stripTrailingBlankRows); }
+
+        function saveDB() {
+            let serialized;
+            try {
+                serialized = serializeDBCompact();
+            } catch (error) {
+                console.error('แปลงข้อมูลเพื่อบันทึกไม่สำเร็จ:', error);
+                setSaveIndicator('error', 'บันทึกไม่สำเร็จ · ข้อมูลมีข้อผิดพลาด');
+                return false;
+            }
+
+            const savedAt = Date.now();
+            let localSaved = false;
+            try {
+                localStorage.setItem('pawn_krabi_master_db', serialized);
+                localStorage.setItem('pawn_krabi_saved_at', String(savedAt));
+                localSaved = true;
+            } catch (error) {
+                console.error('Local Storage บันทึกไม่สำเร็จ:', error);
+            }
+
+            scheduleIndexedDBSave(serialized);
+            if (localSaved) {
+                setSaveIndicator('saved', 'บันทึกอัตโนมัติในเครื่องแล้ว');
+            } else {
+                setSaveIndicator('pending', 'บันทึกหลักไม่สำเร็จ · กรุณาสำรอง JSON');
+            }
+            return localSaved;
+        }
+
+        // แสดงข้อความแจ้งเตือนมุมจอ (เดิมถูกเรียกใช้ 19 จุดแต่ไม่มีนิยาม ทำให้เกิด ReferenceError หลังบันทึกสำเร็จ)
+        let toastTimer = null;
+        function showToast(message) {
+            try {
+                const toast = document.getElementById('toast');
+                const label = document.getElementById('toast-msg');
+                if (!toast) return;
+                if (label) label.textContent = message;
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2500);
+            } catch (_) { /* การแจ้งเตือนต้องไม่ทำให้ขั้นตอนหลักล้มเหลว */ }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+
+        let pendingBroughtForwardImport = null;
+
+        function previewBroughtForwardImport() {
+            const dayData = getCurrentDayData();
+            const previousDate = getLatestAvailablePreviousDate(currentDate);
+            const previousDay = previousDate ? db[previousDate] : null;
+            const modal = document.getElementById('brought-forward-modal');
+            const content = document.getElementById('brought-forward-preview-content');
+            const sourceLabel = document.getElementById('brought-forward-source-date');
+
+            if (!previousDay || !Array.isArray(previousDay.months)) {
+                pendingBroughtForwardImport = null;
+                sourceLabel.textContent = 'ไม่พบวันก่อนหน้าที่มีข้อมูลภายใน 365 วัน';
+                content.innerHTML = '<div class="rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm">ไม่พบข้อมูลวันก่อนหน้า จึงยังไม่มีรายการยอดยกมาให้นำเข้า</div>';
+                document.getElementById('apply-brought-forward-button').disabled = true;
+                document.getElementById('apply-brought-forward-button').classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                const rows = [];
+                dayData.months.forEach((monthName, idx) => {
+                    if (!monthName) return;
+                    const srcDate = getPrevDateForMonth(currentDate, monthName);
+                    const previousHasMonth = !!srcDate;
+                    const carried = previousHasMonth ? getMonthCarriedBalance(srcDate, monthName) : null;
+                    const carriedCount = previousHasMonth ? getMonthCarriedCount(srcDate, monthName) : null;
+                    rows.push({ monthName, idx, previousHasMonth, carried, carriedCount, srcDate, current: cleanNumberString(dayData.bf?.[idx] ?? 0) });
+                });
+                pendingBroughtForwardImport = { date: currentDate, previousDate, rows };
+                sourceLabel.textContent = `วันที่ปัจจุบัน ${currentDate} · จะดึงจากวันที่มีข้อมูลล่าสุด ${previousDate}`;
+                content.innerHTML = rows.length ? `
+                    <p class="text-sm text-slate-600 mb-3">ตรวจสอบยอดด้านล่างก่อนกด “นำยอดที่แสดงไปใช้” ยอดจะยังไม่เปลี่ยนจนกว่าจะยืนยัน</p>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                      <table class="w-full text-sm border-collapse">
+                        <thead><tr class="bg-slate-100 text-slate-700"><th class="p-2 text-left border-b">เดือน</th><th class="p-2 text-right border-b">ยอดยกมาปัจจุบัน</th><th class="p-2 text-right border-b">ยอดยกไปสุทธิจากวันก่อนหน้า</th><th class="p-2 text-center border-b">สถานะ</th></tr></thead>
+                        <tbody>${rows.map(r => `<tr class="${r.previousHasMonth ? '' : 'bg-amber-50'}"><td class="p-2 border-b font-semibold">${escapeHtml(r.monthName)}</td><td class="p-2 border-b text-right tabular-nums">${formatNumber(r.current)}</td><td class="p-2 border-b text-right tabular-nums">${r.previousHasMonth ? formatNumber(r.carried) : '—'}</td><td class="p-2 border-b text-center ${r.previousHasMonth ? 'text-emerald-700' : 'text-amber-700'}">${r.previousHasMonth ? 'พร้อมนำเข้า (จากวันที่ ' + r.srcDate + ')' : 'ไม่พบเดือนนี้ในวันก่อนหน้า'}</td></tr>`).join('')}</tbody>
+                      </table>
+                    </div>
+                    ${rows.some(r => !r.previousHasMonth) ? '<p class="text-xs text-amber-800 mt-3">หมายเหตุ: เดือนที่ไม่พบในวันก่อนหน้าจะไม่ถูกเปลี่ยนแปลง</p>' : ''}
+                ` : '<div class="rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm">ยังไม่ได้เลือกชื่อเดือนในตารางนี้ กรุณาเลือกเดือนก่อน แล้วลองอีกครั้ง</div>';
+                const canApply = rows.some(r => r.previousHasMonth);
+                document.getElementById('apply-brought-forward-button').disabled = !canApply;
+                document.getElementById('apply-brought-forward-button').classList.toggle('opacity-50', !canApply);
+                document.getElementById('apply-brought-forward-button').classList.toggle('cursor-not-allowed', !canApply);
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeBroughtForwardPreview() {
+            const modal = document.getElementById('brought-forward-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            pendingBroughtForwardImport = null;
+        }
+
+        function applyBroughtForwardImport() {
+            const pending = pendingBroughtForwardImport;
+            if (!pending || pending.date !== currentDate || !db[pending.date]) {
+                closeBroughtForwardPreview();
+                alert('วันที่เปิดอยู่เปลี่ยนไปแล้ว กรุณากดดึงยอดยกมาอีกครั้ง');
+                return;
+            }
+            const dayData = db[pending.date];
+            if (!Array.isArray(dayData.bf)) dayData.bf = new Array(dayData.months.length).fill(0);
+            let imported = 0;
+            pending.rows.forEach(row => {
+                if (row.previousHasMonth && dayData.months[row.idx] === row.monthName) {
+                    dayData.bf[row.idx] = row.carried;
+                    if (!Array.isArray(dayData.bfCount)) dayData.bfCount = new Array(dayData.months.length).fill(0);
+                    dayData.bfCount[row.idx] = row.carriedCount;
+                    imported++;
+                }
+            });
+            saveDB();
+            closeBroughtForwardPreview();
+            renderTable();
+            showToast(`นำยอดยกมาจากวันที่ ${pending.previousDate} มาใช้ ${imported} เดือนแล้ว`);
+        }
+
+        function addMonthCol() {
+            const dayData = getCurrentDayData();
+
+            if (dayData.months.includes("")) {
+                alert("มีคอลัมน์ที่ยังเป็น 'เลือกเดือน' อยู่ กรุณาเลือกชื่อเดือนให้ครบก่อนเพิ่มคอลัมน์ใหม่ครับ");
+                return;
+            }
+
+            // เพิ่มคอลัมน์ว่างเท่านั้น ไม่เดาชื่อเดือนหรือดึงยอดยกมาติดมาด้วยโดยอัตโนมัติ
+            dayData.months.push("");
+            if (!Array.isArray(dayData.bf)) dayData.bf = [];
+            if (!Array.isArray(dayData.bfCount)) dayData.bfCount = [];
+            if (!Array.isArray(dayData.customTotals)) dayData.customTotals = [];
+            if (!Array.isArray(dayData.customCarried)) dayData.customCarried = [];
+            dayData.bf.push(0);
+            dayData.bfCount.push(0);
+            dayData.customTotals.push("");
+            dayData.customCarried.push("");
+
+            saveDB();
+            renderTable();
+            showToast("เพิ่มคอลัมน์ว่างแล้ว กรุณาเลือกเดือนก่อนกรอกข้อมูล");
+        }
+
+        function removeMonthCol() {
+            let dayData = getCurrentDayData();
+            if (dayData.months.length <= 1) {
+                alert('ต้องเหลือคอลัมน์เดือนไว้อย่างน้อย 1 คอลัมน์ครับ');
+                return;
+            }
+            if (confirm('คุณต้องการลดคอลัมน์เดือนขวาสุดออกใช่หรือไม่?')) {
+                dayData.months.pop();
+                dayData.bf.pop();
+                if (Array.isArray(dayData.bfCount)) dayData.bfCount.pop();
+                dayData.customTotals.pop();
+                dayData.customCarried.pop();
+                saveDB();
+                renderTable();
+                showToast('ลดคอลัมน์เดือนสำเร็จ');
+            }
+        }
+
+        function trimEmptyRows() {
+            let dayData = getCurrentDayData();
+            let maxUsedIdx = 3;
+
+            for (let r = 0; r < dayData.totalRows; r++) {
+                let hasDataInRow = false;
+                
+                dayData.months.forEach(m => {
+                    if (m && dayData.data[m] && dayData.data[m][r]) {
+                        let d = dayData.data[m][r];
+                        if ((d.type && d.type !== '') || (d.ticket && d.ticket !== '') || (d.amount && d.amount !== '')) {
+                            hasDataInRow = true;
+                        }
+                    }
+                });
+                
+                let dSum = dayData.data["สรุปประจำวัน"] ? dayData.data["สรุปประจำวัน"][r] : null;
+                if (dSum) {
+                    if ((dSum.count && dSum.count !== '') || (dSum.amount && dSum.amount !== '')) {
+                        hasDataInRow = true;
+                    }
+                    if (r >= 4 && dSum.type && dSum.type !== '') {
+                        hasDataInRow = true;
+                    }
+                }
+                
+                if (hasDataInRow) {
+                    maxUsedIdx = r;
+                }
+            }
+
+            let newTotalRows = Math.max(maxUsedIdx + 2, 5);
+
+            if (newTotalRows < dayData.totalRows) {
+                if (confirm(`ระบบพบแถวว่างท้ายตาราง จะทำการตัดออกเหลือ ${newTotalRows} แถว (เพื่อให้พอดีกับการพิมพ์และไม่เปลืองกระดาษ) ยืนยันหรือไม่?`)) {
+                    dayData.months.forEach(m => {
+                        if (m && dayData.data[m]) {
+                            dayData.data[m] = dayData.data[m].slice(0, newTotalRows);
+                        }
+                    });
+                    let summaryMonth = "สรุปประจำวัน";
+                    if (dayData.data[summaryMonth]) {
+                        dayData.data[summaryMonth] = dayData.data[summaryMonth].slice(0, newTotalRows);
+                    }
+                    dayData.totalRows = newTotalRows;
+                    saveDB();
+                    renderTable();
+                    showToast(`ตัดแถวว่างออกเหลือ ${newTotalRows} แถวเรียบร้อย`);
+                }
+            } else {
+                alert("ตารางมีความกระชับพอดีกับข้อมูลแล้ว ไม่มีแถวว่างส่วนเกินให้ตัดครับ");
+            }
+        }
+
+        function changeDate() {
+            let rawDate = document.getElementById('doc-date').value;
+            if (!rawDate) { // ผู้ใช้กดล้างช่องวันที่: คืนค่าเดิม ไม่สร้างวันที่ว่างในฐานข้อมูล
+                document.getElementById('doc-date').value = currentDate;
+                return;
+            }
+            if (rawDate) {
+                let parts = rawDate.split('-');
+                let y = parseInt(parts[0], 10);
+                if (y > 2500) { 
+                    y -= 543;
+                    rawDate = `${y}-${parts[1]}-${parts[2]}`;
+                    document.getElementById('doc-date').value = rawDate;
+                }
+            }
+            currentDate = rawDate;
+            localStorage.setItem('pawn_krabi_selected_date', currentDate);
+            updateHeaderInfo(currentDate);
+            document.getElementById('sort-order').value = 'normal';
+            currentSortOrder = 'normal';
+            getCurrentDayData();
+            if (syncBroughtForwardForDate(currentDate, false)) saveDB();
+            renderTable();
+            showToast('โหลดข้อมูลวันที่ ' + currentDate + ' พร้อมตรวจสอบยอดยกมาอัตโนมัติแล้ว');
+        }
+
+        function changeSortOrder() {
+            currentSortOrder = document.getElementById('sort-order').value;
+            let dayData = getCurrentDayData();
+            
+            if (currentSortOrder === 'ticket-asc') {
+                for (let cIdx = 0; cIdx < dayData.months.length; cIdx++) {
+                    let m = dayData.months[cIdx];
+                    if (m && m !== "" && dayData.data[m]) {
+                        dayData.data[m].sort((a, b) => {
+                            let tA = (a.ticket !== '' && a.ticket !== null && a.ticket !== undefined) ? String(a.ticket).trim() : '';
+                            let tB = (b.ticket !== '' && b.ticket !== null && b.ticket !== undefined) ? String(b.ticket).trim() : '';
+                            if (tA === '' && tB === '') return 0;
+                            if (tA === '') return 1;
+                            if (tB === '') return -1;
+                            let numA = Number(tA);
+                            let numB = Number(tB);
+                            if (!isNaN(numA) && !isNaN(numB)) {
+                                return numA - numB;
+                            }
+                            return tA.localeCompare(tB, 'th');
+                        });
+                    }
+                }
+                saveDB();
+                showToast('เรียงเลขตั๋ว: น้อยไปมากสำเร็จ');
+            } else if (currentSortOrder === 'normal') {
+                for (let cIdx = 0; cIdx < dayData.months.length; cIdx++) {
+                    let m = dayData.months[cIdx];
+                    if (m && m !== "" && dayData.data[m]) {
+                        dayData.data[m].sort((a, b) => a.origIdx - b.origIdx);
+                    }
+                }
+                saveDB();
+                showToast('คืนค่าการเรียงลำดับปกติสำเร็จ');
+            }
+            renderTable();
+        }
+
+        function updateMonthName(colIdx, val) {
+            let dayData = getCurrentDayData();
+            if (val !== "") {
+                for (let i = 0; i < dayData.months.length; i++) {
+                    if (i !== colIdx && dayData.months[i] === val) {
+                        alert("เดือน '" + val + "' ถูกเลือกไปแล้วในคอลัมน์อื่น กรุณาเลือกเดือนอื่นครับ");
+                        renderTable(); 
+                        return;
+                    }
+                }
+            }
+            let oldMonth = dayData.months[colIdx];
+            dayData.months[colIdx] = val;
+
+            // เมื่อเลือกเดือนอย่างชัดเจน ให้ดึงยอดยกมาของเดือนเดียวกันจากวันก่อนหน้า
+            // ทั้งจำนวนรายและจำนวนเงิน โดยไม่คัดลอกแถวรายการของเดือนเก่ามาปะปน
+            if (!Array.isArray(dayData.bf)) dayData.bf = new Array(dayData.months.length).fill(0);
+            if (!Array.isArray(dayData.bfCount)) dayData.bfCount = new Array(dayData.months.length).fill(0);
+            if (val) {
+                const previousDate = getLatestAvailablePreviousDate(currentDate);
+                const previousDay = previousDate ? db[previousDate] : null;
+                const hasPreviousMonth = previousDay && Array.isArray(previousDay.months) && previousDay.months.includes(val);
+                dayData.bf[colIdx] = hasPreviousMonth ? getMonthCarriedBalance(previousDate, val) : 0;
+                dayData.bfCount[colIdx] = hasPreviousMonth ? getMonthCarriedCount(previousDate, val) : 0;
+                if (!dayData.data[val]) {
+                    dayData.data[val] = new Array(dayData.totalRows).fill(null).map((_, i) => ({ type: '', ticket: '', amount: '', count: '', origIdx: i, timestamp: '' }));
+                }
+            } else {
+                dayData.bf[colIdx] = 0;
+                dayData.bfCount[colIdx] = 0;
+            }
+
+            saveDB();
+            recalculateFutureBroughtForwardBalances(currentDate);
+            renderTable();
+        }
+
+        function updateBF(colIdx, val) {
+            let dayData = getCurrentDayData();
+            if (!dayData.bf) dayData.bf = new Array(dayData.months.length).fill(0);
+            if (val === '') {
+                dayData.bf[colIdx] = 0;
+            } else {
+                let cleanVal = cleanNumberString(val);
+                dayData.bf[colIdx] = cleanVal;
+            }
+            saveDB();
+            syncDailyOpeningFromMonthlyBF(currentDate, true);
+            recalculateFutureBroughtForwardBalances(currentDate);
+            updateFooterTotalsOnly();
+        }
+
+        function updateBFCount(colIdx, val) {
+            let dayData = getCurrentDayData();
+            if (!dayData.bfCount) dayData.bfCount = new Array(dayData.months.length).fill(0);
+            dayData.bfCount[colIdx] = val === '' ? 0 : cleanNumberString(val);
+            saveDB();
+            syncDailyOpeningFromMonthlyBF(currentDate, true);
+            recalculateFutureBroughtForwardBalances(currentDate);
+            updateFooterTotalsOnly();
+        }
+
+        function updateCustomTotal(colIdx, val) {
+            let dayData = getCurrentDayData();
+            if (!dayData.customTotals) dayData.customTotals = new Array(dayData.months.length).fill('');
+            if(val === ''){
+                 dayData.customTotals[colIdx] = '';
+            } else {
+                 let cleanVal = cleanNumberString(val);
+                 dayData.customTotals[colIdx] = cleanVal;
+            }
+            saveDB();
+            recalculateFutureBroughtForwardBalances(currentDate);
+            updateFooterTotalsOnly();
+        }
+
+        function updateCustomCarried(colIdx, val) {
+            // ยกไปสุทธิคำนวณจากยอดยกมาใต้เดือน - ยอดรวมรายการของเดือน ไม่รับค่าที่พิมพ์ทับ
+            let dayData = getCurrentDayData();
+            if (!dayData.customCarried) dayData.customCarried = new Array(dayData.months.length).fill('');
+            dayData.customCarried[colIdx] = '';
+            saveDB();
+            updateFooterTotalsOnly();
+            showToast('ยอดยกไปสุทธิคำนวณอัตโนมัติจากยอดยกมา - ยอดรวมรายการของเดือน');
+        }
+
+        function updateCellData(colIdx, rowIdx, field, value, element) {
+            let dayData = getCurrentDayData();
+            let isSummaryCol = (colIdx === dayData.months.length);
+            let m = isSummaryCol ? "สรุปประจำวัน" : dayData.months[colIdx];
+
+            if ((m === undefined || m === "") && !isSummaryCol) {
+                alert("⚠️ กรุณาเลือกหัวเดือนในคอลัมน์นี้ก่อนทำการบันทึกข้อมูลครับ");
+                if (element) {
+                    element.value = '';
+                    if (field === 'type') element.classList.remove('type-red');
+                    else element.classList.remove('row-red');
+                }
+                return;
+            }
+
+            if (!dayData.data[m]) dayData.data[m] = [];
+            while (dayData.data[m].length <= rowIdx) {
+                let newIdx = dayData.data[m].length;
+                dayData.data[m].push({ type: '', ticket: '', amount: '', count: '', origIdx: newIdx, timestamp: '' });
+            }
+            
+            let cleanVal = value;
+            if (field === 'amount' || field === 'count') {
+                cleanVal = (value === '') ? '' : cleanNumberString(value);
+            } else if (field === 'ticket') {
+                let strVal = String(value).trim();
+                cleanVal = strVal;
+                if (element) element.value = cleanVal;
+                
+                if (cleanVal !== '') {
+                    dayData.data[m][rowIdx].timestamp = new Date().toLocaleTimeString('th-TH');
+                } else {
+                    dayData.data[m][rowIdx].timestamp = '';
+                }
+            }
+
+            dayData.data[m][rowIdx][field] = cleanVal;
+
+            if (!isSummaryCol && (field === 'amount' || field === 'type')) {
+                // เมื่อข้อมูลต้นทางเปลี่ยน ให้กลับมาคำนวณยอดคงเหลืออัตโนมัติ
+                dayData.balanceManual = false;
+                if (dayData.customTotals) dayData.customTotals[colIdx] = '';
+                if (dayData.customCarried) dayData.customCarried[colIdx] = '';
+            }
+            if (isSummaryCol && rowIdx === 3 && (field === 'count' || field === 'amount')) {
+                // แถวคงเหลืออนุญาตให้แก้ไขเองได้ และเก็บสถานะนี้ไว้หลังเปลี่ยนหน้า/รีเฟรช
+                dayData.balanceManual = true;
+            }
+            if (isSummaryCol && rowIdx < 3 && (field === 'count' || field === 'amount')) {
+                dayData.balanceManual = false;
+            }
+
+            saveDB();
+            updateSummaryColumn();
+
+            if (!isSummaryCol && (field === 'amount' || field === 'type')) {
+                recalculateFutureBroughtForwardBalances(currentDate);
+            }
+
+            if (isSummaryCol) return;
+
+            let rowTr = element.closest('tr');
+            if (rowTr) {
+                let typeSelect = rowTr.querySelectorAll('.month-type-select')[colIdx];
+                let ticketInput = rowTr.querySelector(`.ticket-input-${colIdx}-${rowIdx}`);
+                let amountInput = rowTr.querySelector(`.amount-input-${colIdx}-${rowIdx}`);
+
+                let isRed = (typeSelect && typeSelect.value === 'ถ');
+
+                if (typeSelect) {
+                    if (isRed) typeSelect.classList.add('type-red');
+                    else typeSelect.classList.remove('type-red');
+                }
+                if (ticketInput) {
+                    if (isRed) ticketInput.classList.add('row-red');
+                    else ticketInput.classList.remove('row-red');
+                }
+                if (amountInput) {
+                    if (isRed) amountInput.classList.add('row-red');
+                    else amountInput.classList.remove('row-red');
+                }
+            }
+
+            if (field === 'ticket') {
+                checkDuplicateTicketsForMonth(colIdx);
+            }
+        }
+
+        function updateDailyBalanceCalculator() {
+            // อ่านค่าจากช่องสรุปประจำวันบนหน้าจอโดยตรง: แถว 0=ย/ม, 1=รับจำนำ, 2=ไถ่ถอน
+            // สูตรทั้งจำนวนรายและจำนวนเงิน: ย/ม + จำนำ - ไถ่ถอน
+            const dayData = db[currentDate];
+            if (!dayData || !dayData.data) return;
+            const summaryKey = 'สรุปประจำวัน';
+            if (!Array.isArray(dayData.data[summaryKey])) dayData.data[summaryKey] = [];
+            const summaryRows = dayData.data[summaryKey];
+            while (summaryRows.length < 4) {
+                const r = summaryRows.length;
+                summaryRows.push({ type: summaryLabels[r] || '', ticket: '', amount: '', count: '' });
+            }
+
+            // ใช้ข้อมูลที่บันทึกของ currentDate เป็นแหล่งเดียวเสมอ
+            // ห้ามอ่าน input จาก DOM เพราะขณะเปลี่ยนวัน DOM อาจยังเป็นข้อมูลของวันก่อนหน้า
+            const readValue = (rowIndex, field) => cleanNumberString(summaryRows[rowIndex] ? summaryRows[rowIndex][field] : 0);
+
+            const openingCount = readValue(0, 'count');
+            const pledgeCount = readValue(1, 'count');
+            const redemptionCount = readValue(2, 'count');
+            const openingAmount = readValue(0, 'amount');
+            const pledgeAmount = readValue(1, 'amount');
+            const redemptionAmount = readValue(2, 'amount');
+            const calculatedBalanceCount = openingCount + pledgeCount - redemptionCount;
+            const calculatedBalanceAmount = roundMoney(openingAmount + pledgeAmount - redemptionAmount);
+            const manualBalance = dayData.balanceManual === true;
+            const balanceCount = manualBalance ? cleanNumberString(summaryRows[3] && summaryRows[3].count) : calculatedBalanceCount;
+            const balanceAmount = manualBalance ? cleanNumberString(summaryRows[3] && summaryRows[3].amount) : calculatedBalanceAmount;
+
+            const showValue = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.value = Number(value).toLocaleString('th-TH');
+            };
+            showValue('calc-opening-count', openingCount);
+            showValue('calc-pledge-count', pledgeCount);
+            showValue('calc-redemption-count', redemptionCount);
+            showValue('calc-opening', openingAmount);
+            showValue('calc-pledge', pledgeAmount);
+            showValue('calc-redemption', redemptionAmount);
+
+            summaryRows[0].type = 'ย/ม';
+            summaryRows[1].type = 'รับจำนำ';
+            summaryRows[2].type = 'ไถ่ถอน';
+            summaryRows[3].type = 'คงเหลือ';
+            summaryRows[3].count = balanceCount;
+            summaryRows[3].amount = balanceAmount;
+
+            const balanceCountInput = document.querySelector('.summary-count-3');
+            const balanceAmountInput = document.querySelector('.summary-amount-3');
+            if (balanceCountInput) balanceCountInput.value = balanceCount === 0 ? '' : Number(balanceCount).toLocaleString('th-TH');
+            if (balanceAmountInput) balanceAmountInput.value = balanceAmount === 0 ? '' : Number(balanceAmount).toLocaleString('th-TH', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+            const output = document.getElementById('calc-balance');
+            if (output) output.textContent = `${Number(balanceCount).toLocaleString('th-TH')} ราย / ${Number(balanceAmount).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`;
+            saveDB();
+        }
+
+        function updateSummaryColumn() {
+            // ยอดไถ่ถอนในสรุปประจำวันรวมอัตโนมัติเฉพาะรายการประเภท ถ, ส, พ, ผ
+            // จากนั้นตารางคำนวณภายนอกอ่านค่า ย/ม + รับจำนำ - ไถ่ถอน เพื่ออัปเดตคงเหลือ
+            const dayData = getCurrentDayData();
+            const summaryMonth = "สรุปประจำวัน";
+            if (!dayData.data[summaryMonth]) dayData.data[summaryMonth] = [];
+            while (dayData.data[summaryMonth].length < 4) {
+                const r = dayData.data[summaryMonth].length;
+                dayData.data[summaryMonth].push({ type: summaryLabels[r] || '', ticket: '', amount: '', count: '' });
+            }
+            const sumRows = dayData.data[summaryMonth];
+            const totals = getDailyRedemptionTotals(dayData);
+
+            sumRows[0].type = 'ย/ม';
+            sumRows[1].type = 'รับจำนำ';
+            sumRows[2].type = 'ไถ่ถอน';
+            sumRows[3].type = 'คงเหลือ';
+            sumRows[2].count = totals.count || '';
+            sumRows[2].amount = totals.amount || '';
+
+            // อัปเดตเฉพาะยอดไถ่ถอน ไม่แตะต้องยอดคงเหลือที่กรอกเอง
+            const fields = [
+                ['.summary-count-2', totals.count],
+                ['.summary-amount-2', totals.amount]
+            ];
+            fields.forEach(([selector, value]) => {
+                const input = document.querySelector(selector);
+                if (input) input.value = value ? formatNumber(value) : '';
+            });
+            saveDB();
+            updateFooterTotalsOnly();
+            updateDailyBalanceCalculator();
+        }
+
+        const summaryLabels = ["ย/ม", "รับจำนำ", "ไถ่ถอน", "คงเหลือ"];
+
+        function checkDuplicateTicketsForMonth(colIdx) {
+            let dayData = getCurrentDayData();
+            let m = dayData.months[colIdx];
+            if (m === undefined || m === "") return;
+            let rows = dayData.data[m] || [];
+            
+            let counts = {};
+            rows.forEach(r => {
+                let t = r.ticket ? r.ticket.trim() : '';
+                if (t !== '') {
+                    counts[t] = (counts[t] || 0) + 1;
+                }
+            });
+
+            let inputs = document.querySelectorAll(`.ticket-input-${colIdx}`);
+            inputs.forEach((input, rIdx) => {
+                let t = rows[rIdx] && rows[rIdx].ticket ? rows[rIdx].ticket.trim() : '';
+                if (t !== '' && counts[t] > 1) {
+                    input.classList.add('ticket-duplicate');
+                } else {
+                    input.classList.remove('ticket-duplicate');
+                }
+            });
+        }
+
+        // รวมยอดไถ่ถอนรายเดือนจากประเภท ถ, ส, พ, ผ ทั้งจำนวนรายการและจำนวนเงิน
+        function getMonthlyRedemptionTotals(dayData, monthName) {
+            let count = 0;
+            let amount = 0;
+            const rows = (dayData && dayData.data && Array.isArray(dayData.data[monthName]))
+                ? dayData.data[monthName] : [];
+            rows.forEach(item => {
+                if (!item) return;
+                const type = String(item.type || '').trim();
+                const ticket = String(item.ticket || '').trim();
+                const rowAmount = cleanNumberString(item.amount);
+                if (['ถ', 'ส', 'พ', 'ผ'].includes(type) && (ticket !== '' || rowAmount !== 0 || type !== '')) {
+                    count += 1;
+                    amount = roundMoney(amount + rowAmount);
+                }
+            });
+            return { count, amount: roundMoney(amount) };
+        }
+
+        function getDailyRedemptionTotals(dayData) {
+            let count = 0;
+            let amount = 0;
+            (dayData.months || []).forEach(monthName => {
+                if (!monthName) return;
+                const totals = getMonthlyRedemptionTotals(dayData, monthName);
+                count += totals.count;
+                amount = roundMoney(amount + totals.amount);
+            });
+            return { count, amount: roundMoney(amount) };
+        }
+
+        function updateFooterTotalsOnly() {
+            let dayData = getCurrentDayData();
+            if (!dayData.bfCount) dayData.bfCount = new Array(dayData.months.length).fill(0);
+            let html1 = `<td class="border border-slate-300 p-1 text-center bg-slate-200">รวมรับ</td>`;
+            let html2 = `<td class="border border-slate-300 p-1 text-center bg-emerald-100">ยกไป</td>`;
+
+            dayData.months.forEach((m, idx) => {
+                const totals = m ? getMonthlyRedemptionTotals(dayData, m) : { count: 0, amount: 0 };
+                const totalCount = totals.count;
+                const totalAmount = totals.amount;
+                const openingCount = cleanNumberString(dayData.bfCount[idx] ?? 0);
+                const openingAmount = cleanNumberString(dayData.bf?.[idx] ?? 0);
+                const s2add = getSor2AddForMonth(dayData, m);
+                const carriedCount = openingCount + s2add.count - totalCount;
+                const carriedAmount = roundMoney(openingAmount + s2add.amount - totalAmount);
+                const countText = totalCount !== 0 ? formatNumber(totalCount) : '';
+                const amountText = totalAmount !== 0 ? formatNumber(totalAmount) : '';
+                const carriedCountText = carriedCount !== 0 ? formatNumber(carriedCount) : '';
+                const carriedAmountText = carriedAmount !== 0 ? formatNumber(carriedAmount) : '';
+
+                html1 += `
+                    <td class="border border-slate-300 p-0.5 text-right bg-slate-50 font-normal text-[10px]">รวมรายการ</td>
+                    <td class="border border-slate-300 p-0.5 text-right bg-white"><button type="button" onclick="openMonthAudit(${idx})" title="กดเพื่อตรวจสอบรายการที่นำมารวม" class="w-full text-right bg-transparent border-0 text-[10px] font-bold text-emerald-800 underline decoration-dotted">${countText || '0'}</button></td>
+                    <td class="border border-slate-300 p-0.5 text-right bg-white"><button type="button" onclick="openMonthAudit(${idx})" title="กดเพื่อค้นหารายการที่รวมเป็นยอดนี้" class="w-full text-right bg-transparent border-0 text-[10px] font-bold text-emerald-800 underline decoration-dotted">${amountText || '0'}</button></td>
+                `;
+                html2 += `
+                    <td class="border border-slate-300 p-0.5 text-right bg-emerald-100 text-emerald-900 font-normal text-[10px]">ยกไปสุทธิ</td>
+                    <td class="border border-slate-300 p-0.5 text-right bg-emerald-50"><input type="text" readonly value="${carriedCountText}" class="w-full text-right bg-transparent border-0 text-[10px] font-bold text-emerald-700"></td>
+                    <td class="border border-slate-300 p-0.5 text-right bg-emerald-50"><input type="text" readonly value="${carriedAmountText}" class="w-full text-right bg-transparent border-0 text-[10px] font-bold text-emerald-700"></td>
+                `;
+            });
+
+            html1 += `<td colspan="3" class="border border-slate-300 p-1 text-center bg-amber-50 text-amber-900">-</td>`;
+            html2 += `<td colspan="3" class="border border-slate-300 p-1 text-center bg-amber-50 text-amber-900">-</td>`;
+            let rowTotal = document.getElementById('foot-totals-row');
+            let rowCarried = document.getElementById('foot-carried-row');
+            if (rowTotal) rowTotal.innerHTML = html1;
+            if (rowCarried) rowCarried.innerHTML = html2;
+        }
+
+
+        // ตรวจสอบแหล่งที่มาของยอดรวมรายเดือน รวมถึงข้อมูลที่อยู่นอกจำนวนแถวที่แสดง
+        function openMonthAudit(monthIndex) {
+            const dayData = getCurrentDayData();
+            const monthName = dayData.months[monthIndex];
+            if (!monthName) return alert('กรุณาเลือกเดือนก่อนตรวจสอบ');
+            const rows = Array.isArray(dayData.data?.[monthName]) ? dayData.data[monthName] : [];
+            const active = rows.map((item, rowIndex) => ({ item: item || {}, rowIndex }))
+                .filter(({item}) => String(item.type || '').trim() !== '' || String(item.ticket || '').trim() !== '' || cleanNumberString(item.amount) !== 0);
+            const total = getMonthlyRedemptionTotals(dayData, monthName);
+            const hidden = active.filter(x => x.rowIndex >= Number(dayData.totalRows || 0));
+            let body = active.length ? active.map(({item, rowIndex}) => {
+                const beyond = rowIndex >= Number(dayData.totalRows || 0);
+                const typ = String(item.type || '').trim() || '(ไม่ระบุ)';
+                const ticket = String(item.ticket || '').trim() || '(ไม่มีเลขตั๋ว)';
+                const amount = formatNumber(cleanNumberString(item.amount));
+                return `<tr class="${beyond ? 'bg-rose-50' : 'bg-white'} border-b">
+                    <td class="p-2 text-center">${rowIndex + 1}${beyond ? ' <span class="text-rose-700 text-xs font-bold">(ซ่อน)</span>' : ''}</td>
+                    <td class="p-2 text-center font-bold">${auditEscape(typ)}</td>
+                    <td class="p-2 text-center">${auditEscape(ticket)}</td>
+                    <td class="p-2 text-right font-bold">${amount}</td>
+                    <td class="p-2 text-center whitespace-nowrap">
+                      <button onclick="auditRevealRow(${monthIndex},${rowIndex})" class="px-2 py-1 mb-1 rounded bg-sky-100 text-sky-800 text-xs">แสดงแถว</button>
+                      <button onclick="auditEditRow(${monthIndex},${rowIndex})" class="px-2 py-1 mb-1 rounded bg-amber-100 text-amber-900 text-xs">แก้ไข</button>
+                      <button onclick="auditClearRow(${monthIndex},${rowIndex})" class="px-2 py-1 rounded bg-rose-100 text-rose-800 text-xs">ล้างรายการ</button>
+                    </td></tr>`;
+            }).join('') : '<tr><td colspan="5" class="p-4 text-center text-slate-500">ไม่พบข้อมูลในเดือนนี้</td></tr>';
+            let modal = document.getElementById('month-audit-modal');
+            if (!modal) {
+                modal = document.createElement('div'); modal.id = 'month-audit-modal';
+                modal.className = 'fixed inset-0 z-[9999] bg-slate-950/70 flex items-center justify-center p-2';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `<div class="bg-white text-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
+              <div class="p-4 bg-indigo-50 border-b flex items-center justify-between gap-2"><div><h3 class="font-bold text-lg text-indigo-950">ตรวจสอบที่มาของยอดรวม: ${auditEscape(monthName)}</h3><p class="text-sm text-slate-600">วันที่ ${auditEscape(currentDate)} · กดแก้ไขหรือล้างรายการได้จากตรงนี้</p></div><button onclick="closeMonthAudit()" class="text-2xl px-2 text-slate-500">×</button></div>
+              <div class="p-3 grid grid-cols-2 gap-2 bg-slate-50 text-sm"><div class="rounded-lg bg-white p-2">จำนวนรายการที่ระบบนำมารวม: <b>${total.count}</b></div><div class="rounded-lg bg-white p-2">ยอดรวม: <b>${formatNumber(total.amount)} บาท</b></div><div class="rounded-lg bg-white p-2">รายการข้อมูลที่พบ: <b>${active.length}</b></div><div class="rounded-lg bg-rose-50 p-2 text-rose-800">รายการอยู่นอกแถวที่แสดง: <b>${hidden.length}</b></div></div>
+              <div class="overflow-auto flex-1"><table class="w-full text-sm min-w-[560px]"><thead class="sticky top-0 bg-slate-100"><tr><th class="p-2">แถว</th><th>ประเภท</th><th>เลขตั๋ว</th><th class="text-right">จำนวนเงิน</th><th>จัดการ</th></tr></thead><tbody>${body}</tbody></table></div>
+              <div class="p-3 border-t flex justify-between items-center gap-2"><span class="text-xs text-slate-500">แถวที่มีป้าย (ซ่อน) คือข้อมูลที่อยู่นอกจำนวนแถวบนหน้าจอ</span><button onclick="closeMonthAudit()" class="px-5 py-2 rounded-lg bg-slate-700 text-white">ปิด</button></div>
+            </div>`;
+        }
+        function auditEscape(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+        function closeMonthAudit() { const modal = document.getElementById('month-audit-modal'); if (modal) modal.remove(); }
+        function auditRevealRow(monthIndex, rowIndex) {
+            const dayData = getCurrentDayData();
+            if (rowIndex >= Number(dayData.totalRows || 0)) {
+                dayData.totalRows = rowIndex + 1;
+                dayData.months.forEach(m => {
+                    if (!m) return;
+                    if (!Array.isArray(dayData.data[m])) dayData.data[m] = [];
+                    while (dayData.data[m].length < dayData.totalRows) dayData.data[m].push({type:'',ticket:'',amount:'',count:'',origIdx:dayData.data[m].length,timestamp:''});
+                });
+                saveDB(); renderTable();
+            }
+            closeMonthAudit();
+            setTimeout(() => {
+                const row = document.querySelector(`#ledger-tbody tr:nth-child(${rowIndex + 2})`);
+                if (row) { row.scrollIntoView({behavior:'smooth', block:'center'}); row.classList.add('bg-amber-100'); setTimeout(() => row.classList.remove('bg-amber-100'), 2500); }
+            }, 100);
+        }
+        function auditEditRow(monthIndex, rowIndex) {
+            const dayData = getCurrentDayData(); const monthName = dayData.months[monthIndex];
+            const item = dayData.data?.[monthName]?.[rowIndex]; if (!item) return alert('ไม่พบรายการนี้');
+            const type = prompt('แก้ประเภท (ส / พ / ผ / ถ) หรือเว้นว่าง', item.type || ''); if (type === null) return;
+            const normalizedType = String(type).trim(); if (normalizedType && !['ส','พ','ผ','ถ'].includes(normalizedType)) return alert('ประเภทไม่ถูกต้อง');
+            const ticket = prompt('แก้เลขตั๋ว', item.ticket || ''); if (ticket === null) return;
+            const amount = prompt('แก้จำนวนเงิน', item.amount === '' ? '' : String(item.amount)); if (amount === null) return;
+            if (amount.trim() !== '' && (!Number.isFinite(cleanNumberString(amount)) || cleanNumberString(amount) < 0)) return alert('จำนวนเงินไม่ถูกต้อง');
+            item.type = normalizedType; item.ticket = ticket.trim(); item.amount = amount.trim() === '' ? '' : cleanNumberString(amount);
+            saveDB(); renderTable(); openMonthAudit(monthIndex); showToast('บันทึกการแก้ไขรายการแล้ว');
+        }
+        function auditClearRow(monthIndex, rowIndex) {
+            const dayData = getCurrentDayData(); const monthName = dayData.months[monthIndex];
+            const item = dayData.data?.[monthName]?.[rowIndex]; if (!item) return;
+            if (!confirm(`ยืนยันล้างข้อมูลแถวที่ ${rowIndex + 1} ของเดือน${monthName}? ระบบจะไม่ลบแถวอื่น`)) return;
+            item.type = ''; item.ticket = ''; item.amount = ''; item.count = ''; item.timestamp = '';
+            saveDB(); renderTable(); openMonthAudit(monthIndex); showToast('ล้างรายการแล้ว');
+        }
+
+        function addRow() {
+            let dayData = getCurrentDayData();
+            dayData.totalRows++;
+            
+            dayData.months.forEach(m => {
+                if (m !== undefined && m !== "") {
+                    if (!dayData.data[m]) dayData.data[m] = [];
+                    let newOrigIdx = dayData.data[m].length;
+                    dayData.data[m].push({ type: '', ticket: '', amount: '', count: '', origIdx: newOrigIdx, timestamp: '' });
+                }
+            });
+
+            let summaryMonth = "สรุปประจำวัน";
+            if (!dayData.data[summaryMonth]) dayData.data[summaryMonth] = [];
+            while (dayData.data[summaryMonth].length < dayData.totalRows) {
+                let newIdx = dayData.data[summaryMonth].length;
+                let defaultLabel = newIdx < summaryLabels.length ? summaryLabels[newIdx] : '';
+                dayData.data[summaryMonth].push({ type: defaultLabel, ticket: '', amount: '', count: '', origIdx: newIdx, timestamp: '' });
+            }
+            
+            if(dayData.data[summaryMonth][0]) {
+                dayData.data[summaryMonth][0].type = 'ย/ม';
+            }
+
+            saveDB();
+            renderTable();
+            showToast('เพิ่มแถวสำเร็จ');
+        }
+
+        function deleteRow(rIdx) {
+            let dayData = getCurrentDayData();
+            if (dayData.totalRows <= 1) {
+                alert('ต้องเหลือแถวไว้อย่างน้อย 1 แถวครับ');
+                return;
+            }
+            if (confirm('คุณต้องการลบแถวที่ ' + (rIdx + 1) + ' ใช่หรือไม่?')) {
+                dayData.months.forEach(m => {
+                    if (m && m !== "" && dayData.data[m]) {
+                        dayData.data[m].splice(rIdx, 1);
+                        dayData.data[m].forEach((item, idx) => {
+                            if (item) item.origIdx = idx;
+                        });
+                    }
+                });
+                
+                let summaryMonth = "สรุปประจำวัน";
+                if (dayData.data[summaryMonth]) {
+                    dayData.data[summaryMonth].pop(); 
+                }
+                
+                dayData.totalRows--;
+                saveDB();
+                renderTable();
+                showToast('ลบแถวสำเร็จ');
+            }
+        }
+
+        function clearCurrentDayData() {
+            if (confirm('คุณต้องการล้างข้อมูลทั้งหมดของวันที่ ' + currentDate + ' ใช่หรือไม่?')) {
+                delete db[currentDate];
+                getCurrentDayData();
+                saveDB();
+                renderTable();
+                showToast('ล้างข้อมูลวันนี้เรียบร้อย');
+            }
+        }
+
+        async function exportJSON() {
+            const dataStr = JSON.stringify(db, null, 2);
+            const fileName = `pawn_krabi_backup_${currentDate}.json`;
+            let backupSuccess = false;
+
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(dataStr);
+                    await writable.close();
+                    backupSuccess = true;
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.log('File picker error:', err);
+                }
+            } else {
+                const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", url);
+                downloadAnchor.setAttribute("download", fileName);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                // หน่วงเวลาคืน URL เพื่อให้ Chrome บนมือถือเริ่มดาวน์โหลดไฟล์ได้ก่อน
+                setTimeout(() => URL.revokeObjectURL(url), 1500);
+                backupSuccess = true;
+            }
+
+            if (backupSuccess) {
+                localStorage.setItem('pawn_krabi_last_backup', new Date().toISOString());
+                checkBackupReminder();
+                showToast('สำรองระบบ .json สำเร็จ');
+            }
+        }
+
+        async function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const imported = JSON.parse(text);
+                if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
+                    throw new Error('รูปแบบฐานข้อมูลไม่ถูกต้อง');
+                }
+                if (Object.prototype.hasOwnProperty.call(imported, '') && !hasDayDataIn(imported, '')) delete imported[''];
+                for (const [dateKey, day] of Object.entries(imported)) {
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || !day || typeof day !== 'object' ||
+                        !Array.isArray(day.months) || !day.data || typeof day.data !== 'object') {
+                        throw new Error('พบข้อมูลวันที่หรือโครงสร้างฐานข้อมูลไม่ถูกต้อง');
+                    }
+                }
+                if (!confirm(`ยืนยันนำเข้าข้อมูลจากไฟล์ ${file.name} หรือไม่?\n\nข้อมูลเดิมในเครื่องนี้จะถูกแทนที่ แต่ระบบจะเก็บจุดกู้คืนไว้ให้ก่อน`)) return;
+
+                // ห้ามเปลี่ยนฐานข้อมูลปัจจุบันจนกว่าจะบันทึกจุดกู้คืนสำเร็จ
+                await savePreImportRecoverySnapshot(db);
+
+                let normalizedDb = {};
+                for (const [key, value] of Object.entries(imported)) {
+                    const parts = key.split('-');
+                    if (parts.length === 3 && Number.parseInt(parts[0], 10) > 2500) {
+                        const year = Number.parseInt(parts[0], 10) - 543;
+                        normalizedDb[`${year}-${parts[1]}-${parts[2]}`] = value;
+                    } else {
+                        normalizedDb[key] = value;
+                    }
+                }
+
+                const previousDb = db;
+                db = normalizedDb;
+                if (!saveDB()) {
+                    db = previousDb;
+                    throw new Error('บันทึกข้อมูลใหม่ไม่สำเร็จ จึงยกเลิกการนำเข้า');
+                }
+                renderTable();
+                showToast('นำเข้าข้อมูลสำเร็จ · เก็บจุดกู้คืนข้อมูลเดิมแล้ว');
+            } catch (err) {
+                console.error('Import JSON failed:', err);
+                alert('นำเข้าข้อมูลไม่สำเร็จ: ' + (err.message || 'ไฟล์ JSON ไม่ถูกต้อง'));
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        function exportToExcel() {
+            let dayData = getCurrentDayData();
+            let csvContent = "\uFEFF";
+            
+            let header1 = ["ที่"];
+            dayData.months.forEach(m => {
+                header1.push(m || 'ไม่ระบุ', "", "");
+            });
+            header1.push("ยอดสรุปประจำวัน", "", "");
+            csvContent += header1.join(",") + "\n";
+
+            let header2 = [""];
+            dayData.months.forEach((m, idx) => {
+                let bfVal = (dayData.bf && dayData.bf[idx] !== undefined && dayData.bf[idx] !== 0) ? dayData.bf[idx] : '';
+                header2.push("ยกมา:", bfVal, "");
+            });
+            header2.push("", "", "");
+            csvContent += header2.join(",") + "\n";
+
+            let header3 = [""];
+            dayData.months.forEach(() => {
+                header3.push("ประเภท", "เลขตั๋ว", "จำนวนเงิน");
+            });
+            header3.push("ประเภท", "จำนวนราย", "เงิน");
+            csvContent += header3.join(",") + "\n";
+
+            for (let r = 0; r < dayData.totalRows; r++) {
+                let rowData = [r + 1];
+                
+                dayData.months.forEach((m) => {
+                    let rowsToUse = (m && dayData.data[m]) ? dayData.data[m] : [];
+                    let d = rowsToUse[r] || { type: '', ticket: '', amount: '' };
+                    let amtStr = (d.amount !== '' && cleanNumberString(d.amount) !== 0) ? d.amount : '';
+                    rowData.push(d.type, d.ticket, amtStr);
+                });
+
+                let summaryRows = dayData.data["สรุปประจำวัน"] || [];
+                let sD = summaryRows[r] || { type: '', count: '', amount: '' };
+                let defLabel = r < summaryLabels.length ? summaryLabels[r] : '';
+                let sType = sD.type || defLabel;
+                let sCount = (sD.count !== '' && cleanNumberString(sD.count) !== 0) ? sD.count : '';
+                let sAmount = (sD.amount !== '' && cleanNumberString(sD.amount) !== 0) ? sD.amount : '';
+                rowData.push(sType, sCount, sAmount);
+
+                csvContent += rowData.map(val => `"${val}"`).join(",") + "\n";
+            }
+            
+            // ใช้ยอดรวมรายการชุดเดียวกับหน้าจอ เพื่อไม่ให้ไฟล์ส่งออกมียอดต่างกัน
+            let monthSums = dayData.months.map(m => m ? getMonthlyRedemptionTotals(dayData, m) : { count: 0, amount: 0 });
+
+            let foot1 = ["รวมรับ"];
+            let foot2 = ["ยกไป"];
+            
+            dayData.months.forEach((m, idx) => {
+                let userTotal = monthSums[idx];
+                let openingCount = cleanNumberString(dayData.bfCount?.[idx] ?? 0);
+                let openingAmount = cleanNumberString(dayData.bf?.[idx] ?? 0);
+                const s2addP = getSor2AddForMonth(dayData, m);
+                let userCarriedCount = openingCount + s2addP.count - userTotal.count;
+                let userCarriedAmount = roundMoney(openingAmount + s2addP.amount - userTotal.amount);
+                foot1.push("รวมรายการ:", userTotal.count || '', userTotal.amount || '');
+                foot2.push("ยกไปสุทธิ:", userCarriedCount || '', userCarriedAmount || '');
+            });
+
+            foot1.push("-", "-", "-");
+            foot2.push("-", "-", "-");
+
+            csvContent += foot1.map(val => `"${val}"`).join(",") + "\n";
+            csvContent += foot2.map(val => `"${val}"`).join(",") + "\n";
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", url);
+            downloadAnchor.setAttribute("download", `บัญชีแยกประเภท_${currentDate}.csv`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            URL.revokeObjectURL(url);
+            showToast('ส่งออกเป็นไฟล์ Excel สำเร็จ');
+        }
+
+        function filterTable() {
+            let query = document.getElementById('search-ticket').value.toLowerCase();
+            let rows = document.querySelectorAll('#ledger-tbody tr:not(#foot-totals-row):not(#foot-carried-row)');
+            rows.forEach(tr => {
+                const parts = [];
+                tr.querySelectorAll('input').forEach(i => parts.push(i.value));
+                tr.querySelectorAll('select').forEach(s => parts.push((s.options[s.selectedIndex] || {}).text || ''));
+                let text = parts.join(' ').toLowerCase();
+                if (query === '' || text.includes(query)) {
+                    tr.style.display = '';
+                } else {
+                    tr.style.display = 'none';
+                }
+            });
+        }
+
+        function openGlobalSearch() {
+            document.getElementById('global-search-modal').classList.remove('hidden');
+            document.getElementById('global-search-modal').style.display = 'flex';
+            document.getElementById('global-search-input').focus();
+            document.getElementById('global-search-results').innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-6">กรอกเลขตั๋วแล้วกดปุ่ม "ค้นหา"</td></tr>';
+        }
+
+        function closeGlobalSearch() {
+            document.getElementById('global-search-modal').style.display = 'none';
+            document.getElementById('global-search-modal').classList.add('hidden');
+            document.getElementById('global-search-input').value = '';
+        }
+
+        function searchLinkNote(r) {
+            let s = '';
+            if (r.viaNew) s += '<div class="text-[10px] font-semibold" style="color:#b45309">(พบจากเลขตั๋วใหม่)</div>';
+            if (r.book) s += '<div class="text-[10px] text-slate-500">เล่ม ' + escapeHtml(r.book) + '</div>';
+            if (r.newTicket) {
+                const a = (r.newAmount !== '' && cleanNumberString(r.newAmount) !== 0) ? ' · ' + formatNumber(r.newAmount) : '';
+                s += '<div class="text-[10px] font-semibold" style="color:#047857">→ ตั๋วใหม่ ' + (r.newBook ? 'เล่ม ' + escapeHtml(r.newBook) + ' ' : '') + 'เลข ' + escapeHtml(r.newTicket) + a + '</div>';
+            }
+            return s;
+        }
+
+        function searchTicketCell(r) {
+            const bk = v => (v === undefined || v === null || String(v).trim() === '') ? '-' : escapeHtml(String(v).trim());
+            let s = '';
+            if (r.viaNew) s += '<div class="text-[10px] font-semibold" style="color:#b45309">(พบจากเลขตั๋วใหม่)</div>';
+            s += '<div style="text-align:left;line-height:1.5"><span style="color:#64748b">ตั๋วเดิม</span> เล่มที่ <b>' + bk(r.book) + '</b> เลขที่ <b>' + escapeHtml(r.ticket) + '</b></div>';
+            if (r.newTicket) {
+                const a = (r.newAmount !== '' && cleanNumberString(r.newAmount) !== 0) ? ' · ' + formatNumber(r.newAmount) + ' บาท' : '';
+                s += '<div style="text-align:left;line-height:1.5;color:#047857"><span style="font-weight:600">ตั๋วใหม่</span> เล่มที่ <b>' + bk(r.newBook) + '</b> เลขที่ <b>' + escapeHtml(r.newTicket) + '</b>' + a + '</div>';
+            }
+            return s;
+        }
+
+        function executeGlobalSearch() {
+            let query = document.getElementById('global-search-input').value.trim().toLowerCase();
+            let tbody = document.getElementById('global-search-results');
+            
+            if (query === '') {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-6">กรุณากรอกเลขตั๋วที่ต้องการค้นหา</td></tr>';
+                return;
+            }
+            
+            let results = [];
+            
+            for (let dKey in db) {
+                if (!dKey.includes('-') || dKey.length !== 10) continue;
+                
+                let dData = db[dKey];
+                if (dData && dData.months && dData.data) {
+                    dData.months.forEach(m => {
+                        if (m && m !== "" && dData.data[m]) {
+                            dData.data[m].forEach(row => {
+                                if (row && row.ticket !== undefined && row.ticket !== null) {
+                                    let tStr = String(row.ticket).trim().toLowerCase();
+                                    const nStr = String(row.newTicket || '').trim().toLowerCase();
+                                    if ((tStr !== '' && tStr.includes(query)) || (nStr !== '' && nStr.includes(query))) {
+                                        results.push({ 
+                                            date: dKey, 
+                                            month: m, 
+                                            type: row.type || '', 
+                                            ticket: row.ticket, 
+                                            amount: row.amount || '',
+                                            timestamp: row.timestamp || '-', book: row.book || '', newTicket: row.newTicket || '', newBook: row.newBook || '', newAmount: (row.newAmount === undefined ? '' : row.newAmount), viaNew: !(tStr !== '' && tStr.includes(query))
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+            
+            results.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (results.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-rose-500 font-bold py-6">ไม่พบประวัติเลขตั๋วนี้ในระบบ</td></tr>';
+                return;
+            }
+
+            let html = '';
+            results.forEach((r, idx) => {
+                let parts = r.date.split('-');
+                let thDate = `${parts[2]}/${parts[1]}/${Number(parts[0]) + 543}`;
+                let isRed = r.type === 'ถ';
+                let style = isRed ? 'color: #dc2626; font-weight: bold;' : '';
+                let amtStr = (r.amount !== '' && cleanNumberString(r.amount) !== 0) ? formatNumber(r.amount) : '';
+                let timeStr = r.timestamp !== '-' ? r.timestamp + ' น.' : '-';
+
+                html += `<tr class="hover:bg-slate-50 border-b border-slate-200">
+                    <td class="p-2 text-center text-slate-500">${idx + 1}</td>
+                    <td class="p-2 text-center font-bold text-emerald-800">${thDate}</td>
+                    <td class="p-2 text-center text-xs text-slate-500">${timeStr}</td>
+                    <td class="p-2 text-center text-slate-800">${r.month}</td>
+                    <td class="p-2 text-center text-slate-800" style="${style}">${r.type}</td>
+                    <td class="p-2 text-center text-slate-800" style="${style}">${searchTicketCell(r)}</td>
+                    <td class="p-2 text-right text-slate-800" style="${style}">${amtStr}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function openPrintPreview() {
+            // ใช้ตารางคำนวณแยกเป็นแหล่งคำนวณหลักก่อนสร้างหน้าพิมพ์
+            // ฟังก์ชันนี้อัปเดตแถวคงเหลือในสรุปประจำวัน แล้วหน้าพิมพ์อ่านค่าชุดเดียวกัน
+            updateDailyBalanceCalculator();
+            saveDB();
+            const dayData = db[currentDate] || getCurrentDayData();
+            let summaryMonth = "สรุปประจำวัน";
+
+            let thaiYear = new Date().getFullYear() + 543;
+            let formattedDateTH = document.getElementById('display-date-th').innerText;
+            let dayName = document.getElementById('day-name-display').innerText.replace(/[()]/g, '');
+            if (currentDate) {
+                const parts = currentDate.split('-');
+                if (parts.length === 3) {
+                    thaiYear = Number(parts[0]) + 543;
+                }
+            }
+            document.getElementById('preview-date-text').innerText = formattedDateTH;
+            document.getElementById('preview-year-text').innerText = thaiYear;
+            document.getElementById('preview-day-name').innerText = dayName;
+            document.getElementById('preview-col-count').innerText = `จำนวนคอลัมน์เดือน: ${dayData.months.length} เดือน`;
+
+            let previewHTML = `<table class="w-full border-collapse border border-slate-400 text-center text-[8pt]" style="page-break-inside: auto;"><thead>`;
+            
+            let tr1 = `<tr class="bg-slate-200 text-slate-900 font-bold" style="page-break-inside: avoid; page-break-after: avoid;"><th class="border border-slate-400 p-1 w-8">ที่</th>`;
+            let tr2 = `<tr class="bg-emerald-50 text-emerald-950 font-bold" style="page-break-inside: avoid; page-break-after: avoid;"><th class="border border-slate-400 p-1"></th>`;
+            let tr3 = `<tr class="bg-slate-100 text-slate-900 font-semibold" style="page-break-inside: avoid; page-break-after: avoid;"><th class="border border-slate-400 p-1"></th>`;
+
+            dayData.months.forEach((m, idx) => {
+                let monthTitle = m ? m : 'ไม่ระบุ';
+                let bfValFormatted = (dayData.bf && dayData.bf[idx] !== undefined && dayData.bf[idx] !== 0) ? formatNumber(dayData.bf[idx]) : '';
+                tr1 += `<th colspan="3" class="border border-slate-400 p-1 bg-slate-200 text-slate-900">${monthTitle}</th>`;
+                tr2 += `<th colspan="3" class="border border-slate-400 p-1 text-left font-bold text-emerald-950">ยกมา: ${(dayData.bfCount && cleanNumberString(dayData.bfCount[idx])) ? formatNumber(dayData.bfCount[idx]) + ' ราย · ' : ''}${bfValFormatted}</th>`;
+                tr3 += `
+                    <th class="border border-slate-400 p-1 w-8 text-slate-900">ประเภท</th>
+                    <th class="border border-slate-400 p-1 w-14 text-slate-900">เลขตั๋ว</th>
+                    <th class="border border-slate-400 p-1 w-16 text-slate-900">จำนวนเงิน</th>
+                `;
+            });
+
+            tr1 += `<th colspan="3" class="border border-slate-400 p-1 bg-amber-100 text-amber-950 font-bold">ยอดสรุปประจำวัน</th>`;
+            tr2 += `<th colspan="3" class="border border-slate-400 p-1 text-center bg-amber-50 font-bold"></th>`;
+            tr3 += `
+                <th class="border border-slate-400 p-1 w-12 bg-amber-50 text-slate-900">ประเภท</th>
+                <th class="border border-slate-400 p-1 w-14 bg-amber-50 text-slate-900">จำนวนราย</th>
+                <th class="border border-slate-400 p-1 w-20 bg-amber-50 text-slate-900">เงิน</th>
+            `;
+
+            tr1 += `</tr>`;
+            tr2 += `</tr>`;
+            tr3 += `</tr>`;
+            
+            previewHTML += tr1 + tr3 + `</thead><tbody style="page-break-inside: auto;">`;
+            previewHTML += tr2;
+
+            for (let r = 0; r < dayData.totalRows; r++) {
+                previewHTML += `<tr style="page-break-inside: avoid; page-break-after: auto;"><td class="border border-slate-400 p-1 bg-slate-100 font-bold text-center text-slate-900">${r + 1}</td>`;
+                
+                dayData.months.forEach((m, cIdx) => {
+                    let rowsToUse = (m !== undefined && dayData.data[m]) ? dayData.data[m] : [];
+                    let d = rowsToUse[r] || { type: '', ticket: '', amount: '' };
+                    let amtStr = (d.amount !== '' && cleanNumberString(d.amount) !== 0) ? formatNumber(d.amount) : '';
+                    let isRed = d.type === 'ถ';
+                    let colorStyle = isRed ? 'color: #dc2626 !important; font-weight: bold !important;' : 'color: #0f172a !important; font-weight: 600;';
+                    let printRedClass = isRed ? 'print-text-red' : '';
+                    
+                    previewHTML += `
+                        <td class="border border-slate-400 p-1 text-center ${printRedClass}" style="${colorStyle}">${d.type || ''}</td>
+                        <td class="border border-slate-400 p-1 text-center ${printRedClass}" style="${colorStyle}">${d.ticket || ''}</td>
+                        <td class="border border-slate-400 p-1 text-right ${printRedClass}" style="${colorStyle}">${amtStr}</td>
+                    `;
+                });
+
+                let summaryRows = dayData.data[summaryMonth] || [];
+                // แถวคงเหลือ (index 3) มาจากตารางคำนวณแยกที่เรียกก่อนเปิดหน้าพิมพ์
+                let sD = summaryRows[r] || { type: '', ticket: '', amount: '', count: '' };
+                let defLabel = r < summaryLabels.length ? summaryLabels[r] : '';
+                let sType = sD.type || defLabel;
+                let sCount = (sD.count !== '' && cleanNumberString(sD.count) !== 0) ? formatNumber(sD.count) : '';
+                let sAmount = (sD.amount !== '' && cleanNumberString(sD.amount) !== 0) ? formatNumber(sD.amount) : '';
+
+                previewHTML += `
+                    <td class="border border-slate-400 p-1 text-center bg-amber-50/50 font-bold text-slate-900">${sType}</td>
+                    <td class="border border-slate-400 p-1 text-center bg-amber-50/50 font-semibold text-slate-900">${sCount}</td>
+                    <td class="border border-slate-400 p-1 text-right bg-amber-50/50 font-semibold text-slate-900">${sAmount}</td>
+                `;
+                previewHTML += `</tr>`;
+            }
+
+            // ให้หน้าพิมพ์ใช้ยอดไถ่ถอนชุดเดียวกับตารางบนหน้าจอ
+            let monthSums = dayData.months.map(m => m ? getMonthlyRedemptionTotals(dayData, m) : { count: 0, amount: 0 });
+
+            let foot1 = `<tr class="bg-slate-100 font-bold text-slate-900" style="page-break-inside: avoid;"><td class="border border-slate-400 p-1 text-center text-slate-900">รวมรับ</td>`;
+            let foot2 = `<tr class="bg-emerald-50 font-bold text-emerald-950" style="page-break-inside: avoid;"><td class="border border-slate-400 p-1 text-center text-emerald-950">ยกไป</td>`;
+
+            dayData.months.forEach((idxMonth, idx) => {
+                let userTotal = monthSums[idx];
+                let openingCount = cleanNumberString(dayData.bfCount?.[idx] ?? 0);
+                let openingAmount = cleanNumberString(dayData.bf?.[idx] ?? 0);
+                const s2addH = getSor2AddForMonth(dayData, idxMonth);
+                let carriedCount = openingCount + s2addH.count - userTotal.count;
+                let carriedAmount = roundMoney(openingAmount + s2addH.amount - userTotal.amount);
+                foot1 += `<td class="border border-slate-400 p-1 text-right text-slate-900">รวมรายการ</td><td class="border border-slate-400 p-1 text-right text-emerald-900 font-bold">${userTotal.count ? formatNumber(userTotal.count) : ''}</td><td class="border border-slate-400 p-1 text-right text-emerald-900 font-bold">${userTotal.amount ? formatNumber(userTotal.amount) : ''}</td>`;
+                foot2 += `<td class="border border-slate-400 p-1 text-right text-emerald-950">ยกไปสุทธิ</td><td class="border border-slate-400 p-1 text-right text-emerald-950 font-bold">${carriedCount ? formatNumber(carriedCount) : ''}</td><td class="border border-slate-400 p-1 text-right text-emerald-950 font-bold">${carriedAmount ? formatNumber(carriedAmount) : ''}</td>`;
+            });
+
+            foot1 += `<td colspan="3" class="border border-slate-400 p-1 text-center text-slate-900">-</td></tr>`;
+            foot2 += `<td colspan="3" class="border border-slate-400 p-1 text-center text-emerald-950">-</td></tr>`;
+
+            previewHTML += foot1 + foot2 + `</tbody></table>`;
+            
+            document.getElementById('print-preview-table-container').innerHTML = previewHTML;
+            document.getElementById('print-preview-modal').classList.remove('hidden');
+            document.getElementById('print-preview-modal').style.display = 'flex';
+        }
+
+        function printCurrentPreview() {
+            try {
+                // ใช้ตัวอย่างที่เปิดและตรวจสอบอยู่แล้ว ไม่สร้างหน้าต่างซ้ำก่อน window.print()
+                // ช่วยให้เบราว์เซอร์มือถือรับคำสั่งพิมพ์จากการแตะปุ่มโดยตรง
+                const previewTable = document.getElementById('print-preview-table-container');
+                if (!previewTable || !previewTable.innerHTML.trim()) openPrintPreview();
+                window.focus();
+                window.print();
+            } catch (err) {
+                console.error('Print preview failed:', err);
+                alert('เปิดหน้าพิมพ์ไม่สำเร็จ กรุณาใช้เมนูเบราว์เซอร์ > พิมพ์ แล้วเลือก “บันทึกเป็น PDF” หากมีตัวเลือกนี้');
+            }
+        }
+
+        function closePrintPreview() {
+            document.getElementById('print-preview-modal').style.display = 'none';
+            document.getElementById('print-preview-modal').classList.add('hidden');
+        }
+
+        // ---------------- PDF direct import (type left blank for user) ----------------
+        let pdfImportParsedRecords = [];
+        let pdfImportReadyRecords = [];
+        let pdfImportFileName = '';
+        let pdfImportDetectedDate = '';
+
+        function openPDFImportModal() {
+            const modal = document.getElementById('pdf-import-modal');
+            document.getElementById('pdf-import-file').value = '';
+            document.getElementById('pdf-import-date').value = currentDate || getTodayLocalDateStr();
+            document.getElementById('pdf-import-read').disabled = true;
+            document.getElementById('pdf-import-confirm').disabled = true;
+            document.getElementById('pdf-import-status').textContent = 'เลือกไฟล์ PDF เพื่อเริ่มต้น ระบบจะยังไม่บันทึกข้อมูลจนกว่าจะกดยืนยัน';
+            document.getElementById('pdf-import-preview-wrap').classList.add('hidden');
+            pdfImportParsedRecords = []; pdfImportReadyRecords = []; pdfImportFileName = ''; pdfImportDetectedDate = '';
+            modal.classList.remove('hidden'); modal.style.display = 'flex';
+        }
+        function closePDFImportModal() {
+            const modal = document.getElementById('pdf-import-modal'); modal.style.display = 'none'; modal.classList.add('hidden');
+        }
+        async function handlePDFImportFile(event) {
+            const file = event.target.files && event.target.files[0]; if (!file) return;
+            const status = document.getElementById('pdf-import-status');
+            const readButton = document.getElementById('pdf-import-read');
+            readButton.disabled = true; document.getElementById('pdf-import-confirm').disabled = true;
+            pdfImportParsedRecords = []; pdfImportReadyRecords = []; pdfImportFileName = file.name;
+            status.textContent = 'กำลังอ่านข้อความจาก PDF...';
+            try {
+                if (!window.pdfjsLib) throw new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ กรุณาเชื่อมต่ออินเทอร์เน็ตแล้วเปิดไฟล์ใหม่');
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                const buffer = await file.arrayBuffer();
+                const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+                let allText = ''; const parsed = [];
+                for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+                    const page = await pdf.getPage(pageNo); const content = await page.getTextContent();
+                    const lines = getPDFTextLines(content); allText += '\n' + lines.join('\n');
+                    for (const line of lines) {
+                        const match = line.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,6})\s*\/\s*(\d{1,4})\s+(\d{1,6})\s*\/\s*(\d{1,4})\s+([\d,]+(?:\.\d{1,2})?)/);
+                        if (!match) continue;
+                        const dateParts = parsePDFDateParts(match[1]); if (!dateParts) continue;
+                        parsed.push({ loanDate:match[1], month:dateParts.month, ticket:String(Number(match[2])), book:String(Number(match[3])), amount:Number(match[6].replace(/,/g,'')), page:pageNo, sourceLine:line });
+                    }
+                }
+                pdfImportDetectedDate = parseThaiReportDate(allText);
+                if (pdfImportDetectedDate) document.getElementById('pdf-import-date').value = pdfImportDetectedDate;
+                if (!parsed.length) throw new Error('ไม่พบรายการตั๋วใน PDF อาจเป็น PDF ภาพสแกนหรือรูปแบบไม่ตรงกับตัวอย่าง');
+                pdfImportParsedRecords = parsed; readButton.disabled = false;
+                const total = parsed.reduce((sum,row)=>sum+row.amount,0);
+                status.innerHTML = `<b class="text-emerald-800">อ่าน PDF สำเร็จ ${parsed.length} รายการ</b><div>ไฟล์: ${escapeHtml(file.name)} · เงินต้นรวม ${formatNumber(total)} บาท</div><div class="text-amber-700">${pdfImportDetectedDate ? `พบวันที่ประจำวันที่ ${escapeHtml(pdfImportDetectedDate)}` : 'ไม่พบวันที่ประจำวันที่ กรุณาตรวจ/เลือกวันที่ก่อนเตรียมนำเข้า'}</div><div class="mt-1">กด “อ่าน / เตรียมรายการ” เพื่อดูรายการซ้ำและตรวจสอบก่อนบันทึก</div>`;
+            } catch (error) {
+                console.error('PDF import read error:', error);
+                status.innerHTML = `<b class="text-rose-700">อ่าน PDF ไม่สำเร็จ</b><div>${escapeHtml(error.message || 'เกิดข้อผิดพลาด')}</div>`;
+            }
+        }
+        function getPDFImportTargetDate() {
+            const date = document.getElementById('pdf-import-date').value;
+            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { alert('กรุณาระบุวันที่ทำรายการจากหัวรายงานประจำวันที่'); return ''; }
+            return date;
+        }
+        function preparePDFImport() {
+            if (!pdfImportParsedRecords.length) return;
+            const dateKey = getPDFImportTargetDate(); if (!dateKey) return;
+            const day = db[dateKey];
+            const existing = new Set();
+            if (day && day.data) {
+                (day.months || []).forEach(monthName => {
+                    const m = thaiMonths.indexOf(monthName) + 1;
+                    (day.data[monthName] || []).forEach(row => { if (row && String(row.ticket || '').trim()) existing.add(`${m}|${normalizeCompareTicket(row.ticket)}`); });
+                });
+            }
+            const seen = new Set();
+            pdfImportReadyRecords = pdfImportParsedRecords.map((row,index) => {
+                const key = `${row.month}|${normalizeCompareTicket(row.ticket)}`;
+                let reason = '';
+                if (seen.has(key)) reason = 'เลขตั๋วซ้ำใน PDF';
+                else if (existing.has(key)) reason = 'มีเลขตั๋วนี้ในตารางแล้ว';
+                seen.add(key);
+                return { ...row, index, duplicate:!!reason, reason, selected:!reason };
+            });
+            renderPDFImportPreview();
+            const duplicates = pdfImportReadyRecords.filter(x=>x.duplicate).length;
+            document.getElementById('pdf-import-status').innerHTML = `<b class="text-violet-800">เตรียมนำเข้าแล้ว</b><div>วันที่ทำรายการ ${escapeHtml(dateKey)} · พบ ${pdfImportReadyRecords.length} รายการ · ซ้ำ/ข้าม ${duplicates} รายการ</div><div class="text-amber-700">ระบบจะลงข้อมูลในเดือนตามวันที่รับจำนำใน PDF และเว้นประเภทให้ว่าง</div>`;
+        }
+        function renderPDFImportPreview() {
+            const tbody = document.getElementById('pdf-import-tbody');
+            tbody.innerHTML = pdfImportReadyRecords.map(row => {
+                const disabled = row.duplicate ? 'disabled' : '';
+                const checked = row.selected ? 'checked' : '';
+                const status = row.duplicate ? `<span class="text-rose-700 font-bold">${escapeHtml(row.reason)}</span>` : '<span class="text-emerald-700 font-bold">พร้อมนำเข้า</span>';
+                return `<tr class="${row.duplicate?'bg-rose-50':'bg-white'}"><td class="p-2 border text-center" style="text-align:center"><input type="checkbox" ${checked} ${disabled} onchange="setPDFImportSelected(${row.index},this.checked)"></td><td class="p-2 border" style="text-align:left;word-break:break-word">${status}</td><td class="p-2 border whitespace-nowrap" style="text-align:left">${escapeHtml(row.loanDate)}</td><td class="p-2 border" style="text-align:left">${thaiMonths[row.month-1]}</td><td class="p-2 border text-center font-bold" style="text-align:center;word-break:break-all">${escapeHtml(row.ticket)}</td><td class="p-2 border text-center" style="text-align:center">${escapeHtml(row.book)}</td><td class="p-2 border text-right" style="text-align:right">${formatNumber(row.amount)}</td></tr>`;
+            }).join('');
+            const selected = pdfImportReadyRecords.filter(x=>x.selected).length;
+            document.getElementById('pdf-import-count').textContent = `เลือกนำเข้า ${selected} / ${pdfImportReadyRecords.length} รายการ (เว้นประเภทไว้ให้กรอกเอง)`;
+            document.getElementById('pdf-import-preview-wrap').classList.remove('hidden');
+            document.getElementById('pdf-import-confirm').disabled = selected === 0;
+        }
+        function setPDFImportSelected(index, checked) {
+            const row = pdfImportReadyRecords.find(x=>x.index===index); if (!row || row.duplicate) return;
+            row.selected = !!checked; renderPDFImportPreview();
+        }
+        function togglePDFImportSelection(checked) {
+            pdfImportReadyRecords.forEach(row=>{ if (!row.duplicate) row.selected = !!checked; }); renderPDFImportPreview();
+        }
+        function ensurePDFImportMonth(day, monthName) {
+            if (!Array.isArray(day.months)) day.months = [];
+            if (!day.months.includes(monthName)) {
+                const blankIndex = day.months.findIndex(name => !name);
+                if (blankIndex >= 0) day.months[blankIndex] = monthName;
+                else day.months.push(monthName);
+            }
+            if (!day.data) day.data = {};
+            if (!Array.isArray(day.data[monthName])) day.data[monthName] = [];
+            while (day.data[monthName].length < (Number(day.totalRows) || 60)) {
+                const i = day.data[monthName].length;
+                day.data[monthName].push({ type:'', ticket:'', amount:'', count:'', origIdx:i, timestamp:'' });
+            }
+            return day.data[monthName];
+        }
+        function commitPDFImport() {
+            const dateKey = getPDFImportTargetDate(); if (!dateKey) return;
+            const selected = pdfImportReadyRecords.filter(row=>row.selected && !row.duplicate);
+            if (!selected.length) { alert('กรุณาเลือกรายการที่จะนำเข้า'); return; }
+            const total = selected.reduce((sum,row)=>sum+row.amount,0);
+            if (!confirm(`ยืนยันนำเข้า ${selected.length} รายการ วันที่ ${dateKey}\nยอดเงินต้นรวม ${formatNumber(total)} บาท\nระบบจะเว้นประเภท ส / พ / ผ / ถ ให้คุณเลือกเอง และจะไม่แก้รายการเดิม`)) return;
+            const day = db[dateKey] || getCurrentDayDataForDate(dateKey);
+            const oldTotalRows = Math.max(Number(day.totalRows)||60,60);
+            day.totalRows = oldTotalRows;
+            let imported = 0;
+            for (const record of selected) {
+                const monthName = thaiMonths[record.month-1];
+                const rows = ensurePDFImportMonth(day, monthName);
+                const duplicateNow = rows.some(row=>row && normalizeCompareTicket(row.ticket)===normalizeCompareTicket(record.ticket));
+                if (duplicateNow) continue;
+                let index = rows.findIndex(row => !row || (!String(row.ticket||'').trim() && !String(row.amount??'').trim()));
+                while (index < 0) {
+                    const oldLength = day.totalRows;
+                    day.totalRows++;
+                    day.months.forEach(name=>{
+                        if (!name) return;
+                        if (!Array.isArray(day.data[name])) day.data[name]=[];
+                        while (day.data[name].length < day.totalRows) {
+                            const i=day.data[name].length;
+                            day.data[name].push({ type:'',ticket:'',amount:'',count:'',origIdx:i,timestamp:'' });
+                        }
+                    });
+                    if (!Array.isArray(day.data['สรุปประจำวัน'])) day.data['สรุปประจำวัน']=[];
+                    while (day.data['สรุปประจำวัน'].length < day.totalRows) {
+                        const i=day.data['สรุปประจำวัน'].length;
+                        day.data['สรุปประจำวัน'].push({ type:i<summaryLabels.length?summaryLabels[i]:'',ticket:'',amount:'',count:'',origIdx:i,timestamp:'' });
+                    }
+                    index = rows.findIndex(row => !row || (!String(row.ticket||'').trim() && !String(row.amount??'').trim()));
+                    if (day.totalRows <= oldLength) break;
+                }
+                if (index < 0) throw new Error('ไม่สามารถจัดสรรแถวว่างสำหรับนำเข้าได้');
+                rows[index] = { ...(rows[index] || {}), type:'', ticket:String(record.ticket), amount:String(record.amount), count:'', origIdx:index, timestamp:new Date().toLocaleTimeString('th-TH'), importSource:'PDF', importBook:String(record.book), importLoanDate:record.loanDate };
+                imported++;
+            }
+            if (!imported) { alert('ไม่มีรายการใหม่ที่นำเข้าได้ อาจเป็นรายการซ้ำทั้งหมด'); return; }
+            if (dateKey === currentDate) renderTable();
+            saveDB();
+            document.getElementById('pdf-import-status').innerHTML = `<b class="text-emerald-800">นำเข้าสำเร็จ ${imported} รายการ</b><div>วันที่ ${escapeHtml(dateKey)} · ประเภทเว้นว่างให้เลือกเอง · บันทึกลงตารางแล้ว</div><div>ยอดเงินต้นรวมที่เลือก ${formatNumber(total)} บาท</div>`;
+            document.getElementById('pdf-import-confirm').disabled = true;
+            showToast(`นำเข้าจาก PDF สำเร็จ ${imported} รายการ`);
+            alert(`นำเข้าข้อมูลสำเร็จ ${imported} รายการ\nกรุณาเลือกประเภท ส / พ / ผ / ถ ในตารางด้วยตนเอง`);
+            closePDFImportModal();
+        }
+        function getCurrentDayDataForDate(dateKey) {
+            if (dateKey === currentDate) return getCurrentDayData();
+            const previousDate = getLatestAvailablePreviousDate(dateKey);
+            const previousDay = previousDate ? db[previousDate] : null;
+            const months = previousDay && Array.isArray(previousDay.months) ? previousDay.months.slice() : ['','','','','',''];
+            while (months.length < 6) months.push('');
+            const day = { months, bf:months.map(m=>m&&previousDay?.months.includes(m)?getMonthCarriedBalance(previousDate,m):0), bfCount:months.map(m=>m&&previousDay?.months.includes(m)?getMonthCarriedCount(previousDate,m):0), customTotals:months.map(()=>''), customCarried:months.map(()=>''), totalRows:60, data:{} };
+            months.forEach(m=>{ if(m) day.data[m]=Array.from({length:60},(_,i)=>({type:'',ticket:'',amount:'',count:'',origIdx:i,timestamp:''})); });
+            day.data['สรุปประจำวัน']=Array.from({length:60},(_,i)=>({type:i<summaryLabels.length?summaryLabels[i]:'',ticket:'',amount:'',count:'',origIdx:i,timestamp:''}));
+            db[dateKey]=day; return day;
+        }
+
+        // ---------------- PDF vs keyed-ledger comparison ----------------
+        let pdfCompareRecords = [];
+        let pdfCompareFileName = '';
+        let pdfCompareDetectedDate = '';
+
+        function openPDFCompareModal() {
+            const modal = document.getElementById('pdf-compare-modal');
+            const dateInput = document.getElementById('pdf-compare-date');
+            dateInput.value = currentDate || getTodayLocalDateStr();
+            document.getElementById('pdf-compare-file').value = '';
+            document.getElementById('pdf-compare-run').disabled = true;
+            document.getElementById('pdf-compare-status').textContent = 'เลือกไฟล์ PDF เพื่อเริ่มตรวจสอบ ระบบจะไม่แก้ไขข้อมูลในตาราง';
+            document.getElementById('pdf-compare-summary').classList.add('hidden');
+            document.getElementById('pdf-compare-results').classList.add('hidden');
+            pdfCompareRecords = [];
+            pdfCompareFileName = '';
+            pdfCompareDetectedDate = '';
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+
+        function closePDFCompareModal() {
+            const modal = document.getElementById('pdf-compare-modal');
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+        }
+
+        function normalizePDFDigits(value) {
+            const thai = '๐๑๒๓๔๕๖๗๘๙';
+            return String(value || '').replace(/[๐-๙]/g, ch => String(thai.indexOf(ch)));
+        }
+
+        function parseThaiReportDate(text) {
+            const normalized = normalizePDFDigits(text);
+            // PDF แต่ละโปรแกรมอาจแยกคำว่า “ประจำวันที่” เป็นหลายชิ้น/มีช่องว่างต่างกัน
+            const lines = normalized.split(/\r?\n/);
+            let match = null;
+            for (const line of lines) {
+                if (!line.includes('ประจ')) continue;
+                match = line.match(/ประจ[^0-9]{0,50}(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/);
+                if (match) break;
+            }
+            if (!match) return '';
+            let day = Number(match[1]), month = Number(match[2]), year = Number(match[3]);
+            if (year > 2400) year -= 543;
+            if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+            return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        }
+
+        function parsePDFDateParts(value) {
+            const parts = String(value || '').split('/');
+            if (parts.length !== 3) return null;
+            let d = Number(parts[0]), m = Number(parts[1]), y = Number(parts[2]);
+            if (y > 2400) y -= 543;
+            if (!d || m < 1 || m > 12 || y < 1900) return null;
+            return { day:d, month:m, year:y };
+        }
+
+        function getPDFTextLines(textContent) {
+            const items = (textContent.items || []).filter(item => item.str && item.str.trim());
+            const sorted = items.map(item => ({
+                text: normalizePDFDigits(item.str).replace(/\s+/g, ' ').trim(),
+                x: item.transform ? item.transform[4] : 0,
+                y: item.transform ? item.transform[5] : 0
+            })).sort((a,b) => Math.abs(b.y-a.y) > 1.5 ? b.y-a.y : a.x-b.x);
+            const lines = [];
+            for (const item of sorted) {
+                let line = lines.find(row => Math.abs(row.y - item.y) <= 2.2);
+                if (!line) { line = { y:item.y, items:[] }; lines.push(line); }
+                line.items.push(item);
+            }
+            return lines.map(line => line.items.sort((a,b)=>a.x-b.x).map(item=>item.text).join(' ').replace(/\s+/g,' ').trim());
+        }
+
+        async function handlePDFCompareFile(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const status = document.getElementById('pdf-compare-status');
+            const runButton = document.getElementById('pdf-compare-run');
+            runButton.disabled = true;
+            pdfCompareRecords = [];
+            pdfCompareFileName = file.name;
+            status.textContent = 'กำลังอ่านข้อความจาก PDF...';
+            try {
+                if (!window.pdfjsLib) throw new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ กรุณาเชื่อมต่ออินเทอร์เน็ตแล้วเปิดไฟล์ใหม่');
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                const buffer = await file.arrayBuffer();
+                const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+                let allText = '';
+                const parsed = [];
+                for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+                    const page = await pdf.getPage(pageNo);
+                    const content = await page.getTextContent();
+                    const lines = getPDFTextLines(content);
+                    allText += '\n' + lines.join('\n');
+                    for (const line of lines) {
+                        // รูปแบบแถว: วันที่รับจำนำ เลขตั๋ว/เล่มตั๋ว เลขใบเสร็จ/เล่ม จำนวนเงินต้น ...
+                        const match = line.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,6})\s*\/\s*(\d{1,4})\s+(\d{1,6})\s*\/\s*(\d{1,4})\s+([\d,]+(?:\.\d{1,2})?)/);
+                        if (!match) continue;
+                        const dateParts = parsePDFDateParts(match[1]);
+                        if (!dateParts) continue;
+                        parsed.push({
+                            loanDate: match[1], month: dateParts.month,
+                            ticket: String(Number(match[2])), book: String(Number(match[3])),
+                            amount: Number(match[6].replace(/,/g,'')), page: pageNo, sourceLine: line
+                        });
+                    }
+                }
+                pdfCompareDetectedDate = parseThaiReportDate(allText);
+                if (pdfCompareDetectedDate) document.getElementById('pdf-compare-date').value = pdfCompareDetectedDate;
+                if (!parsed.length) {
+                    throw new Error('ไม่พบรายการตั๋วใน PDF อาจเป็นไฟล์สแกนเป็นรูปภาพ หรือรูปแบบเอกสารไม่ตรงกับตัวอย่างนี้');
+                }
+                pdfCompareRecords = parsed;
+                const sum = parsed.reduce((total,row)=>total+row.amount,0);
+                const monthCounts = {};
+                parsed.forEach(row => monthCounts[row.month] = (monthCounts[row.month] || 0) + 1);
+                const monthText = Object.keys(monthCounts).sort((a,b)=>Number(a)-Number(b)).map(m=>`${thaiMonths[Number(m)-1]} ${monthCounts[m]} ราย`).join(' · ');
+                const dateText = pdfCompareDetectedDate ? `พบวันที่ประจำวันที่ ${pdfCompareDetectedDate}` : 'ไม่พบวันที่ในช่องประจำวันที่ — กรุณาเลือกวันที่ทำรายการเอง';
+                status.innerHTML = `<div class="font-bold text-emerald-800">อ่าน PDF สำเร็จ: ${parsed.length} รายการ</div><div class="mt-1">ไฟล์: ${escapeHtml(file.name)}</div><div>ยอดเงินต้นรวมที่อ่านได้: ${formatNumber(sum)}</div><div>${escapeHtml(monthText)}</div><div class="mt-1 text-amber-700">${escapeHtml(dateText)}</div>`;
+                runButton.disabled = false;
+            } catch (error) {
+                console.error('PDF compare read error:', error);
+                status.innerHTML = `<span class="font-bold text-rose-700">อ่าน PDF ไม่สำเร็จ</span><div class="mt-1">${escapeHtml(error.message || 'เกิดข้อผิดพลาด')}</div>`;
+            }
+        }
+
+        function normalizeCompareTicket(value) {
+            const text = normalizePDFDigits(value).trim();
+            if (!text) return '';
+            return /^\d+(?:\.0+)?$/.test(text) ? String(Number(text)) : text.toLowerCase();
+        }
+
+        function getLedgerCompareRows(day) {
+            const rows = [];
+            if (!day || !Array.isArray(day.months) || !day.data) return rows;
+            day.months.forEach(monthName => {
+                if (!monthName || !day.data[monthName]) return;
+                const monthIndex = thaiMonths.indexOf(monthName) + 1;
+                day.data[monthName].forEach((item, rowIndex) => {
+                    if (!item || !String(item.ticket || '').trim()) return;
+                    const type = String(item.type || '').trim();
+                    // PDF ไม่ระบุประเภทในแต่ละรายการ จึงต้องเปรียบเทียบทุกประเภท (ส/พ/ผ/ถ) โดยไม่กรองตาม type
+                    rows.push({ month:monthIndex, monthName, ticket:normalizeCompareTicket(item.ticket), amount:Number(cleanNumberString(item.amount || 0)) || 0, type, rowIndex:rowIndex+1 });
+                });
+            });
+            return rows;
+        }
+
+        function runPDFComparison() {
+            if (!pdfCompareRecords.length) return;
+            const dateKey = document.getElementById('pdf-compare-date').value;
+            if (!dateKey) { alert('กรุณาระบุวันที่ประจำวันที่ของรายงานก่อนเปรียบเทียบ'); return; }
+            if (pdfCompareDetectedDate && dateKey !== pdfCompareDetectedDate) {
+                if (!confirm(`วันที่ในหัวรายงานคือ ${pdfCompareDetectedDate} แต่เลือกวันที่ ${dateKey}\nต้องการเปรียบเทียบกับวันที่ที่เลือกหรือไม่?`)) return;
+            }
+            const day = db[dateKey];
+            if (!day) {
+                document.getElementById('pdf-compare-status').innerHTML = `<span class="text-rose-700 font-bold">ไม่พบข้อมูลที่คีย์ไว้ในวันที่ ${escapeHtml(dateKey)}</span><div class="mt-1">กรุณาตรวจวันที่ หรือเลือกวันที่มีข้อมูลในโปรแกรม</div>`;
+                document.getElementById('pdf-compare-summary').classList.add('hidden');
+                document.getElementById('pdf-compare-results').classList.add('hidden');
+                return;
+            }
+            const keyed = getLedgerCompareRows(day);
+            const pdfByKey = new Map();
+            const ledgerByKey = new Map();
+            const makeKey = row => `${row.month}|${row.ticket}`;
+            pdfCompareRecords.forEach(row => {
+                const key = makeKey(row);
+                if (!pdfByKey.has(key)) pdfByKey.set(key, []);
+                pdfByKey.get(key).push(row);
+            });
+            keyed.forEach(row => {
+                const key = makeKey(row);
+                if (!ledgerByKey.has(key)) ledgerByKey.set(key, []);
+                ledgerByKey.get(key).push(row);
+            });
+            const results = [];
+            const matchedLedgerKeys = new Set();
+            let okCount=0, amountMismatch=0, missingCount=0, extraCount=0, duplicateCount=0, monthMismatch=0;
+
+            for (const pdfRow of pdfCompareRecords) {
+                const key = makeKey(pdfRow);
+                const pdfGroup = pdfByKey.get(key) || [];
+                const ledgerGroup = ledgerByKey.get(key) || [];
+                if (pdfGroup.length > 1) {
+                    duplicateCount++;
+                    results.push({status:'ข้อมูลซ้ำใน PDF',kind:'error',...pdfRow,ledgerAmount:null,detail:`เลขตั๋ว/เดือนนี้ปรากฏใน PDF ${pdfGroup.length} ครั้ง`});
+                    continue;
+                }
+                if (ledgerGroup.length > 1) {
+                    duplicateCount++;
+                    results.push({status:'ข้อมูลซ้ำในตาราง',kind:'error',...pdfRow,ledgerAmount:null,detail:`พบเลขตั๋วนี้ในตาราง ${ledgerGroup.length} แถว`});
+                    ledgerGroup.forEach(r=>matchedLedgerKeys.add(`${r.month}|${r.ticket}|${r.rowIndex}`));
+                    continue;
+                }
+                if (ledgerGroup.length === 1) {
+                    const ledgerRow = ledgerGroup[0];
+                    matchedLedgerKeys.add(`${ledgerRow.month}|${ledgerRow.ticket}|${ledgerRow.rowIndex}`);
+                    if (Math.abs(ledgerRow.amount - pdfRow.amount) > 0.009) {
+                        amountMismatch++;
+                        results.push({status:'ยอดเงินไม่ตรง',kind:'error',...pdfRow,ledgerAmount:ledgerRow.amount,ledgerMonthName:ledgerRow.monthName,ledgerRowIndex:ledgerRow.rowIndex,detail:`ต่างกัน ${formatNumber(Math.abs(ledgerRow.amount-pdfRow.amount))} บาท${ledgerRow.type ? '' : ' · ยังไม่ได้ระบุประเภทในตาราง'}`});
+                    } else {
+                        okCount++;
+                        results.push({status:'ตรงกัน',kind:'ok',...pdfRow,ledgerAmount:ledgerRow.amount,ledgerMonthName:ledgerRow.monthName,ledgerRowIndex:ledgerRow.rowIndex,detail:ledgerRow.type ? 'เลขตั๋วและยอดเงินตรงกัน' : 'เลขตั๋วและยอดเงินตรงกัน แต่ยังไม่ได้ระบุประเภท'});
+                    }
+                    continue;
+                }
+                const elsewhere = keyed.filter(row => row.ticket === pdfRow.ticket);
+                if (elsewhere.length) {
+                    monthMismatch++;
+                    const uniqueElsewhere = elsewhere.length === 1 ? elsewhere[0] : null;
+                    results.push({status:'อาจคีย์ผิดเดือน',kind:'warn',...pdfRow,
+                        ledgerAmount:elsewhere[0].amount,
+                        ledgerMonthName:uniqueElsewhere?.monthName || '',
+                        ledgerRowIndex:uniqueElsewhere?.rowIndex || null,
+                        detail:`PDF อยู่เดือน ${thaiMonths[pdfRow.month-1]} แต่พบในตารางเดือน ${elsewhere.map(x=>x.monthName).join(', ')}${uniqueElsewhere && Math.abs(uniqueElsewhere.amount-pdfRow.amount)>0.009 ? ` · ยอดในตาราง ${formatNumber(uniqueElsewhere.amount)} บาท ไม่ตรงกับ PDF ${formatNumber(pdfRow.amount)} บาท` : ''}${elsewhere.length > 1 ? ' · พบหลายแถว จึงไม่เปิดให้แก้/ย้ายอัตโนมัติ' : ''}`});
+                    elsewhere.forEach(r=>matchedLedgerKeys.add(`${r.month}|${r.ticket}|${r.rowIndex}`));
+                } else {
+                    missingCount++;
+                    results.push({status:'ยังไม่ได้คีย์',kind:'warn',...pdfRow,ledgerAmount:null,detail:'พบใน PDF แต่ไม่พบเลขตั๋วนี้ในตารางของวันที่เลือก'});
+                }
+            }
+
+            for (const ledgerRow of keyed) {
+                const ledgerId = `${ledgerRow.month}|${ledgerRow.ticket}|${ledgerRow.rowIndex}`;
+                if (matchedLedgerKeys.has(ledgerId)) continue;
+                if (pdfByKey.has(makeKey(ledgerRow))) continue;
+                extraCount++;
+                results.push({status:'มีในตารางแต่ไม่พบใน PDF',kind:'warn',month:ledgerRow.month,ticket:ledgerRow.ticket,book:'—',amount:0,ledgerAmount:ledgerRow.amount,detail:`รายการในตารางเดือน ${ledgerRow.monthName} แถว ${ledgerRow.rowIndex}${ledgerRow.type ? ` ประเภท ${ledgerRow.type}` : ' (ยังไม่ระบุประเภท)'}`});
+            }
+
+            // เรียงรายการผิดเดือนและข้อผิดพลาดไว้บนสุด เพื่อไม่ให้จมหายอยู่ท้ายรายการจำนวนมาก
+            const statusPriority = { 'อาจคีย์ผิดเดือน':0, 'ยอดเงินไม่ตรง':1, 'ข้อมูลซ้ำใน PDF':2, 'ข้อมูลซ้ำในตาราง':3, 'มีในตารางแต่ไม่พบใน PDF':4, 'ยังไม่ได้คีย์':5, 'ตรงกัน':6 };
+            results.sort((a,b) => (statusPriority[a.status] ?? 9) - (statusPriority[b.status] ?? 9));
+
+            const summary = document.getElementById('pdf-compare-summary');
+            const cards = [
+                ['ตรงกัน',okCount,'compare-ok'],['ยอดเงินผิด',amountMismatch,'compare-error'],['ยังไม่ได้คีย์',missingCount,'compare-warn'],['ผิดเดือน',monthMismatch,'compare-warn'],['รายการเกิน/ซ้ำ',extraCount+duplicateCount,'compare-error']
+            ];
+            summary.innerHTML = cards.map(([label,value,cls])=>`<div class="rounded-lg border p-2 ${cls}"><div class="text-[10px]">${label}</div><div class="text-xl font-bold">${value}</div></div>`).join('');
+            summary.classList.remove('hidden');
+            pdfCompareResultsCache = results;
+            document.getElementById('pdf-compare-filter').value = 'issues';
+            document.getElementById('pdf-compare-results').classList.remove('hidden');
+            filterPDFCompareResults();
+            document.getElementById('pdf-compare-status').innerHTML = `<span class="font-bold text-violet-800">เปรียบเทียบเสร็จแล้ว</span><div>วันที่: ${escapeHtml(dateKey)} · PDF ${pdfCompareRecords.length} รายการ · ข้อมูลในตารางที่นำมาเทียบ ${keyed.length} รายการ</div><div class="text-amber-700 mt-1">การตรวจนี้ไม่แก้ไขข้อมูลใด ๆ ในระบบ</div>`;
+        }
+
+        function filterPDFCompareResults() {
+            const mode = document.getElementById('pdf-compare-filter')?.value || 'issues';
+            const visible = pdfCompareResultsCache.filter(row => {
+                if (mode === 'all') return true;
+                if (mode === 'monthMismatch') return row.status === 'อาจคีย์ผิดเดือน';
+                if (mode === 'ok') return row.kind === 'ok';
+                if (mode === 'error') return row.kind === 'error';
+                if (mode === 'warn') return row.kind === 'warn';
+                return row.kind !== 'ok'; // ค่าเริ่มต้น: ซ่อนรายการที่ตรงกัน
+            });
+            const tbody = document.getElementById('pdf-compare-tbody');
+            tbody.innerHTML = visible.map(row => {
+                const cls = row.kind === 'ok' ? 'compare-ok' : row.kind === 'error' ? 'compare-error' : 'compare-warn';
+                const monthName = row.month ? thaiMonths[row.month - 1] : '-';
+                const canEditMatched = ['ยอดเงินไม่ตรง','อาจคีย์ผิดเดือน'].includes(row.status) && row.ledgerRowIndex !== null && row.ledgerRowIndex !== undefined && row.ledgerMonthName;
+                const fixInputId = `pdf-fix-${row.month}-${String(row.ticket).replace(/[^a-zA-Z0-9_-]/g,'_')}`;
+                const fixControl = canEditMatched ? `<div class="mt-2 flex flex-wrap items-center gap-1"><label class="text-[10px] font-semibold">ยอดที่ถูกต้องตาม PDF</label><input id="${fixInputId}" type="number" inputmode="decimal" step="0.01" min="0" value="${Number(row.amount || 0)}" class="w-28 border border-rose-300 rounded px-2 py-1 text-right text-xs bg-white"><button onclick="applyPDFCompareFullCorrection('${escapeHtml(row.ledgerMonthName)}',${Number(row.ledgerRowIndex)-1},'${escapeHtml(row.ticket)}',${Number(row.month)},'${fixInputId}')" class="px-2.5 py-1.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-bold">${row.status === 'อาจคีย์ผิดเดือน' ? 'แก้ยอด + ย้ายเดือน + บันทึก' : 'แก้ยอด + บันทึก'}</button></div>` : '';
+                const canMoveMonth = row.status === 'อาจคีย์ผิดเดือน' && row.ledgerRowIndex !== null && row.ledgerRowIndex !== undefined && row.ledgerMonthName;
+                const moveControl = canMoveMonth ? `<div class="mt-2"><button onclick="movePDFCompareMonth('${escapeHtml(row.ledgerMonthName)}',${Number(row.ledgerRowIndex)-1},'${escapeHtml(row.ticket)}',${Number(row.month)})" class="px-2.5 py-1.5 rounded bg-amber-700 hover:bg-amber-800 text-white text-[10px] font-bold"><i class="fa-solid fa-right-left mr-1"></i>ย้ายเดือนอย่างเดียว</button></div>` : '';
+                const rowClass = row.status === 'อาจคีย์ผิดเดือน' ? 'bg-amber-100 text-amber-950 ring-2 ring-inset ring-amber-400' : cls;
+                return `<tr class="${rowClass}"><td class="border p-2 font-bold whitespace-nowrap">${escapeHtml(row.status)}${row.status === 'อาจคีย์ผิดเดือน' ? '<div class="text-[10px] font-normal mt-1">พบในเดือนอื่น</div>' : ''}</td><td class="border p-2 whitespace-nowrap">${escapeHtml(monthName)}</td><td class="border p-2 text-center font-semibold">${escapeHtml(row.ticket)}</td><td class="border p-2 text-center">${escapeHtml(row.book || '—')}</td><td class="border p-2 text-right tabular-nums">${row.ledgerAmount === null ? '—' : formatNumber(row.ledgerAmount)}</td><td class="border p-2 text-right tabular-nums">${row.amount ? formatNumber(row.amount) : '—'}</td><td class="border p-2">${escapeHtml(row.detail || '')}${fixControl}${moveControl}</td></tr>`;
+            }).join('') || '<tr><td colspan="7" class="p-4 text-center text-slate-500">ไม่มีรายการในตัวกรองนี้</td></tr>';
+            document.getElementById('pdf-compare-filter-count').textContent = `แสดง ${visible.length} จากทั้งหมด ${pdfCompareResultsCache.length} รายการ`;
+        }
+
+
+        // หาแถวว่างในเดือนปลายทาง โดยไม่ต่อท้ายเกินจำนวนแถวที่ตารางแสดง
+        // และไม่ใช้ splice เพราะแต่ละเดือนใช้เลขแถวเดียวกันเป็นตำแหน่งคู่ขนานกัน
+        function findOrCreateMonthRowSlot(day, monthName) {
+            if (!day.data) day.data = {};
+            if (!Array.isArray(day.data[monthName])) day.data[monthName] = [];
+            const rows = day.data[monthName];
+            const visibleLimit = Math.max(Number(day.totalRows) || 0, rows.length);
+            const isBlank = (item) => {
+                if (!item) return true;
+                const ticket = String(item.ticket ?? '').trim();
+                const amountText = String(item.amount ?? '').replace(/,/g, '').trim();
+                const countText = String(item.count ?? '').replace(/,/g, '').trim();
+                const amount = amountText === '' ? 0 : Number(amountText);
+                const count = countText === '' ? 0 : Number(countText);
+
+                // แถวที่ไม่มีเลขตั๋วและไม่มียอดเงินจริงถือเป็นช่องว่าง
+                // แม้จะมีประเภทค้างอยู่ หรือมีค่า 0 จากการบันทึกครั้งก่อน
+                const amountIsEmpty = amountText === '' || (Number.isFinite(amount) && amount === 0);
+                const countIsEmpty = countText === '' || (Number.isFinite(count) && count === 0);
+                return ticket === '' && amountIsEmpty && countIsEmpty;
+            };
+
+            // ใช้จำนวนแถวที่ตารางแสดงจริง และค้นหาช่องว่างทุกแถวก่อนเพิ่มแถวใหม่
+            const rowLimit = Number(day.totalRows) || 60; // ไม่เกินจำนวนแถวที่ตารางแสดงจริง
+            for (let i = 0; i < rowLimit; i++) {
+                if (isBlank(rows[i])) return i;
+            }
+
+            // หากเต็มทุกแถว ให้เพิ่มจำนวนแถวทั้งตารางอย่างสอดคล้องกัน
+            const newIndex = visibleLimit;
+            day.totalRows = newIndex + 1;
+            (Array.isArray(day.months) ? day.months : []).forEach(name => {
+                if (!name) return;
+                if (!Array.isArray(day.data[name])) day.data[name] = [];
+                while (day.data[name].length <= newIndex) {
+                    const i = day.data[name].length;
+                    day.data[name].push({ type: '', ticket: '', amount: '', count: '', origIdx: i, timestamp: '' });
+                }
+            });
+            while (rows.length <= newIndex) {
+                const i = rows.length;
+                rows.push({ type: '', ticket: '', amount: '', count: '', origIdx: i, timestamp: '' });
+            }
+            return newIndex;
+        }
+
+        function clearMovedMonthRow(day, monthName, rowIndex) {
+            const rows = day.data[monthName];
+            const old = rows[rowIndex] || {};
+            rows[rowIndex] = { type: '', ticket: '', amount: '', count: '', origIdx: old.origIdx ?? rowIndex, timestamp: '' };
+        }
+
+        function applyPDFCompareFullCorrection(sourceMonthName, sourceRowIndex, ticket, targetMonthNumber, inputId) {
+            const dateKey = document.getElementById('pdf-compare-date')?.value;
+            const day = dateKey && db[dateKey];
+            const input = document.getElementById(inputId);
+            if (!input) { alert('ไม่พบช่องกรอกยอดเงิน กรุณาปิดหน้าต่างแล้วเปรียบเทียบ PDF ใหม่'); return; }
+            const newAmount = Number(cleanNumberString(input.value));
+            if (!day || !day.data || !Array.isArray(day.data[sourceMonthName])) {
+                alert('ไม่พบข้อมูลเดือนต้นทาง กรุณาเปรียบเทียบ PDF ใหม่'); return;
+            }
+            const sourceRows = day.data[sourceMonthName];
+            const row = sourceRows[sourceRowIndex];
+            if (!row || normalizeCompareTicket(row.ticket) !== normalizeCompareTicket(ticket)) {
+                alert('ข้อมูลรายการเปลี่ยนแปลงไปแล้ว กรุณาเปรียบเทียบ PDF ใหม่'); return;
+            }
+            if (!Number.isFinite(newAmount) || newAmount < 0) { alert('กรุณากรอกจำนวนเงินที่ถูกต้อง'); return; }
+            const targetMonthName = thaiMonths[targetMonthNumber - 1];
+            if (!targetMonthName) { alert('ไม่พบเดือนปลายทางจาก PDF'); return; }
+            const isMoving = sourceMonthName !== targetMonthName;
+            if (isMoving) {
+                const targetRows = Array.isArray(day.data[targetMonthName]) ? day.data[targetMonthName] : [];
+                if (targetRows.some(r => normalizeCompareTicket(r.ticket) === normalizeCompareTicket(ticket))) {
+                    alert(`เดือน${targetMonthName} มีเลขตั๋ว ${ticket} อยู่แล้ว จึงไม่สามารถย้ายซ้ำได้`); return;
+                }
+            }
+            const oldAmount = Number(cleanNumberString(row.amount || 0)) || 0;
+            const actionText = isMoving
+                ? `ยืนยันแก้ไขตั๋ว ${ticket}
+เดือน: ${sourceMonthName} → ${targetMonthName}
+ยอดเงิน: ${formatNumber(oldAmount)} → ${formatNumber(newAmount)} บาท
+ระบบจะย้ายทั้งแถวและบันทึกทันที`
+                : `ยืนยันแก้ไขยอดเงินตั๋ว ${ticket} เดือน${sourceMonthName}
+จาก ${formatNumber(oldAmount)} บาท เป็น ${formatNumber(newAmount)} บาท?`;
+            if (!confirm(actionText)) return;
+
+            // เก็บประวัติการแก้ไขไว้ในฐานข้อมูล เพื่อให้ตรวจสอบย้อนหลังได้
+            if (!Array.isArray(day.correctionHistory)) day.correctionHistory = [];
+            day.correctionHistory.push({
+                dateKey, ticket: String(ticket), action: isMoving ? 'แก้ยอดและย้ายเดือนจากผลเทียบ PDF' : 'แก้ยอดจากผลเทียบ PDF',
+                fromMonth: sourceMonthName, toMonth: targetMonthName,
+                oldAmount, newAmount, changedAt: new Date().toISOString()
+            });
+            row.amount = String(newAmount);
+            if (isMoving) {
+                const targetRowIndex = findOrCreateMonthRowSlot(day, targetMonthName);
+                // คัดลอกข้อมูลทั้งแถวลงช่องว่าง โดยคงเลขแถวเดิมของเดือนอื่นไว้
+                day.data[targetMonthName][targetRowIndex] = { ...row, origIdx: targetRowIndex };
+                clearMovedMonthRow(day, sourceMonthName, sourceRowIndex);
+                if (Array.isArray(day.months) && !day.months.includes(targetMonthName)) day.months.push(targetMonthName);
+            }
+            saveDB();
+            if (typeof renderTable === 'function') renderTable();
+            alert(isMoving ? `แก้ยอดและย้ายตั๋ว ${ticket} ไปเดือน${targetMonthName} เรียบร้อยแล้ว` : `แก้ยอดตั๋ว ${ticket} เรียบร้อยแล้ว`);
+            runPDFComparison();
+        }
+
+        function movePDFCompareMonth(sourceMonthName, sourceRowIndex, ticket, targetMonthNumber) {
+            const dateKey = document.getElementById('pdf-compare-date')?.value;
+            const day = dateKey && db[dateKey];
+            if (!day || !day.data || !Array.isArray(day.data[sourceMonthName])) {
+                alert('ไม่พบข้อมูลเดือนต้นทาง กรุณาเปรียบเทียบ PDF ใหม่'); return;
+            }
+            const sourceRows = day.data[sourceMonthName];
+            const row = sourceRows[sourceRowIndex];
+            if (!row || normalizeCompareTicket(row.ticket) !== normalizeCompareTicket(ticket)) {
+                alert('ข้อมูลรายการเปลี่ยนแปลงไปแล้ว กรุณาเปรียบเทียบ PDF ใหม่'); return;
+            }
+            const targetMonthName = thaiMonths[targetMonthNumber - 1];
+            if (!targetMonthName) { alert('ไม่พบชื่อเดือนปลายทาง'); return; }
+            if (sourceMonthName === targetMonthName) { alert('รายการนี้อยู่ในเดือนที่ถูกต้องอยู่แล้ว'); return; }
+            if (!Array.isArray(day.data[targetMonthName])) day.data[targetMonthName] = [];
+            const duplicateInTarget = day.data[targetMonthName].some(r => normalizeCompareTicket(r.ticket) === normalizeCompareTicket(ticket));
+            if (duplicateInTarget) {
+                alert(`เดือน${targetMonthName} มีเลขตั๋ว ${ticket} อยู่แล้ว จึงไม่สามารถย้ายซ้ำได้`); return;
+            }
+            if (!confirm(`ยืนยันย้ายตั๋ว ${ticket} จากเดือน${sourceMonthName} ไปเดือน${targetMonthName}?\nระบบจะย้ายข้อมูลทั้งแถวและบันทึกทันที โดยไม่เปลี่ยนยอดเงินหรือประเภท`)) return;
+            const movedRow = { ...row };
+            const targetRowIndex = findOrCreateMonthRowSlot(day, targetMonthName);
+            day.data[targetMonthName][targetRowIndex] = { ...movedRow, origIdx: targetRowIndex };
+            clearMovedMonthRow(day, sourceMonthName, sourceRowIndex);
+            if (Array.isArray(day.months) && !day.months.includes(targetMonthName)) day.months.push(targetMonthName);
+            saveDB();
+            if (typeof renderTable === 'function') renderTable();
+            alert(`ย้ายตั๋ว ${ticket} ไปเดือน${targetMonthName} และบันทึกแล้ว`);
+            runPDFComparison();
+        }
+
+        function applyPDFCompareCorrection(monthName, rowIndex, ticket, expectedAmount, inputId) {
+            const dateKey = document.getElementById('pdf-compare-date')?.value;
+            const input = document.getElementById(inputId);
+            const newAmount = Number(cleanNumberString(input ? input.value : ''));
+            if (!dateKey || !db[dateKey] || !db[dateKey].data || !Array.isArray(db[dateKey].data[monthName])) {
+                alert('ไม่พบข้อมูลวันที่หรือเดือนที่ต้องการแก้ไข กรุณาเปรียบเทียบใหม่'); return;
+            }
+            const row = db[dateKey].data[monthName][rowIndex];
+            if (!row || normalizeCompareTicket(row.ticket) !== normalizeCompareTicket(ticket)) {
+                alert('ข้อมูลแถวนี้เปลี่ยนแปลงไปแล้ว เพื่อความปลอดภัยกรุณาเปรียบเทียบ PDF ใหม่'); return;
+            }
+            if (!Number.isFinite(newAmount) || newAmount < 0) { alert('กรุณากรอกจำนวนเงินที่ถูกต้อง'); return; }
+            if (!confirm(`ยืนยันแก้ไขยอดเงินของตั๋ว ${ticket} เดือน${monthName}
+จาก ${formatNumber(row.amount || 0)} บาท เป็น ${formatNumber(newAmount)} บาท?`)) return;
+            row.amount = String(newAmount);
+            saveDB();
+            if (typeof renderTable === 'function') renderTable();
+            alert('แก้ไขยอดเงินและบันทึกแล้ว ระบบจะตรวจสอบผลใหม่');
+            runPDFComparison();
+        }
+
+        function renderTable() {
+            let dayData = getCurrentDayData();
+            let summaryMonth = "สรุปประจำวัน";
+
+            // ยอดยกมาของวันปัจจุบันจะเปลี่ยนเมื่อผู้ใช้ตรวจสอบและกดยืนยันนำเข้าเท่านั้น
+            updateSummaryColumn();
+
+            const thead = document.getElementById('ledger-thead');
+            let tr1 = `<tr class="bg-slate-200 text-slate-700 font-bold"><th rowspan="2" class="border border-slate-300 p-1.5 w-10 bg-slate-300">ที่</th>`;
+            let tr2 = `<tr class="bg-slate-100 text-slate-600 text-[10px]">`;
+
+            dayData.months.forEach((m, idx) => {
+                let options = `<option value="" ${m === '' ? 'selected' : ''}>เลือกเดือน</option>` + 
+                              thaiMonths.map(mo => `<option value="${mo}" ${mo === m ? 'selected' : ''}>${mo}</option>`).join('');
+                tr1 += `<th colspan="3" class="border border-slate-300 p-1 bg-slate-200">
+                    <select onchange="updateMonthName(${idx}, this.value)" class="w-full bg-white border border-slate-300 rounded px-1 py-0.5 text-xs font-bold text-slate-800 focus:outline-none text-center">
+                        ${options}
+                    </select>
+                </th>`;
+
+                tr2 += `
+                    <th class="border border-slate-300 p-1 w-8 text-emerald-800">ประเภท</th>
+                    <th class="border border-slate-300 p-1 w-14">เลขตั๋ว</th>
+                    <th class="border border-slate-300 p-1 w-16 whitespace-nowrap">จำนวนเงิน</th>
+                `;
+            });
+
+            tr1 += `<th colspan="3" class="border border-slate-300 p-1 bg-amber-100 text-amber-900 font-bold">ยอดสรุปประจำวัน</th>`;
+            tr2 += `
+                <th class="border border-slate-300 p-1 w-14 bg-amber-50 text-amber-900">ประเภท</th>
+                <th class="border border-slate-300 p-1 w-14 bg-amber-50 text-amber-900">จำนวนราย</th>
+                <th class="border border-slate-300 p-1 w-20 bg-amber-50 text-amber-900">เงิน</th>
+            `;
+
+            tr1 += `</tr>`;
+            tr2 += `</tr>`;
+            thead.innerHTML = tr1 + tr2;
+
+            const tbody = document.getElementById('ledger-tbody');
+            let rowsHTML = '';
+
+            let trBfRow = `<tr class="bg-emerald-50 font-bold"><td class="border border-slate-300 p-0.5 text-center font-normal"></td>`;
+            dayData.months.forEach((m, idx) => {
+                if (!dayData.bfCount) dayData.bfCount = new Array(dayData.months.length).fill(0);
+                let bfCountVal = (dayData.bfCount[idx] !== undefined && dayData.bfCount[idx] !== 0) ? formatNumber(dayData.bfCount[idx]) : '';
+                let bfVal = (dayData.bf && dayData.bf[idx] !== undefined && dayData.bf[idx] !== 0) ? formatNumber(dayData.bf[idx]) : '';
+                trBfRow += `
+                    <td class="border border-slate-300 p-1 text-left text-[10px] font-normal text-emerald-900 bg-emerald-50/50">
+                        <span class="font-bold">ยกมา</span>
+                    </td>
+                    <td class="border border-slate-300 p-0.5 bg-emerald-50/50">
+                        <input type="text" value="${bfCountVal}" placeholder="จำนวนราย"
+                            onfocus="this.value = this.value.replace(/,/g, '')"
+                            onblur="this.value = formatNumber(this.value); updateBFCount(${idx}, this.value)"
+                            class="w-full bg-white border border-emerald-300 rounded px-1 py-0.5 text-[10px] font-bold text-emerald-900 text-right focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </td>
+                    <td class="border border-slate-300 p-0.5 bg-emerald-50/50">
+                        <input type="text" value="${bfVal}" placeholder="จำนวนเงิน"
+                            onfocus="this.value = this.value.replace(/,/g, '')"
+                            onblur="this.value = formatNumber(this.value); updateBF(${idx}, this.value)"
+                            class="w-full bg-white border border-emerald-300 rounded px-1 py-0.5 text-[10px] font-bold text-emerald-900 text-right focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </td>
+                `;
+            });
+            trBfRow += `<td colspan="3" class="border border-slate-300 p-1 text-center text-xs bg-amber-50 text-amber-900"></td></tr>`;
+            rowsHTML += trBfRow;
+
+            for (let r = 0; r < dayData.totalRows; r++) {
+                rowsHTML += `<tr class="hover:bg-slate-50">
+                    <td class="border border-slate-300 p-0.5 font-bold bg-slate-100 text-slate-600 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span>${r + 1}</span>
+                            <button onclick="deleteRow(${r})" title="ลบแถวนี้" class="delete-row-btn text-rose-600 hover:text-rose-800 px-1 py-0.5 rounded transition">
+                                <span style="font-size:11px;font-weight:700">ลบ</span>
+                            </button>
+                        </div>
+                    </td>`;
+
+                dayData.months.forEach((m, cIdx) => {
+                    const rowsToUse = (m !== undefined && m !== "" && dayData.data[m]) ? dayData.data[m] : [];
+                    const currentData = (rowsToUse && rowsToUse[r]) ? rowsToUse[r] : { type: '', ticket: '', amount: '', count: '' };
+                    let isRed = currentData.type === 'ถ';
+                    let redClass = isRed ? 'type-red' : '';
+                    let rowRedClass = isRed ? 'row-red' : '';
+                    let valAmount = (currentData.amount !== '' && cleanNumberString(currentData.amount) !== 0) ? formatNumber(currentData.amount) : '';
+                    const offAttr = (!m) ? 'disabled' : ''; const offCls = (!m) ? 'col-off' : '';
+                    const linkCls = currentData.newTicket ? 'qs-linked' : '';
+                    const linkTitle = currentData.newTicket ? ` title="${escapeHtml('→ ตั๋วใหม่ เลข ' + currentData.newTicket + ((currentData.newAmount !== undefined && currentData.newAmount !== '') ? ' · ยอด ' + formatNumber(currentData.newAmount) : ''))}"` : '';
+
+                    rowsHTML += `
+                        <td class="border border-slate-300 p-0.5">
+                            <select ${offAttr} onchange="updateCellData(${cIdx}, ${r}, 'type', this.value, this)" 
+                                onkeydown="handleEnterKey(event, 'type', ${cIdx}, ${r})"
+                                class="type-select-${cIdx}-${r} month-type-select ${redClass} ${offCls} w-full text-center bg-transparent border-0 text-[11px] font-bold text-emerald-900 focus:ring-1 focus:ring-emerald-500">
+                                <option value="" ${currentData.type === '' ? 'selected' : ''}></option>
+                                <option value="ส" ${currentData.type === 'ส' ? 'selected' : ''}>ส</option>
+                                <option value="พ" ${currentData.type === 'พ' ? 'selected' : ''}>พ</option>
+                                <option value="ผ" ${currentData.type === 'ผ' ? 'selected' : ''}>ผ</option>
+                                <option value="ถ" ${currentData.type === 'ถ' ? 'selected' : ''}>ถ</option>
+                            </select>
+                        </td>
+                        <td class="border border-slate-300 p-0.5">
+                            <input type="text" value="${currentData.ticket || ''}" 
+                                ${linkTitle} ${offAttr} oninput="updateCellData(${cIdx}, ${r}, 'ticket', this.value, this)" 
+                                onkeydown="handleEnterKey(event, 'ticket', ${cIdx}, ${r})"
+                                class="ticket-input-${cIdx} ticket-input-${cIdx}-${r} ${rowRedClass} ${offCls} ${linkCls} w-full text-center bg-transparent border-0 text-[11px] font-semibold text-slate-900 focus:ring-1 focus:ring-emerald-500">
+                        </td>
+                        <td class="border border-slate-300 p-0.5">
+                            <input type="text" value="${valAmount}" 
+                                onfocus="this.value = this.value.replace(/,/g, '')" 
+                                ${offAttr} onblur="this.value = formatNumber(this.value); updateCellData(${cIdx}, ${r}, 'amount', this.value, this)" 
+                                onkeydown="handleEnterKey(event, 'amount', ${cIdx}, ${r})"
+                                class="amount-input-${cIdx}-${r} ${rowRedClass} ${offCls} w-full text-right bg-transparent border-0 text-[11px] font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500 whitespace-nowrap">
+                        </td>
+                    `;
+                });
+
+                let summaryRows = dayData.data[summaryMonth] || [];
+                let sumData = summaryRows[r] || { type: '', ticket: '', amount: '', count: '' };
+                let defaultLabel = r < summaryLabels.length ? summaryLabels[r] : '';
+                if (!sumData.type && defaultLabel) {
+                    sumData.type = defaultLabel;
+                }
+                if (r === 0) {
+                    sumData.type = 'ย/ม';
+                }
+
+                if (r === 2) {
+                    const redemptionTotals = getDailyRedemptionTotals(dayData);
+                    sumData.type = 'ไถ่ถอน';
+                    sumData.count = redemptionTotals.count || '';
+                    sumData.amount = redemptionTotals.amount || '';
+                    if (!dayData.data[summaryMonth]) dayData.data[summaryMonth] = [];
+                    dayData.data[summaryMonth][2] = { ...(dayData.data[summaryMonth][2] || {}), type: 'ไถ่ถอน', count: sumData.count, amount: sumData.amount };
+                }
+                let valAmount = (sumData.amount !== '' && cleanNumberString(sumData.amount) !== 0) ? formatNumber(sumData.amount) : '';
+                let valCount = (sumData.count !== '' && cleanNumberString(sumData.count) !== 0) ? formatNumber(sumData.count) : '';
+                
+                let countClass = '';
+                let amountClass = '';
+                if (r === 2) { 
+                    countClass = 'summary-count-2'; amountClass = 'summary-amount-2';
+                } else if (r === 3) { 
+                    countClass = 'summary-count-3'; amountClass = 'summary-amount-3';
+                }
+
+                let summaryColIdx = dayData.months.length;
+                rowsHTML += `
+                    <td class="border border-slate-300 p-0.5 bg-amber-50/40">
+                        <input type="text" value="${sumData.type || ''}" 
+                            oninput="updateCellData(${summaryColIdx}, ${r}, 'type', this.value, this)" 
+                            onkeydown="handleEnterKey(event, 'sum-type', ${summaryColIdx}, ${r})"
+                            class="sum-type-input-${summaryColIdx}-${r} w-full text-center bg-transparent border-0 text-[11px] font-bold text-amber-900 focus:ring-1 focus:ring-amber-500" ${r === 0 ? 'readonly' : ''}>
+                    </td>
+                    <td class="border border-slate-300 p-0.5 bg-amber-50/40">
+                        <input type="text" value="${valCount}" 
+                            onfocus="this.value = this.value.replace(/,/g, '')" 
+                            ${(r === 1 || r === 3) ? `oninput="updateCellData(${summaryColIdx}, ${r}, 'count', this.value, this)"` : ''}
+                            onblur="this.value = formatNumber(this.value); updateCellData(${summaryColIdx}, ${r}, 'count', this.value, this)" 
+                            onkeydown="handleEnterKey(event, 'sum-count', ${summaryColIdx}, ${r})"
+                            placeholder="" class="${countClass} sum-count-input-${summaryColIdx}-${r} w-full text-center bg-transparent border-0 text-[11px] font-semibold text-slate-800 focus:ring-1 focus:ring-amber-500">
+                    </td>
+                    <td class="border border-slate-300 p-0.5 bg-amber-50/40">
+                        <input type="text" value="${valAmount}" 
+                            onfocus="this.value = this.value.replace(/,/g, '')" 
+                            ${(r === 1 || r === 3) ? `oninput="updateCellData(${summaryColIdx}, ${r}, 'amount', this.value, this)"` : ''}
+                            onblur="this.value = formatNumber(this.value); updateCellData(${summaryColIdx}, ${r}, 'amount', this.value, this)" 
+                            onkeydown="handleEnterKey(event, 'sum-amount', ${summaryColIdx}, ${r})"
+                            placeholder="" class="${amountClass} sum-amount-input-${summaryColIdx}-${r} w-full text-right bg-transparent border-0 text-[11px] font-semibold text-slate-800 focus:ring-1 focus:ring-amber-500 whitespace-nowrap">
+                    </td>
+                `;
+
+                rowsHTML += `</tr>`;
+            }
+
+            rowsHTML += `<tr id="foot-totals-row" class="bg-slate-100 font-bold text-slate-900"></tr>`;
+            rowsHTML += `<tr id="foot-carried-row" class="bg-emerald-50 font-bold text-emerald-900"></tr>`;
+            
+            tbody.innerHTML = rowsHTML;
+            updateFooterTotalsOnly();
+            updateDailyBalanceCalculator();
+            
+            for (let cIdx = 0; cIdx < dayData.months.length; cIdx++) {
+                checkDuplicateTicketsForMonth(cIdx);
+            }
+        }
+
+        // ====== UI helpers v4 (ไม่แตะฟังก์ชันคำนวณ) ======
+        function applyAppTheme() {
+            document.body.classList.remove('cyber-grid-bg', 'bg-slate-950', 'text-slate-100');
+            document.body.style.background = '#f1f5f9'; document.body.style.color = '#0f172a';
+            updateHeaderHeightVar();
+        }
+        function updateHeaderHeightVar() {
+            const h = document.querySelector('header');
+            if (h) document.documentElement.style.setProperty('--hdr-h', h.offsetHeight + 'px');
+        }
+        function goToday() {
+            document.getElementById('doc-date').value = getTodayLocalDateStr();
+            changeDate();
+        }
+        function updateBalanceModeBadge() {
+            const badge = document.getElementById('balance-mode-badge');
+            if (!badge) return;
+            const manual = !!(db[currentDate] && db[currentDate].balanceManual === true);
+            badge.textContent = manual ? 'คงเหลือ: กรอกเอง (ไม่คำนวณอัตโนมัติ)' : 'คงเหลือ: คำนวณอัตโนมัติ';
+            badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full ' + (manual ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800');
+            badge.title = manual ? 'แก้ยอดคงเหลือเองไว้ จะกลับเป็นอัตโนมัติเมื่อแก้ยอดจำนำ/ไถ่ถอนหรือรายการในเดือน' : 'คำนวณจาก ย/ม + จำนำ − ไถ่ถอน';
+        }
+        function fixStickyLayout() {
+            const box = document.querySelector('.ledger-scroll');
+            const ths = document.querySelectorAll('#ledger-thead tr:nth-child(2) th');
+            const r1 = document.querySelector('#ledger-thead tr:first-child');
+            if (!box || ths.length < 3 || !r1) return;
+            box.style.setProperty('--h1', r1.offsetHeight + 'px');
+            box.style.setProperty('--w3', ths[ths.length - 1].offsetWidth + 'px');
+            box.style.setProperty('--w2', ths[ths.length - 2].offsetWidth + 'px');
+        }
+        (function wrapForUI() {
+            const origRender = renderTable;
+            renderTable = function () { const r = origRender.apply(this, arguments); try { fixStickyLayout(); updateBalanceModeBadge(); } catch (_) {} return r; };
+            const origCalc = updateDailyBalanceCalculator;
+            updateDailyBalanceCalculator = function () { const r = origCalc.apply(this, arguments); try { updateBalanceModeBadge(); } catch (_) {} return r; };
+        })();
+        window.addEventListener('resize', () => { try { fixStickyLayout(); updateHeaderHeightVar(); } catch (_) {} });
+        document.addEventListener('click', (e) => {
+            const inMenuItem = e.target.closest && e.target.closest('button.menu-item');
+            document.querySelectorAll('details.hdr-menu[open]').forEach(d => {
+                if (inMenuItem ? d.contains(inMenuItem) : !d.contains(e.target)) d.removeAttribute('open');
+            });
+        });
+        // กด Ctrl+P ตรงๆ: เปิดตัวอย่างพิมพ์ให้อัตโนมัติ แทนที่จะได้หน้าว่าง
+        let autoOpenedPreview = false;
+        window.addEventListener('beforeprint', () => {
+            const app = document.getElementById('app-container'), m = document.getElementById('print-preview-modal');
+            if (document.body.classList.contains('mr-printing')) return;
+            if (app && app.style.display === 'flex' && m && m.style.display !== 'flex') { autoOpenedPreview = true; openPrintPreview(); }
+        });
+        window.addEventListener('afterprint', () => { if (autoOpenedPreview) { autoOpenedPreview = false; closePrintPreview(); } });
+
+        // ====== App shell v1.1: เมนูซ้าย + หน้าแรก (อ่านข้อมูลอย่างเดียว ไม่แก้สูตร) ======
+        function sbToggle() { document.body.classList.toggle('sb-open'); }
+        function sbClose() { document.body.classList.remove('sb-open'); }
+        function goPage(name) {
+            const home = name !== 'ledger';
+            document.body.classList.add('app-shell');
+            document.body.classList.toggle('page-home', home);
+            document.querySelectorAll('#app-sidebar .sb-item[data-page]').forEach(b => b.classList.toggle('on', b.dataset.page === (home ? 'home' : 'ledger')));
+            sbClose();
+            if (home) renderHome();
+            else { try { fixStickyLayout(); } catch (_) {} window.scrollTo(0, 0); }
+        }
+        function hpText(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+        function hpGet(id) { const el = document.getElementById(id); return el ? (el.value !== undefined && el.tagName === 'INPUT' ? el.value : el.textContent) : ''; }
+        function hpThaiDate(key) {
+            const p = String(key).split('-'); if (p.length !== 3) return key;
+            return p[2] + '/' + p[1] + '/' + (Number(p[0]) + 543);
+        }
+        function renderHome() {
+            if (!document.body.classList.contains('page-home')) return;
+            try {
+                hpText('hp-date', hpThaiDate(currentDate));
+                // ตัวเลขหลักอ่านจากกล่องคำนวณเดิม (ผลจากสูตรเดิม) ไม่คำนวณซ้ำ
+                hpText('hp-pledge', hpGet('calc-pledge-count') + ' ราย / ' + hpGet('calc-pledge') + ' บาท');
+                hpText('hp-redeem', hpGet('calc-redemption-count') + ' ราย / ' + hpGet('calc-redemption') + ' บาท');
+                hpText('hp-balance', hpGet('calc-balance'));
+                hpText('hp-mode', (document.getElementById('balance-mode-badge') || {}).textContent || '');
+                hpText('hp-open', 'ย/ม ' + hpGet('calc-opening-count') + ' ราย / ' + hpGet('calc-opening') + ' บาท');
+                const day = db[currentDate];
+                const recent = [];
+                let newCount = 0;
+                if (day && Array.isArray(day.months) && day.data) {
+                    day.months.forEach(m => {
+                        if (!m || !Array.isArray(day.data[m])) return;
+                        day.data[m].forEach(r => {
+                            if (!r || !String(r.ticket || '').trim()) return;
+                            if (r.newTicket) newCount++;
+                            recent.push({ m, r, ts: String(r.attachedAt || '') || String(r.timestamp || '') });
+                        });
+                    });
+                }
+                hpText('hp-new', newCount + ' ราย');
+                const withTime = recent.filter(x => x.r.timestamp || x.r.attachedAt);
+                withTime.sort((a, b) => String(b.r.timestamp || '').localeCompare(String(a.r.timestamp || '')));
+                const list = withTime.slice(0, 6);
+                document.getElementById('hp-recent').innerHTML = list.length ? list.map(({ m, r }) => {
+                    const amt = (r.amount !== '' && cleanNumberString(r.amount) !== 0) ? formatNumber(r.amount) : '';
+                    const red = r.type === 'ถ' ? ' style="color:#B91C1C"' : '';
+                    return '<div class="hp-row"><span>' + escapeHtml(r.timestamp || '') + ' · <b' + red + '>' + escapeHtml(r.type || '-') + '</b> · ' + escapeHtml(m) + ' · ' + escapeHtml(r.ticket) +
+                        (r.newTicket ? ' <span style="color:#047857">→ ' + escapeHtml(r.newTicket) + '</span>' : '') + '</span><b>' + amt + '</b></div>';
+                }).join('') : '<div class="hp-empty"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="14" y="8" width="30" height="40" rx="4" fill="#EFF6FF" stroke="#93B4F0" stroke-width="2"/><path d="M20 20h18M20 27h18M20 34h10" stroke="#93B4F0" stroke-width="2" stroke-linecap="round"/><circle cx="43" cy="43" r="9" fill="#fff" stroke="#1D4ED8" stroke-width="2.5"/><path d="M50 50l7 7" stroke="#1D4ED8" stroke-width="3" stroke-linecap="round"/></svg><span>ยังไม่มีรายการที่บันทึกในวันนี้</span><span style="font-size:12px">กด "คีย์ด่วน" หรือนำเข้า สธ.3 เพื่อเริ่มบันทึก</span></div>';
+                // กราฟ: ยอดไถ่ถอน 7 วันล่าสุดที่มีข้อมูล (ใช้ฟังก์ชันเดิม getDailyRedemptionTotals อ่านอย่างเดียว)
+                const keys = Object.keys(db).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k) && k <= currentDate && db[k] && db[k].data).sort().slice(-7);
+                const vals = keys.map(k => { try { return getDailyRedemptionTotals(db[k]).amount; } catch (_) { return 0; } });
+                const max = Math.max(1, ...vals);
+                document.getElementById('hp-chart').innerHTML = keys.length ? keys.map((k, i) =>
+                    '<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%" title="' + hpThaiDate(k) + ' : ' + formatNumber(vals[i]) + ' บาท">' +
+                    '<span style="font-size:11px;color:#14213D;font-weight:600">' + (vals[i] ? formatNumber(vals[i]) : '0') + '</span>' +
+                    '<div style="width:70%;height:' + Math.max(2, Math.round(vals[i] / max * 100)) + '%;background:#1F5FD6;border-radius:6px 6px 0 0;opacity:' + (0.55 + 0.45 * (i + 1) / keys.length).toFixed(2) + '"></div>' +
+                    '<span style="font-size:11px;color:#4A5568">' + k.slice(8) + '/' + k.slice(5, 7) + '</span></div>'
+                ).join('') : '<div style="color:#64748b;font-size:13px">ยังไม่มีข้อมูลย้อนหลัง</div>';
+            } catch (e) { console.error('renderHome', e); }
+        }
+        function updateSidebarSaved() {
+            const el = document.getElementById('sb-saved'); if (!el) return;
+            let at = 0; try { at = Number(localStorage.getItem('pawn_krabi_saved_at')) || 0; } catch (_) {}
+            el.textContent = at ? 'บันทึกล่าสุด ' + new Date(at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 'บันทึกล่าสุด -';
+        }
+        // ซ่อน/แสดงแถบคำนวณคงเหลือ (ซ่อนเฉพาะการแสดงผล ตัวคำนวณและช่องข้อมูลยังอยู่และทำงานตามเดิม)
+        function applyCalcPanel() {
+            let collapsed = true;
+            try { collapsed = localStorage.getItem('pawn_krabi_calc_collapsed') !== '0'; } catch (_) {}
+            const box = document.getElementById('daily-balance-calculator'), btn = document.getElementById('calc-toggle');
+            if (!box || !btn) return;
+            box.classList.toggle('calc-collapsed', collapsed);
+            btn.textContent = collapsed ? 'แสดงรายละเอียด' : 'ซ่อน';
+            btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        }
+        function toggleCalcPanel() {
+            const box = document.getElementById('daily-balance-calculator');
+            const collapsed = !(box && box.classList.contains('calc-collapsed'));
+            try { localStorage.setItem('pawn_krabi_calc_collapsed', collapsed ? '1' : '0'); } catch (_) {}
+            applyCalcPanel();
+        }
+        applyCalcPanel();
+        (function wrapShell() {
+            const r0 = renderTable;
+            renderTable = function () { const r = r0.apply(this, arguments); try { renderHome(); updateSidebarSaved(); } catch (_) {} return r; };
+            const i0 = initApp;
+            initApp = function () {
+                const r = i0.apply(this, arguments);
+                try {
+                    if (window.pawnDesktop && typeof window.pawnDesktop.openSettings === 'function')
+                        document.querySelectorAll('.sb-desktop-only').forEach(b => { b.style.display = 'flex'; });
+                    goPage('home'); updateSidebarSaved();
+                } catch (e) { console.error('shell init', e); }
+                return r;
+            };
+            setInterval(() => { try { updateSidebarSaved(); } catch (_) {} }, 20000);
+        })();
+    </script>

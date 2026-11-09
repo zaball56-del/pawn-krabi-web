@@ -1,0 +1,37 @@
+<script id="pi-layout-js">
+(function(){
+  var m=document.getElementById('pdf-import-modal'); if(!m) return;
+  var card=m.firstElementChild; if(!card||card.querySelector('.pi-cols')) return;
+  var body=card.querySelector('.p-4'), grid=body.firstElementChild;
+  var d=grid.children, fileD=d[0], dateD=d[1], readD=d[2];
+  var status=document.getElementById('pdf-import-status'), wrap=document.getElementById('pdf-import-preview-wrap');
+  var cols=document.createElement('div'); cols.className='pi-cols';
+  var S=document.createElement('div'); S.className='pi-side';
+  var M=document.createElement('div'); M.className='pi-main';
+  var stat=document.createElement('div'); stat.className='pi-stat';
+  stat.innerHTML='<div><small>พบทั้งหมด</small><b id="pi-all">0</b></div><div><small>พร้อมนำเข้า</small><b class="g" id="pi-ok">0</b></div><div><small>ซ้ำ/ข้าม</small><b class="y" id="pi-dup">0</b></div>';
+  var tot=document.createElement('div'); tot.className='pi-tot'; tot.innerHTML='<small>เงินต้นรวมที่จะนำเข้า</small><b id="pi-sum">0</b><small>บาท</small>';
+  var empty=document.createElement('div'); empty.className='pi-empty'; empty.id='pi-empty'; empty.textContent='เลือกไฟล์ PDF แล้วกด "อ่าน / เตรียมรายการ" เพื่อดูรายการที่นี่';
+  S.appendChild(fileD);S.appendChild(dateD);S.appendChild(readD);S.appendChild(status);S.appendChild(stat);S.appendChild(tot);
+  M.appendChild(empty);M.appendChild(wrap);
+  cols.appendChild(S);cols.appendChild(M);body.innerHTML='';body.appendChild(cols);
+  var btn=document.getElementById('pdf-import-confirm'), nsp=document.createElement('span'); nsp.id='pi-n'; btn.appendChild(nsp);
+  function num(t){var x=parseFloat(String(t).replace(/[^0-9.\-]/g,''));return isNaN(x)?0:x}
+  var last='';
+  function tick(){
+    try{
+      if(m.style.display!=='flex') return;
+      var rows=document.querySelectorAll('#pdf-import-tbody tr'), all=rows.length, ok=0, dup=0, sum=0;
+      rows.forEach(function(r){var c=r.querySelector('input[type=checkbox]'); if(c&&c.disabled) dup++; else ok++; if(c&&c.checked&&!c.disabled){var t=r.lastElementChild; sum+=num(t&&t.textContent);}});
+      var sel=document.querySelectorAll('#pdf-import-tbody input[type=checkbox]:checked').length;
+      var key=[all,ok,dup,sel,sum,wrap.classList.contains('hidden')].join('|'); if(key===last) return; last=key;
+      document.getElementById('pi-all').textContent=all; document.getElementById('pi-ok').textContent=ok; document.getElementById('pi-dup').textContent=dup;
+      document.getElementById('pi-sum').textContent=sum.toLocaleString('en-US',{maximumFractionDigits:2});
+      nsp.textContent=sel>0?(' ('+sel+' รายการ)'):'';
+      empty.style.display=wrap.classList.contains('hidden')?'flex':'none';
+    }catch(e){console.error('pi-layout',e)}
+  }
+  setInterval(tick,200); tick();
+})();
+</script>
+

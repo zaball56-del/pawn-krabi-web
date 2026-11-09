@@ -1,0 +1,109 @@
+<script>
+/* v1.7: เลิกทำ/ทำซ้ำ (รายวัน) + จุดกู้คืนอัตโนมัติ — ไม่แก้สูตร */
+(function(){
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+    function toast(m){ if(typeof showToast==='function') showToast(m); }
+    function thDate(k){ var p=String(k).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+(Number(p[0])+543):k; }
+    function tm(ms){ try{ return new Date(ms).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }catch(e){ return ''; } }
+
+    /* ================= เลิกทำ / ทำซ้ำ ================= */
+    var U={}, last={}, sigs={}, pend={}, tmr=null, applying=false, CAP=30;
+    function stk(k){ return U[k]||(U[k]={undo:[],redo:[]}); }
+    function sigOf(k){
+        var d=db[k]; if(!d) return ''; var o={m:d.months,bf:d.bf,bc:d.bfCount,r:{},a:d.advances||[],c:d.closing||null,bm:!!d.balanceManual,ct:d.customTotals,cc:d.customCarried};
+        (d.months||[]).forEach(function(m){ if(!m||!d.data||!Array.isArray(d.data[m])) return; var rows=[]; d.data[m].forEach(function(r,i){ if(r&&(r.type||r.ticket||(r.amount!==''&&r.amount!=null)||r.newTicket)) rows.push([i,r.type||'',r.ticket||'',String(r.amount),r.newTicket||'',r.newBook||'',r.book||'']); }); o.r[m]=rows; });
+        var s=d.data&&d.data['สรุปประจำวัน']; if(s) o.s=[1,3].map(function(i){ return s[i]?[s[i].amount,s[i].count]:null; });
+        try{ return JSON.stringify(o); }catch(e){ return ''; } }
+    function full(k){ try{ return JSON.stringify(db[k]); }catch(e){ return undefined; } }
+    function base(k){ if(k&&db[k]&&last[k]===undefined){ last[k]=full(k); sigs[k]=sigOf(k); } }
+    function flush(){ clearTimeout(tmr); tmr=null; var ks=Object.keys(pend); pend={};
+        ks.forEach(function(k){ if(!db[k]) return; var ns=sigOf(k), now=full(k); if(last[k]===undefined){ last[k]=now; sigs[k]=ns; return; }
+            if(ns!==sigs[k]){ var s=stk(k); s.undo.push({before:last[k],after:now,ts:Date.now()}); if(s.undo.length>CAP) s.undo.shift(); s.redo=[]; }
+            last[k]=now; sigs[k]=ns; }); refresh(); }
+    if(typeof saveDB==='function'){ var oSave=saveDB; saveDB=function(){ var r=oSave.apply(this,arguments); try{ dirty=true; if(!applying&&typeof currentDate==='string'&&currentDate){ pend[currentDate]=1; if(!tmr) tmr=setTimeout(flush,800); } }catch(e){} return r; }; }
+    if(typeof renderTable==='function'){ var oRT=renderTable; renderTable=function(){ var r=oRT.apply(this,arguments); try{ base(currentDate); }catch(e){} return r; }; }
+    setInterval(function(){ try{ base(currentDate); refresh(); }catch(e){} },1000);
+    function lockedNow(k){ try{ return window.__isLocked&&window.__isLocked(k); }catch(e){ return false; } }
+    function apply(k,dir){
+        flush(); var s=stk(k), src=dir<0?s.undo:s.redo; if(!src.length){ toast(dir<0?'ไม่มีรายการให้เลิกทำ':'ไม่มีรายการให้ทำซ้ำ'); return; }
+        if(lockedNow(k)){ window.__askUnlock&&window.__askUnlock(null,k); return; }
+        var e=src.pop(); applying=true;
+        try{ db[k]=JSON.parse(dir<0?e.before:e.after); (dir<0?s.redo:s.undo).push(e); last[k]=dir<0?e.before:e.after; sigs[k]=sigOf(k);
+            saveDB(); try{ recalculateFutureBroughtForwardBalances(k); }catch(x){}
+            if(k===currentDate){ try{ renderTable(); }catch(x){} try{ renderHome(); }catch(x){} }
+            if(window.__audit) window.__audit(dir<0?'เลิกทำ':'ทำซ้ำ','ย้อนการแก้ไขของวันที่ '+thDate(k)+' (บันทึกเมื่อ '+tm(e.ts)+')',k);
+            toast((dir<0?'เลิกทำแล้ว':'ทำซ้ำแล้ว')+' · แก้ไขเมื่อ '+tm(e.ts));
+        } catch(err){ console.error('undo',err); toast('เลิกทำไม่สำเร็จ'); src.push(e); }
+        finally{ applying=false; refresh(); } }
+    window.undoEdit=function(){ apply(currentDate,-1); };
+    window.redoEdit=function(){ apply(currentDate,1); };
+    window.__resetUndo=function(){ U={}; last={}; sigs={}; pend={}; refresh(); };
+    var bar=null;
+    function ensureBar(){ if(bar) return bar; bar=document.createElement('div'); bar.id='ur-bar'; bar.innerHTML='<button type="button" id="ur-u" aria-label="เลิกทำ">↶ เลิกทำ</button><button type="button" id="ur-r" aria-label="ทำซ้ำ">↷ ทำซ้ำ</button>'; document.body.appendChild(bar);
+        bar.querySelector('#ur-u').onclick=window.undoEdit; bar.querySelector('#ur-r').onclick=window.redoEdit; return bar; }
+    function refresh(){ try{ var b=ensureBar(), app=document.getElementById('app-container'), show=app&&app.style.display==='flex'&&!document.body.classList.contains('page-home');
+        b.style.display=show?'flex':'none'; if(!show) return; var s=stk(currentDate), u=b.querySelector('#ur-u'), r=b.querySelector('#ur-r');
+        u.disabled=!s.undo.length; r.disabled=!s.redo.length; u.title=s.undo.length?('เลิกทำการแก้ไขเมื่อ '+tm(s.undo[s.undo.length-1].ts)+' (เหลือ '+s.undo.length+' ขั้น) · Ctrl+Z'):'ไม่มีรายการให้เลิกทำ'; r.title=s.redo.length?('ทำซ้ำ ('+s.redo.length+' ขั้น) · Ctrl+Y'):'ไม่มีรายการให้ทำซ้ำ'; }catch(e){} }
+    document.addEventListener('keydown',function(e){ if(!(e.ctrlKey||e.metaKey)||e.altKey) return; var t=e.target, tag=t&&t.tagName; if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable)) return;
+        var k=String(e.key).toLowerCase(); if(k==='z'&&!e.shiftKey){ e.preventDefault(); window.undoEdit(); } else if(k==='y'||(k==='z'&&e.shiftKey)){ e.preventDefault(); window.redoEdit(); } },true);
+
+    /* ================= จุดกู้คืนอัตโนมัติ ================= */
+    var DBN='pawn_krabi_autobackup', ST='snaps', dirty=false, lastStr='', warned=false;
+    function idb(){ return new Promise(function(res,rej){ try{ var q=indexedDB.open(DBN,1); q.onupgradeneeded=function(){ q.result.createObjectStore(ST,{keyPath:'id'}); }; q.onsuccess=function(){ res(q.result); }; q.onerror=function(){ rej(q.error); }; }catch(e){ rej(e); } }); }
+    function all(){ return idb().then(function(d){ return new Promise(function(res,rej){ var r=d.transaction(ST).objectStore(ST).getAll(); r.onsuccess=function(){ d.close(); res(r.result||[]); }; r.onerror=function(){ rej(r.error); }; }); }); }
+    function prune(list){ list=list.slice().sort(function(a,b){ return b.id-a.id; }); var keep={}; list.slice(0,12).forEach(function(x){ keep[x.id]=1; }); list.filter(function(x){ return x.reason==='ปิดยอดวัน'; }).slice(0,6).forEach(function(x){ keep[x.id]=1; });
+        var del=list.filter(function(x){ return !keep[x.id]; }); if(!del.length) return Promise.resolve(); return idb().then(function(d){ return new Promise(function(res){ var t=d.transaction(ST,'readwrite'), s=t.objectStore(ST); del.forEach(function(x){ s.delete(x.id); }); t.oncomplete=function(){ d.close(); res(); }; t.onerror=function(){ d.close(); res(); }; }); }); }
+    function snapshotNow(reason,force){
+        var str; try{ str=JSON.stringify(db); }catch(e){ return Promise.resolve(false); }
+        if(!force&&str===lastStr) return Promise.resolve(false); lastStr=str; dirty=false;
+        var days=0; try{ days=Object.keys(db).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k); }).length; }catch(e){}
+        var rec={id:Date.now(),reason:reason||'อัตโนมัติ',days:days,size:str.length,data:str};
+        return idb().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction(ST,'readwrite'); t.objectStore(ST).put(rec); t.oncomplete=function(){ d.close(); res(true); }; t.onerror=function(){ d.close(); rej(t.error); }; }); })
+          .then(function(){ return all().then(prune); }).then(function(){ return true; })
+          .catch(function(e){ if(!warned){ warned=true; console.error('autobackup',e); toast('สร้างจุดกู้คืนอัตโนมัติไม่สำเร็จ (พื้นที่เก็บข้อมูลของเบราว์เซอร์อาจเต็ม)'); } return false; }); }
+    window.__snapshotNow=snapshotNow;
+    setInterval(function(){ if(dirty) snapshotNow('อัตโนมัติ (ทุก 10 นาที)'); },10*60*1000);
+    document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden'&&dirty) snapshotNow('ปิด/ซ่อนหน้าจอ'); });
+    window.addEventListener('pagehide',function(){ if(dirty) snapshotNow('ปิดโปรแกรม'); });
+    /* ปิดยอดวัน -> จุดกู้คืน + (โปรแกรม Windows) สำรองลง USB ทันที */
+    if(typeof window.__audit==='function'){ var oA=window.__audit; window.__audit=function(a){ var r=oA.apply(this,arguments); if(a==='ปิดยอดวัน'){ snapshotNow('ปิดยอดวัน',true); try{ if(window.pawnDesktop&&window.pawnDesktop.runBackupNow) window.pawnDesktop.runBackupNow(); }catch(e){} } return r; }; }
+    function before(name,reason){ if(typeof window[name]!=='function') return; var o=window[name]; window[name]=function(){ try{ snapshotNow(reason,true); }catch(e){} return o.apply(this,arguments); }; }
+    before('clearCurrentDayData','ก่อนล้างข้อมูลวัน'); before('commitPDFImport','ก่อนนำเข้า PDF'); before('applyBroughtForwardImport','ก่อนนำเข้ายอดยกมา');
+
+    var css=document.createElement('style'); css.textContent=
+      '#ur-bar{position:fixed;right:14px;bottom:14px;z-index:45;display:none;gap:6px;padding:6px;background:rgba(255,255,255,.94);border:1px solid #CBD5E4;border-radius:14px;box-shadow:0 10px 24px -10px rgba(11,34,68,.5);font-family:Sarabun,sans-serif}'
+     +'#ur-bar button{border:0;background:#EFF6FF;color:#1D4ED8;border-radius:10px;padding:8px 12px;font:700 13px Sarabun,sans-serif;cursor:pointer}#ur-bar button:disabled{opacity:.4;cursor:default}'
+     +'@media print{#ur-bar{display:none !important}}';
+    document.head.appendChild(css);
+
+    var rm=null;
+    function validDb(o){ if(!o||typeof o!=='object'||Array.isArray(o)) return false; var ks=Object.keys(o); if(!ks.length) return false;
+        return ks.every(function(k){ var d=o[k]; return /^\d{4}-\d{2}-\d{2}$/.test(k)&&d&&typeof d==='object'&&Array.isArray(d.months)&&d.data&&typeof d.data==='object'; }); }
+    function dl(rec){ try{ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rec.data],{type:'application/json'})); var dt=new Date(rec.id), p=function(n){ return ('0'+n).slice(-2); }; a.download='pawn_krabi_restorepoint_'+dt.getFullYear()+p(dt.getMonth()+1)+p(dt.getDate())+'_'+p(dt.getHours())+p(dt.getMinutes())+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }catch(e){ toast('ดาวน์โหลดไม่สำเร็จ'); } }
+    function restore(rec){
+        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
+            if(v===null) return; if(!(window.__pinOk&&window.__pinOk(String(v).trim()))){ toast('PIN ไม่ถูกต้อง'); return; }
+            var nd; try{ nd=JSON.parse(rec.data); }catch(e){ toast('ข้อมูลในจุดกู้คืนเสียหาย'); return; } if(!validDb(nd)){ toast('ข้อมูลในจุดกู้คืนไม่ถูกต้อง'); return; }
+            return snapshotNow('ก่อนกู้คืน',true).then(function(){ Object.keys(db).forEach(function(k){ delete db[k]; }); Object.keys(nd).forEach(function(k){ db[k]=nd[k]; });
+                saveDB(); window.__resetUndo(); lastStr=rec.data; dirty=false;
+                if(window.__audit) window.__audit('กู้คืนจากจุดกู้คืน','กู้คืนข้อมูลเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+' ('+rec.days+' วัน)');
+                try{ getCurrentDayData(); renderTable(); }catch(e){} try{ renderHome(); }catch(e){} if(rm) rm.classList.remove('on'); toast('กู้คืนข้อมูลเรียบร้อย'); }); });
+    }
+    function renderRestore(){
+        if(!rm){ rm=document.createElement('div'); rm.id='rp-modal'; rm.className='mx-modal'; rm.setAttribute('role','dialog'); rm.setAttribute('aria-modal','true'); rm.addEventListener('click',function(e){ if(e.target===rm) rm.classList.remove('on'); }); document.body.appendChild(rm); }
+        all().then(function(list){ list.sort(function(a,b){ return b.id-a.id; }); var map={}; list.forEach(function(x){ map[x.id]=x; });
+            rm.innerHTML='<div class="mx-box"><div class="mx-head"><div><b>จุดกู้คืนอัตโนมัติ</b><small>เก็บในเบราว์เซอร์/โปรแกรมเครื่องนี้ · '+list.length+' จุด</small></div><button type="button" id="rp-x">ปิด</button></div>'
+              +'<div class="mx-ctl"><span style="flex:1;font-size:13px;color:#3B4660">สร้างอัตโนมัติ: ทุก 10 นาทีที่มีการแก้ไข · ตอนปิดยอดวัน · ตอนปิดหน้าจอ · ก่อนล้างข้อมูล/นำเข้า PDF</span><button type="button" class="ds-btn pri" id="rp-now">สำรองตอนนี้</button></div>'
+              +'<div class="mx-body"><table class="mx-t"><thead><tr><th>เวลา</th><th>สาเหตุ</th><th>จำนวนวัน</th><th>ขนาด</th><th></th></tr></thead><tbody>'
+              +(list.length?list.map(function(x){ return '<tr><td style="white-space:nowrap">'+esc(new Date(x.id).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'medium'}))+'</td><td>'+esc(x.reason)+'</td><td>'+x.days+'</td><td>'+Math.round(x.size/1024)+' KB</td><td style="white-space:nowrap"><button type="button" class="ck-go" data-r="'+x.id+'">กู้คืน</button> <button type="button" class="ck-go" data-d="'+x.id+'">ดาวน์โหลด</button></td></tr>'; }).join(''):'<tr><td colspan="5" style="text-align:center;color:#64748b;padding:18px">ยังไม่มีจุดกู้คืน</td></tr>')
+              +'</tbody></table><div class="mx-note">จุดกู้คืนอยู่ในเครื่องเดียวกับข้อมูลหลัก ถ้าล้างข้อมูลเบราว์เซอร์จะหายไปด้วย จึงควรกด "ดาวน์โหลด" หรือใช้ปุ่มสำรองข้อมูล (.json) เก็บไว้นอกเครื่องเป็นประจำ การกู้คืนจะเขียนทับข้อมูลทั้งหมด (ระบบสร้างจุด "ก่อนกู้คืน" ให้เสมอ) และต้องใส่ PIN</div></div></div>';
+            rm.classList.add('on'); rm.querySelector('#rp-x').onclick=function(){ rm.classList.remove('on'); };
+            rm.querySelector('#rp-now').onclick=function(){ snapshotNow('สำรองด้วยตนเอง',true).then(function(ok){ toast(ok?'สร้างจุดกู้คืนแล้ว':'สร้างไม่สำเร็จ'); renderRestore(); }); };
+            rm.querySelectorAll('[data-r]').forEach(function(b){ b.onclick=function(){ restore(map[b.getAttribute('data-r')]); }; });
+            rm.querySelectorAll('[data-d]').forEach(function(b){ b.onclick=function(){ dl(map[b.getAttribute('data-d')]); }; });
+        }).catch(function(e){ toast('เปิดจุดกู้คืนไม่ได้: '+(e&&e.message||'')); });
+    }
+    window.openRestorePoints=function(){ try{ if(typeof sbClose==='function') sbClose(); }catch(e){} renderRestore(); };
+    setTimeout(function(){ if(typeof db==='object'&&Object.keys(db).length) snapshotNow('เปิดโปรแกรม'); },4000);
+})();
+</script>

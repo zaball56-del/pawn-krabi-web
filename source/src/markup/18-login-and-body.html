@@ -1,0 +1,519 @@
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col cyber-grid-bg page-home app-shell">
+
+    <!-- หน้าจอ Login แบบห้องนิรภัยไฮเทค (Sci-Fi HUD) -->
+    <div id="login-modal" class="fixed inset-0 z-50 bg-slate-950/95 cyber-grid-bg flex items-center justify-center p-4">
+        
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="w-[500px] h-[500px] rounded-full border border-emerald-500/10 absolute animate-ping"></div>
+            <div class="w-[700px] h-[700px] rounded-full border border-emerald-500/5 absolute"></div>
+        </div>
+
+        <div id="vault-door-container" class="absolute inset-0 z-10 flex pointer-events-none">
+            <div id="vault-left" class="vault-panel w-1/2 h-full bg-gradient-to-r from-slate-950 via-slate-900 to-slate-900 border-r-4 border-emerald-500/60 flex items-center justify-end shadow-2xl relative">
+                <div class="absolute right-6 text-emerald-500/40 text-xs font-mono tracking-widest vertical-text hidden sm:block">
+                    [SECURE_ACCESS_NODE_01] // KRABI_PAWN_VAULT
+                </div>
+            </div>
+            <div id="vault-right" class="vault-panel w-1/2 h-full bg-gradient-to-l from-slate-950 via-slate-900 to-slate-900 border-l-4 border-emerald-500/60 flex items-center justify-start shadow-2xl relative">
+                <div class="absolute left-6 text-emerald-500/40 text-xs font-mono tracking-widest vertical-text hidden sm:block">
+                    [QUANTUM_ENCRYPTION_ACTIVE] // AUTH_REQUIRED
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] max-w-md w-full p-8 border-2 border-emerald-500/60 text-center space-y-6 relative z-20 cyber-box">
+            
+            <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-950 border border-emerald-500 px-4 py-1 rounded-full text-[10px] font-mono text-emerald-400 tracking-widest shadow-[0_0_10px_rgba(16,185,129,0.5)]">
+                🛡️ SECURE VAULT TERMINAL
+            </div>
+
+            <div style="display:flex;justify-content:center;align-items:center;gap:16px"><img src="@@BLOB:1593bc97@@" alt="ตราเทศบาลเมืองกระบี่" style="width:84px;height:84px;border-radius:50%"><img src="@@BLOB:1cdf54e6@@" alt="ตราสำนักงาน จ.ส.ท. กรมส่งเสริมการปกครองท้องถิ่น" style="width:84px;height:84px"></div>
+            
+            <div>
+                <h2 class="text-xl font-bold text-white tracking-wide font-mono">สถานธนานุบาลเทศบาลเมืองกระบี่</h2>
+                <p class="text-xs text-emerald-400 font-mono mt-1 tracking-wider">MUNICIPAL PAWNSHOP FINANCIAL SYSTEM</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="space-y-3 text-left">
+                    <label class="block text-xs text-emerald-300 font-semibold">รหัส PIN 4 หลัก</label>
+                    <input type="password" id="login-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="กรอกรหัส PIN" onkeydown="handleLoginKeyPress(event)" class="w-full bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-4 py-3 text-center tracking-[0.6em] text-xl text-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    <p class="text-[10px] text-amber-300">โหมดใช้งานส่วนบุคคล · บันทึกข้อมูลในเบราว์เซอร์เครื่องนี้</p>
+                </div>
+                
+                <button onclick="checkLogin()" class="w-full py-3.5 bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-sm shadow-[0_0_25px_rgba(16,185,129,0.5)] transition duration-300 flex items-center justify-center gap-2 uppercase tracking-widest border border-emerald-400">
+                    <i class="fa-solid fa-shield-halved"></i> ปลดล็อกระบบ
+                </button>
+                
+                <p id="login-error" class="text-xs text-rose-500 font-semibold hidden font-mono bg-rose-950/50 py-1.5 rounded-lg border border-rose-500/30">
+                    รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่
+                </p>
+            </div>
+            
+            <button type="button" id="login-forgot" onclick="forgotPin()">ลืมรหัส PIN?</button>
+            <div class="text-[10px] text-slate-400 font-mono flex justify-between items-center px-2 pt-2 border-t border-slate-800">
+                <span>SECURITY: <span class="text-emerald-400 font-bold">LEVEL-5</span></span>
+                <span>STATUS: <span class="text-emerald-400 font-bold animate-pulse">LOCAL</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="save-indicator" class="hidden no-print" role="status" aria-live="polite" data-state="saved">
+        <i class="fa-solid fa-cloud-arrow-up"></i><span id="save-indicator-text">พร้อมบันทึก</span>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app-container" class="hidden flex-col min-h-screen flex-grow">
+        <div id="sb-backdrop" class="no-print" onclick="sbClose()"></div>
+        <button id="sb-toggle" class="no-print" aria-label="เปิดเมนู" onclick="sbToggle()"><span aria-hidden="true">☰</span></button>
+        <aside id="app-sidebar" class="no-print" aria-label="เมนูหลัก">
+            <div class="sb-brand"><img src="@@BLOB:1593bc97@@" alt="ตราเทศบาลเมืองกระบี่"><span>สถานธนานุบาล<br>เทศบาลเมืองกระบี่</span></div>
+            <button class="sb-item on" data-page="home" onclick="goPage('home')"><span class="sb-ic" style="--c:#60A5FA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></svg></span> หน้าแรก</button>
+            <button class="sb-item" data-page="ledger" onclick="goPage('ledger')"><span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span> บัญชีรายวัน</button>
+            <button class="sb-item" onclick="sbClose();openQuickScanModal()"><span class="sb-ic" style="--c:#FBBF24"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5v14M7 5v14M11 5v14M14 5v14M17 5v14M20 5v14"/></svg></span> คีย์ด่วน</button>
+            <button class="sb-item" onclick="sbClose();openPDFImportModal()"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> นำเข้า สธ.3</button>
+            <button class="sb-item" disabled title="รอตัวอย่างไฟล์ สธ.2"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> นำเข้า สธ.2 <span style="font-size:11px;margin-left:auto">เร็วๆ นี้</span></button>
+            <button class="sb-item" onclick="sbClose();openAssetModal()"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ฐานข้อมูลตั๋วตั้งต้น </button>
+            <button class="sb-item" onclick="sbClose();openStorageModal()"><span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ตรวจขนาดข้อมูล </button>
+            <button class="sb-item" onclick="sbClose();openPDFCompareModal()"><span class="sb-ic" style="--c:#22D3EE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5zM9 14l2 2 4-4"/></svg></span> ตรวจ PDF เทียบข้อมูล</button>
+            <button class="sb-item" onclick="sbClose();openGlobalSearch()"><span class="sb-ic" style="--c:#F472B6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span> ค้นหาตั๋ว</button>
+            <button class="sb-item" onclick="sbClose();openPrintPreview()"><span class="sb-ic" style="--c:#FB923C"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5v-6h14v6h-2M7 14h10v6H7z"/></svg></span> รายงาน / พิมพ์</button>
+            <button class="sb-item" onclick="sbClose();openMonthlyReport()"><span class="sb-ic" style="--c:#22D3EE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span> สรุปรายเดือน / ปี</button>
+            <button class="sb-item" onclick="openDayClose()"><span class="sb-ic" style="--c:#FBBF24"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.01M18 15v.01"/></svg></span> ปิดยอดวัน / เงินเบิก</button>
+            <button class="sb-item" onclick="openChecks()"><span class="sb-ic" style="--c:#F87171"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 16H3L12 3zM12 10v4M12 17v.01"/></svg></span> ตรวจความสอดคล้อง <span id="ck-badge" class="sb-badge">0</span></button>
+            <button class="sb-item" onclick="openAuditLog()"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span> ประวัติการแก้ไข</button>
+            <button class="sb-item" onclick="openRestorePoints()"><span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/><path d="M12 8v4l3 2"/></svg></span> จุดกู้คืนอัตโนมัติ</button>
+            <div class="sb-sep"></div>
+            <button class="sb-item" onclick="sbClose();exportJSON()"><span class="sb-ic" style="--c:#4ADE80"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5V4zM8 4v5h7M8 20v-6h8v6"/></svg></span> สำรองข้อมูล (.json)</button>
+            <button class="sb-item sb-desktop-only" style="display:none" onclick="sbClose();window.pawnDesktop.openSettings()"><span class="sb-ic" style="--c:#94A3B8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span> ตั้งค่า / USB / อัปเดต</button>
+            <button id="sb-update-btn" class="sb-item sb-desktop-only" style="display:none" onclick="sbClose();sbCheckUpdate()"><span class="sb-ic" style="--c:#38BDF8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></span> <span id="sb-update-label">ตรวจสอบอัปเดต</span></button>
+            <div class="sb-ver">เวอร์ชัน<b>v1.1.0</b><span id="sb-saved">บันทึกล่าสุด -</span></div>
+        </aside>
+
+        <div id="backup-warning" class="hidden bg-rose-600 text-white text-xs font-bold px-4 py-2 text-center shadow-md flex justify-center items-center gap-2 no-print">
+            <i class="fa-solid fa-triangle-exclamation"></i> คำเตือน: คุณยังไม่ได้สำรองข้อมูลไฟล์ระบบ นานเกิน 7 วัน กรุณากด "สำรองระบบ (.json)" ด้านบนเพื่อป้องกันข้อมูลสูญหาย
+        </div>
+
+        <!-- Header -->
+        <header class="bg-emerald-900 text-white shadow-md sticky top-0 z-40 no-print">
+            <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div class="flex items-center space-x-3">
+                    <img src="@@BLOB:1593bc97@@" alt="ตราเทศบาลเมืองกระบี่" width="44" height="44" style="width:44px;height:44px;border-radius:50%;flex:none">
+                    <div>
+                        <h1 class="text-base font-bold tracking-wide">บัญชีแยกประเภท</h1>
+                        <p class="text-xs text-emerald-300">สถานธนานุบาลเทศบาลเมืองกระบี่</p>
+                        <p class="text-[10px] text-lime-200 font-semibold">บัญชีรายวัน · v1.1.0</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap justify-center">
+                    <button onclick="openQuickScanModal()" class="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-900 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 border border-yellow-400">
+                        <i class="fa-solid fa-barcode"></i> สแกนบาร์โค้ด (คีย์ด่วน)
+                    </button>
+                    <button onclick="addRow()" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5 border border-blue-600">
+                        <i class="fa-solid fa-plus"></i> เพิ่มแถว
+                    </button>
+                    <button onclick="openPrintPreview()" class="px-3 py-1.5 bg-teal-700 hover:bg-teal-600 text-white rounded-xl text-xs font-medium transition border border-teal-600 flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye"></i> พิมพ์ / สรุป
+                    </button>
+                    <details class="hdr-menu"><summary><i class="fa-solid fa-table-columns"></i> เดือน / แถว</summary>
+                        <div class="hdr-menu-panel">
+                            <button class="menu-item" onclick="addMonthCol()"><i class="fa-solid fa-calendar-plus"></i> เพิ่มคอลัมน์เดือน</button>
+                            <button class="menu-item" onclick="removeMonthCol()"><i class="fa-solid fa-calendar-minus"></i> ลดคอลัมน์เดือน (ขวาสุด)</button>
+                            <button class="menu-item" onclick="trimEmptyRows()"><i class="fa-solid fa-scissors"></i> ตัดแถวว่างออก</button>
+                            <button class="menu-item" onclick="previewBroughtForwardImport()"><i class="fa-solid fa-file-import"></i> ดึงยอดยกมาจากวันก่อนหน้า</button>
+                        </div></details>
+                    <details class="hdr-menu"><summary><i class="fa-solid fa-file-pdf"></i> PDF</summary>
+                        <div class="hdr-menu-panel">
+                            <button class="menu-item" onclick="openPDFCompareModal()"><i class="fa-solid fa-file-circle-check"></i> ตรวจ PDF เทียบข้อมูล</button>
+                            <button class="menu-item" onclick="openPDFImportModal()"><i class="fa-solid fa-file-arrow-down"></i> นำเข้า สธ.3 (PDF)</button>
+                            <button class="menu-item" disabled title="รอตัวอย่างไฟล์ สธ.2 เพื่อทำตัวอ่านให้ตรงรูปแบบ" style="opacity:.55;cursor:not-allowed"><i class="fa-solid fa-file-arrow-down"></i> นำเข้า สธ.2 (PDF) <span style="font-size:11px;margin-left:auto;color:#64748b">เร็วๆ นี้</span></button>
+                            <button class="menu-item" onclick="openAssetModal()"><i class="fa-solid fa-database"></i> ฐานข้อมูลตั๋วตั้งต้น (PDF)</button>
+                            <button class="menu-item" onclick="openStorageModal()"><i class="fa-solid fa-hard-drive"></i> ตรวจขนาดข้อมูล</button>
+                        </div></details>
+                    <details class="hdr-menu"><summary><i class="fa-solid fa-database"></i> ข้อมูล</summary>
+                        <div class="hdr-menu-panel">
+                            <button class="menu-item" onclick="exportJSON()"><i class="fa-solid fa-save"></i> สำรองระบบ (.json)</button>
+                            <label class="menu-item"><i class="fa-solid fa-upload"></i> นำเข้าข้อมูล (.json)
+                                <input type="file" id="import-file" accept=".json" onchange="importJSON(event)" class="hidden">
+                            </label>
+                            <button class="menu-item" onclick="restorePreImportBackup()"><i class="fa-solid fa-clock-rotate-left"></i> กู้คืนก่อนนำเข้า</button>
+                            <button class="menu-item" onclick="exportToExcel()"><i class="fa-solid fa-file-excel"></i> ส่งออก Excel (.csv)</button>
+                            <div class="menu-sep"></div>
+                            <button class="menu-item danger" onclick="clearCurrentDayData()">ล้างข้อมูลวันนี้</button>
+                        </div></details>
+                    <button id="hdr-gear" type="button" onclick="openDataSettings()" aria-label="ตั้งค่า / ข้อมูล" title="ตั้งค่า / ข้อมูล" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:32px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+                    <button onclick="logout()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-medium transition border border-slate-600 flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-from-bracket"></i> ออก
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        
+        <section id="home-page" aria-label="หน้าแรก">
+            <div class="hp-hero"><svg viewBox="0 0 640 170" preserveAspectRatio="xMaxYMax slice" aria-hidden="true" style="position:absolute;right:0;bottom:0;height:100%;width:72%;pointer-events:none;-webkit-mask-image:linear-gradient(to right,transparent 0%,#000 45%);mask-image:linear-gradient(to right,transparent 0%,#000 45%)"><g fill="none" stroke="#fff" stroke-width="1.2" opacity=".16"><circle cx="560" cy="40" r="60"/><circle cx="560" cy="40" r="90"/><circle cx="560" cy="40" r="120"/><circle cx="560" cy="40" r="150"/></g><path fill="#fff" opacity=".07" d="M0 118q80-26 160 0t160 0 160 0 160 0v52H0z"/><path fill="#fff" opacity=".08" d="M0 138q80-22 160 0t160 0 160 0 160 0v32H0z"/><path fill="#fff" opacity=".10" d="M0 156q80-16 160 0t160 0 160 0 160 0v14H0z"/></svg>
+                <div class="hp-hero-in">
+                    <img src="@@BLOB:1593bc97@@" alt="ตราเทศบาลเมืองกระบี่" style="width:84px;height:84px;border-radius:50%;flex:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))">
+                    <div style="min-width:0"><div class="hp-eyebrow">KRABI MUNICIPAL PAWNSHOP</div>
+                    <div class="hp-title">ระบบบัญชีสถานธนานุบาล</div>
+                    <div class="hp-sub">เทศบาลเมืองกระบี่ · จังหวัดกระบี่</div></div>
+                </div>
+                <div class="hp-datebar">
+                    <button id="hp-gear" class="hp-ghost" aria-label="ตั้งค่า / ข้อมูล" title="ตั้งค่า / ข้อมูล" onclick="openDataSettings()" style="display:inline-flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+                    <button class="hp-ghost" aria-label="วันก่อนหน้า" onclick="changeDayOffset(-1)">‹</button>
+                    <b id="hp-date"></b>
+                    <button class="hp-ghost" aria-label="วันถัดไป" onclick="changeDayOffset(1)">›</button>
+                    <button class="hp-ghost on" onclick="goToday()">วันนี้</button>
+                </div>
+            </div>
+            <div class="hp-photo" role="img" aria-label="อาคารเทศบาลเมืองกระบี่"><div class="hp-photo-t"><small>KRABI MUNICIPAL PAWNSHOP</small><b>ระบบบัญชีสถานธนานุบาล</b><span>เทศบาลเมืองกระบี่ · จังหวัดกระบี่</span></div></div>
+            <div class="hp-grid4">
+                <div class="hp-card hp-kpi"><div class="hp-ic" style="background:#EFF6FF;color:#1D4ED8"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14"/></svg></div><div><div class="hp-k">+ จำนำ (รับจำนำ)</div><div class="hp-v" id="hp-pledge">-</div></div></div>
+                <div class="hp-card hp-kpi"><div class="hp-ic" style="background:#ECFDF5;color:#047857"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M12 15V5m0 0l-4 4m4-4l4 4M5 19h14"/></svg></div><div><div class="hp-k">− ไถ่ถอน</div><div class="hp-v" id="hp-redeem">-</div></div></div>
+                <div class="hp-card hp-kpi"><div class="hp-ic" style="background:#FFFBEB;color:#B45309"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M3 10l9-6 9 6M5 10v8m4-8v8m6-8v8m4-8v8M3 20h18"/></svg></div><div><div class="hp-k">= คงเหลือ</div><div class="hp-v" id="hp-balance">-</div><div class="hp-k" id="hp-mode"></div></div></div>
+                <div class="hp-card hp-kpi"><div class="hp-ic" style="background:#EEF2FF;color:#4338CA"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg></div><div><div class="hp-k">ติดตั๋วใหม่วันนี้</div><div class="hp-v" id="hp-new">-</div><div class="hp-k" id="hp-open"></div></div></div>
+            </div>
+            <div class="hp-grid2">
+                <div class="hp-panel"><h2>รายการล่าสุด</h2><div id="hp-recent"></div></div>
+                <div class="hp-panel"><h2>ไถ่ถอน 7 วันล่าสุด (บาท)</h2><div id="hp-chart" style="display:flex;gap:8px;height:170px;align-items:flex-end"></div></div>
+            </div>
+            <div class="hp-panel"><h2>เมนูด่วน</h2>
+                <div class="hp-grid5">
+                    <button class="hp-tile pri" onclick="openQuickScanModal()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M4 5v14M7 5v14M11 5v14M14 5v14M17 5v14M20 5v14"/></svg><span>คีย์ด่วน</span></button>
+                    <button class="hp-tile" onclick="openPDFImportModal()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg><span>นำเข้า สธ.3</span></button>
+                    <button class="hp-tile" onclick="openGlobalSearch()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><span>ค้นหาตั๋ว</span></button>
+                    <button class="hp-tile" onclick="openPrintPreview()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M7 9V4h10v5M7 17H5v-6h14v6h-2M7 14h10v6H7z"/></svg><span>พิมพ์ / สรุป</span></button>
+                    <button class="hp-tile" onclick="goPage('ledger')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>เปิดบัญชีรายวัน</span></button>
+                </div>
+            </div>
+            <div class="hp-foot">
+                <img src="@@BLOB:1593bc97@@" alt="" style="width:30px;height:30px;border-radius:50%"><img src="@@BLOB:1cdf54e6@@" alt="" style="width:30px;height:30px">
+                <span>ระบบบัญชีสถานธนานุบาล เทศบาลเมืองกระบี่ · เวอร์ชัน 1.1.0 · ซิงค์ข้อมูลกลางผ่าน Firebase</span>
+            </div>
+        </section>
+
+        <main id="ledger-page" class="flex-grow max-w-[99%] w-full mx-auto px-1 py-4 space-y-3">
+            <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700">
+                <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+                <span id="toast-msg" class="text-xs font-medium">บันทึกอัตโนมัติเรียบร้อย</span>
+            </div>
+
+            <!-- ตารางคำนวณภายนอก อ่านข้อมูลต้นทางจากแถว ย/ม, รับจำนำ และไถ่ถอน ในสรุปประจำวัน -->
+            <section id="daily-balance-calculator" class="no-print bg-white px-3 py-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <h2 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-calculator mr-1"></i>คำนวณคงเหลือ <span class="text-[11px] font-normal text-slate-500">ย/ม + จำนำ − ไถ่ถอน</span></h2>
+                    <span id="balance-mode-badge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">คงเหลือ: คำนวณอัตโนมัติ</span>
+                    <button id="calc-toggle" type="button" onclick="toggleCalcPanel()" aria-expanded="false" style="margin-left:auto;min-height:36px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;color:#374151;font-size:12px;font-weight:600;cursor:pointer">แสดงรายละเอียด</button>
+                </div>
+                <div class="calc-grid">
+                    <div><div class="calc-label">ย/ม</div>
+                        <input id="calc-opening-count" type="text" readonly aria-label="จำนวน ย/ม" class="w-full min-w-0 rounded border border-slate-200 bg-slate-50 text-right" value="0">
+                        <input id="calc-opening" type="text" readonly aria-label="จำนวนเงิน ย/ม" class="w-full min-w-0 rounded border border-slate-200 bg-slate-50 text-right" value="0"></div>
+                    <div><div class="calc-label">+ จำนำ</div>
+                        <input id="calc-pledge-count" type="text" readonly aria-label="จำนวนจำนำ" class="w-full min-w-0 rounded border border-slate-200 bg-slate-50 text-right" value="0">
+                        <input id="calc-pledge" type="text" readonly aria-label="จำนวนเงินจำนำ" class="w-full min-w-0 rounded border border-slate-200 bg-slate-50 text-right" value="0"></div>
+                    <div><div class="calc-label">− ไถ่ถอน</div>
+                        <input id="calc-redemption-count" type="text" readonly aria-label="จำนวนไถ่ถอน" class="w-full min-w-0 rounded border border-slate-200 bg-slate-50 text-right" value="0">
+                        <input id="calc-redemption" type="text" readonly aria-label="จำนวนเงินไถ่ถอน" class="w-full min-w-0 rounded border border-slate-200 bg-slate-50 text-right" value="0"></div>
+                </div>
+                <div class="calc-total"><span>= คงเหลือ (จำนวน / บาท)</span>
+                    <output id="calc-balance" class="font-bold text-emerald-700 text-right">0 / 0.00 บาท</output></div>
+            </section>
+
+            <!-- Print Header -->
+            <div class="print-only text-center mb-2">
+                <h2 class="text-xs font-bold">บัญชีแยกประเภท สถานธนานุบาลเทศบาลเมืองกระบี่</h2>
+                <p class="text-[10px]">ประจำวันที่ <span id="print-date-text"></span><span style="display:none"> พ.ศ. <span id="print-year-text"></span> (<span id="print-day-name"></span>)</span></p>
+            </div>
+
+            <!-- Toolbar & Filter -->
+            <section class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 no-print flex flex-col md:flex-row justify-between items-center gap-3">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div class="flex items-center bg-emerald-50 p-1 rounded-xl border border-emerald-200">
+                        <button onclick="changeDayOffset(-1)" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-slate-700 shadow-sm transition" title="วันก่อนหน้า">
+                            <span aria-hidden="true">‹</span>
+                        </button>
+                        <div class="flex items-center px-3">
+                            <span class="text-xs font-bold text-emerald-900 mr-2">📅 วันที่:</span>
+                            <input type="date" id="doc-date" onchange="changeDate()" class="bg-white border border-emerald-300 rounded-lg px-2 py-1 text-xs font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <button onclick="changeDayOffset(1)" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-slate-700 shadow-sm transition" title="วันถัดไป">
+                            <span aria-hidden="true">›</span>
+                        </button>
+                        <button onclick="goToday()" class="ml-2 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold shadow-sm">วันนี้</button>
+                        <span class="text-sm font-bold text-emerald-900 bg-emerald-100/70 px-2 py-1 rounded-md border border-emerald-300 ml-2">
+                            ( <span id="display-date-th">--/--/----</span> ) <span id="day-name-display" class="ml-1"></span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
+                    <button onclick="openGlobalSearch()" class="px-4 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-bold border border-indigo-200 transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-magnifying-glass-chart"></i> ประวัติตั๋ว
+                    </button>
+                    <div class="relative w-full md:w-48">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400"><i class="fa-solid fa-filter text-xs"></i></span>
+                        <input type="text" id="search-ticket" oninput="filterTable()" placeholder="กรองเลขหน้าปัจจุบัน..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <select id="sort-order" onchange="changeSortOrder()" class="bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <option value="normal">เรียง: ปกติ</option>
+                        <option value="ticket-asc">เลขตั๋ว: น้อยไปมาก</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Ledger Table -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-2 relative">
+                <div class="text-[11px] text-emerald-800 font-semibold no-print flex flex-wrap gap-x-4 gap-y-1 px-1 pb-1">
+                    <span>💡 กด <kbd class="bg-slate-100 border rounded px-1">Enter</kbd> เลื่อนช่อง</span>
+                    <span>ประเภท ถ / ส / พ / ผ นับเป็นยอดไถ่ถอนทั้งหมด · <span class="text-red-600">▌ถ = แถวสีแดง</span></span>
+                    <span>คอลัมน์สีเทา = ยังไม่ได้เลือกเดือน (กรอกไม่ได้)</span>
+                </div>
+                <div class="ledger-scroll mt-1">
+                    <table class="w-full border-collapse border border-slate-300 text-[11px] text-center">
+                        <thead id="ledger-thead"></thead>
+                        <tbody id="ledger-tbody"></tbody>
+                    </table>
+                </div>
+                
+                <div class="p-3 text-center no-print border-t border-slate-100 flex justify-center gap-3">
+                    <button onclick="addRow()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus text-emerald-600"></i> เพิ่มแถวตารางอีก 1 แถว
+                    </button>
+                    <button onclick="trimEmptyRows()" class="px-4 py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 rounded-xl text-xs font-bold border border-cyan-300 transition flex items-center gap-2">
+                        <i class="fa-solid fa-scissors text-cyan-600"></i> ตัดแถวว่างออกอัตโนมัติ
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Quick Scan Modal -->
+    <div id="quick-scan-modal" class="fixed inset-0 z-50 bg-slate-900/80 hidden items-center justify-center p-2 sm:p-4" onkeydown="qsModalKey(event)">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-4 border border-slate-200 relative" style="max-height:94vh;max-height:94dvh;overflow:auto">
+            <button onclick="closeQuickScanModal()" class="absolute top-3 right-3 text-slate-400 hover:text-rose-600 text-xl" aria-label="ปิด"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
+            <h2 class="text-lg font-bold text-slate-900"><i class="fa-solid fa-barcode text-yellow-600 mr-1"></i>คีย์ด่วน</h2>
+            <p class="text-xs text-slate-500 mb-3">เลือกประเภท → ใส่เดือน → สแกนตั๋วเดิม → ใส่ตั๋วใหม่ · Enter เลื่อนช่อง · Esc ปิด</p>
+            <input type="hidden" id="qs-type" value="">
+            <div class="qs-types">
+                <button type="button" class="qs-type-btn" data-type="ส" onclick="qsPickType('ส')">ส</button>
+                <button type="button" class="qs-type-btn" data-type="พ" onclick="qsPickType('พ')">พ</button>
+                <button type="button" class="qs-type-btn" data-type="ผ" onclick="qsPickType('ผ')">ผ</button>
+                <button type="button" class="qs-type-btn" data-type="ถ" onclick="qsPickType('ถ')">ถ</button>
+            </div>
+            <div class="qs-sec">
+                <h3>ตั๋วเดิม</h3>
+                <div class="qs-grid">
+                    <div><label for="qs-month">เดือน (รหัส 1–12)</label>
+                        <input type="number" inputmode="numeric" id="qs-month" min="1" max="12" class="qs-in" oninput="qsMonthHint()" onkeydown="handleQSEnter(event,'qs-ticket')"></div>
+                    <div><label>&nbsp;</label><div id="qs-month-name" class="text-sm font-bold" style="padding:10px 0"></div></div>
+                    <div class="span2"><label for="qs-ticket">เลขตั๋วเดิม (ยิงบาร์โค้ดช่องนี้)</label>
+                        <input type="text" id="qs-ticket" class="qs-in" autocomplete="off" onkeydown="handleQSEnter(event,'qs-book')"></div>
+                    <div><label for="qs-book">เล่มที่</label>
+                        <input type="text" id="qs-book" class="qs-in" autocomplete="off" onkeydown="handleQSEnter(event,'qs-amount')"></div>
+                    <div><label for="qs-amount">ยอดเงิน</label>
+                        <input type="text" inputmode="decimal" id="qs-amount" class="qs-in" autocomplete="off" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=formatNumber(this.value)" onkeydown="handleQSEnter(event,'qs-new-ticket')"></div>
+                </div>
+            </div>
+            <div class="qs-sec new">
+                <h3>ตั๋วใหม่ (ติดแทนตั๋วเดิม)</h3>
+                <div class="qs-grid">
+                    <div class="span2"><label for="qs-new-ticket">เลขตั๋วใหม่</label>
+                        <input type="text" id="qs-new-ticket" class="qs-in" autocomplete="off" onkeydown="handleQSEnter(event,'qs-new-book')"></div>
+                    <div><label for="qs-new-book">เล่มที่</label>
+                        <input type="text" id="qs-new-book" class="qs-in" autocomplete="off" onkeydown="handleQSEnter(event,'qs-new-amount')"></div>
+                    <div><label for="qs-new-amount">ยอดเงิน</label>
+                        <input type="text" inputmode="decimal" id="qs-new-amount" class="qs-in" autocomplete="off" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=formatNumber(this.value)" onkeydown="handleQSEnter(event,'submit')"></div>
+                </div>
+            </div>
+            <div id="qs-msg" class="qs-msg" role="status"></div>
+            <div style="display:flex;gap:8px">
+                <button onclick="submitQuickScan()" class="flex-1 py-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold" style="flex:1"><i class="fa-solid fa-check"></i> บันทึก (Enter)</button>
+                <button onclick="qsClearFields(false)" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold border border-slate-300">ล้างช่อง</button>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-sm font-bold text-slate-800">รายการที่ติดวันนี้ <span id="qs-recent-count" class="text-xs font-normal text-slate-500"></span></h3>
+                    <label class="text-xs text-slate-600"><input type="checkbox" id="qs-show-all" onchange="qsRenderRecent()"> แสดงทั้งหมด</label>
+                </div>
+                <div id="qs-recent"></div>
+                <p class="text-[11px] text-slate-500 mt-2">ค้นหาย้อนหลังทุกวันได้ที่ปุ่ม "ประวัติตั๋ว" (ค้นได้ทั้งเลขเดิมและเลขใหม่)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Search Modal -->
+    <div id="global-search-modal" class="fixed inset-0 z-50 bg-slate-900/80 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+                    <h3 class="text-base font-bold text-slate-800">ค้นหาประวัติตั๋ว (ทุกวัน)</h3>
+                </div>
+                <button onclick="closeGlobalSearch()" class="text-slate-400 hover:text-slate-600"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
+            </div>
+            <div class="p-4 bg-white border-b border-slate-100 flex gap-2">
+                <input type="text" id="global-search-input" onkeypress="if(event.key === 'Enter') executeGlobalSearch()" placeholder="กรอกเลขตั๋วที่ต้องการค้นหา..." class="flex-grow bg-slate-50 text-slate-800 border border-slate-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
+                <button onclick="executeGlobalSearch()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow transition">ค้นหา</button>
+            </div>
+            <div class="flex-grow overflow-auto p-4 bg-slate-100">
+                <table class="w-full border-collapse border border-slate-300 text-xs bg-white text-center">
+                    <thead>
+                        <tr class="bg-slate-200 font-bold text-slate-700">
+                            <th class="border border-slate-300 p-2">ลำดับ</th>
+                            <th class="border border-slate-300 p-2">วันที่ทำรายการ</th>
+                            <th class="border border-slate-300 p-2">เวลา</th>
+                            <th class="border border-slate-300 p-2">เดือน (คอลัมน์)</th>
+                            <th class="border border-slate-300 p-2">ประเภท</th>
+                            <th class="border border-slate-300 p-2" style="min-width:220px">ตั๋วเดิม / ตั๋วใหม่</th>
+                            <th class="border border-slate-300 p-2">จำนวนเงิน</th>
+                        </tr>
+                    </thead>
+                    <tbody id="global-search-results">
+                        <tr><td colspan="7" class="text-center text-slate-500 py-6">กรอกเลขตั๋วแล้วกดปุ่ม "ค้นหา"</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF direct import modal -->
+    <div id="pdf-import-modal" class="fixed inset-0 z-[75] bg-slate-900/80 hidden items-center justify-center p-2 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[94vh] flex flex-col overflow-hidden">
+            <div class="px-4 py-3 border-b bg-slate-50 flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-bold text-slate-900"><i class="fa-solid fa-file-arrow-down mr-1"></i> นำเข้า สธ.3 (PDF) ลงตาราง</h3>
+                    <p class="text-xs text-slate-600 mt-1">นำเข้าเลขตั๋ว เล่มตั๋ว และเงินต้น โดยเว้นประเภท ส / พ / ผ / ถ ให้เลือกเอง</p>
+                </div>
+                <button onclick="closePDFImportModal()" class="text-slate-500 text-xl" aria-label="ปิด"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
+            </div>
+            <div class="p-4 space-y-3 overflow-y-auto">
+                <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-start">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1" style="height:18px;line-height:18px;overflow:hidden;white-space:nowrap">เลือกไฟล์ PDF สธ.3 (ทะเบียนไถ่ถอน)</label><input id="pdf-import-file" type="file" accept="application/pdf,.pdf" onchange="handlePDFImportFile(event)" class="block w-full text-xs border border-slate-300 rounded-lg p-2 bg-slate-50" style="height:42px;box-sizing:border-box"><p class="text-[10px] mt-1" style="visibility:hidden">&nbsp;</p></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1" style="height:18px;line-height:18px;overflow:hidden;white-space:nowrap">วันที่ทำรายการ (ประจำวันที่บนหัวรายงาน)</label><input id="pdf-import-date" type="date" class="w-full border border-slate-300 rounded-lg p-2 text-sm" style="height:42px;box-sizing:border-box"><p class="text-[10px] text-amber-700 mt-1">ถ้า PDF ไม่มีวันที่ ระบบจะใช้วันที่ที่เลือกนี้ และจะไม่เดาวันที่เอง</p></div>
+                    <div><label class="block text-xs font-bold mb-1" style="visibility:hidden;height:18px;line-height:18px">&nbsp;</label><button id="pdf-import-read" onclick="preparePDFImport()" disabled class="px-4 rounded-lg bg-blue-700 text-white text-sm font-bold disabled:opacity-40" style="height:42px;white-space:nowrap">อ่าน / เตรียมรายการ</button></div>
+                </div>
+                <div id="pdf-import-status" class="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">เลือกไฟล์ PDF เพื่อเริ่มต้น ระบบจะยังไม่บันทึกข้อมูลจนกว่าจะกดยืนยัน</div>
+                <div id="pdf-import-preview-wrap" class="hidden space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2"><div id="pdf-import-count" class="text-xs font-bold text-slate-700"></div><div class="flex gap-2"><button onclick="togglePDFImportSelection(true)" class="text-xs px-3 py-1.5 rounded bg-slate-100">เลือกทั้งหมดที่นำเข้าได้</button><button onclick="togglePDFImportSelection(false)" class="text-xs px-3 py-1.5 rounded bg-slate-100">ไม่เลือกทั้งหมด</button></div></div>
+                    <div class="border rounded-lg overflow-auto max-h-[48vh]"><table class="w-full text-xs border-collapse" style="table-layout:fixed;min-width:640px"><colgroup><col style="width:7%"><col style="width:23%"><col style="width:17%"><col style="width:14%"><col style="width:14%"><col style="width:10%"><col style="width:15%"></colgroup><thead><tr><th class="p-2 border" style="position:sticky;top:0;z-index:2;background:#f1f5f9;text-align:center">เลือก</th><th class="p-2 border" style="position:sticky;top:0;z-index:2;background:#f1f5f9;text-align:left">สถานะ</th><th class="p-2 border" style="position:sticky;top:0;z-index:2;background:#f1f5f9;text-align:left">วันที่รับจำนำ</th><th class="p-2 border" style="position:sticky;top:0;z-index:2;background:#f1f5f9;text-align:left">เดือน</th><th class="p-2 border" style="position:sticky;top:0;z-index:2;background:#f1f5f9;text-align:center">เลขตั๋ว</th><th class="p-2 border" style="position:sticky;top:0;z-index:2;background:#f1f5f9;text-align:center">เล่มตั๋ว</th><th class="p-2 border" style="position:sticky;top:0;z-index:2;background:#f1f5f9;text-align:right">เงินต้น</th></tr></thead><tbody id="pdf-import-tbody"></tbody></table></div>
+                    <div class="text-[10px] text-slate-500">หมายเหตุ: ประเภทจะเว้นว่างทั้งหมด ไม่อ่านดอกเบี้ย จำนวนเดือน หรือเลขใบเสร็จ รายการที่ซ้ำในเดือนเดียวกันจะถูกปิดไม่ให้เลือกนำเข้า</div>
+                </div>
+            </div>
+            <div class="px-4 py-3 border-t bg-slate-50 flex flex-wrap justify-end gap-2"><button onclick="closePDFImportModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold">ยกเลิก</button><button id="pdf-import-confirm" onclick="commitPDFImport()" disabled class="px-4 py-2 bg-blue-700 text-white rounded-lg text-sm font-bold disabled:opacity-40"><i class="fa-solid fa-check mr-1"></i> ยืนยันนำเข้าลงตาราง</button></div>
+        </div>
+    </div>
+
+    <!-- PDF comparison modal -->
+    <div id="pdf-compare-modal" class="fixed inset-0 z-[70] bg-slate-950/80 hidden items-center justify-center p-3 no-print">
+        <div class="modal-panel bg-white rounded-2xl shadow-2xl max-w-6xl w-full flex flex-col overflow-hidden">
+            <div class="px-4 py-3 border-b bg-slate-50 flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-bold text-slate-900"><i class="fa-solid fa-file-circle-check mr-1"></i> เปรียบเทียบข้อมูลที่คีย์กับ PDF</h3>
+                    <p class="text-xs text-slate-600 mt-1">จับคู่ตามเดือนรับจำนำ + เลขตั๋ว และตรวจสอบจำนวนเงิน</p>
+                </div>
+                <button onclick="closePDFCompareModal()" class="text-slate-500 hover:text-rose-600 text-xl" aria-label="ปิด"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
+            </div>
+            <div class="p-4 space-y-3 overflow-y-auto">
+                <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-start">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" style="height:18px;line-height:18px;overflow:hidden;white-space:nowrap">ไฟล์ PDF ทะเบียนไถ่ถอน</label>
+                        <input id="pdf-compare-file" type="file" accept="application/pdf,.pdf" onchange="handlePDFCompareFile(event)" class="block w-full text-xs border border-slate-300 rounded-lg p-2 bg-slate-50" style="height:42px;box-sizing:border-box">
+ <p class="text-[10px] mt-1" style="visibility:hidden">&nbsp;</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" style="height:18px;line-height:18px;overflow:hidden;white-space:nowrap">วันที่ทำรายการ (ประจำวันที่บนหัวรายงาน)</label>
+                        <input id="pdf-compare-date" type="date" class="w-full border border-slate-300 rounded-lg p-2 text-sm" style="height:42px;box-sizing:border-box">
+                        <p id="pdf-compare-date-note" class="text-[10px] text-amber-700 mt-1">ถ้า PDF ไม่ระบุวันที่ ระบบจะใช้วันที่นี้ในการค้นหาข้อมูลที่คีย์ไว้</p>
+                    </div>
+                    <div><label class="block text-xs font-bold mb-1" style="visibility:hidden;height:18px;line-height:18px">&nbsp;</label><button id="pdf-compare-run" onclick="runPDFComparison()" disabled class="px-4 rounded-lg bg-blue-700 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed" style="height:42px;white-space:nowrap"><i class="fa-solid fa-magnifying-glass-chart mr-1"></i> เปรียบเทียบ</button></div>
+                </div>
+                <div id="pdf-compare-status" class="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">เลือกไฟล์ PDF เพื่อเริ่มตรวจสอบ ระบบจะไม่แก้ไขข้อมูลในตาราง</div>
+                <div id="pdf-compare-summary" class="hidden grid grid-cols-2 sm:grid-cols-5 gap-2 text-center"></div>
+                <div id="pdf-compare-results" class="hidden space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-violet-100 bg-violet-50 p-2">
+                        <div class="text-xs font-bold text-violet-950">กรองผลตรวจ เพื่อดูเฉพาะรายการที่ต้องแก้</div>
+                        <select id="pdf-compare-filter" onchange="filterPDFCompareResults()" class="w-full sm:w-auto border border-violet-200 rounded-lg bg-white px-3 py-2 text-xs font-semibold">
+                            <option value="issues" selected>แสดงเฉพาะรายการผิดปกติ (แนะนำ)</option>
+                            <option value="monthMismatch">เฉพาะรายการผิดเดือน</option>
+                            <option value="error">เฉพาะข้อผิดพลาดร้ายแรง / ยอดเงินไม่ตรง</option>
+                            <option value="warn">เฉพาะรายการที่ควรตรวจสอบ</option>
+                            <option value="ok">เฉพาะรายการที่ตรงกัน</option>
+                            <option value="all">แสดงทุกรายการ</option>
+                        </select>
+                    </div>
+                    <div id="pdf-compare-filter-count" class="text-[11px] text-slate-500"></div>
+                    <div class="border border-slate-200 rounded-lg overflow-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead class="sticky top-0 bg-slate-100 z-10"><tr class="text-slate-700">
+                            <th class="p-2 border text-left">ผลตรวจ</th><th class="p-2 border">เดือน</th><th class="p-2 border">เลขตั๋ว</th><th class="p-2 border">เล่ม (PDF)</th><th class="p-2 border text-right">ยอดที่คีย์</th><th class="p-2 border text-right">ยอดใน PDF</th><th class="p-2 border text-left">รายละเอียด / แก้ไข</th>
+                        </tr></thead><tbody id="pdf-compare-tbody"></tbody>
+                    </table>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-500 leading-relaxed">หมายเหตุ: รายงาน PDF นี้ไม่มีประเภท ส/พ/ผ/ถ ในแต่ละรายการ ระบบจึงไม่นำประเภทมาใช้จับคู่ แต่จะเปรียบเทียบรายการทุกประเภท ส/พ/ผ/ถ โดยใช้เดือน + เลขตั๋วเป็นหลัก และตรวจสอบจำนวนเงิน ไม่แก้ไขข้อมูลให้อัตโนมัติ แต่สามารถกดแก้ยอดเงินจากผลตรวจได้ ทั้งนี้ตารางเดิมเก็บเลขตั๋วแต่ไม่มีช่องเล่มตั๋ว จึงแสดงเลขเล่มจาก PDF เพื่ออ้างอิงเท่านั้น</div>
+            </div>
+            <div class="px-4 py-3 border-t bg-slate-50 flex justify-end">
+                <button onclick="closePDFCompareModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Brought-forward preview modal -->
+    <div id="brought-forward-modal" class="fixed inset-0 z-[60] bg-slate-900/80 hidden items-center justify-center p-3 sm:p-5 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-4 py-3 border-b bg-emerald-50 flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-bold text-emerald-900 text-base">ตรวจสอบยอดยกมาก่อนนำไปใช้</h3>
+                    <p id="brought-forward-source-date" class="text-xs text-slate-600 mt-1"></p>
+                </div>
+                <button onclick="closeBroughtForwardPreview()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded-lg text-sm">ปิด</button>
+            </div>
+            <div id="brought-forward-preview-content" class="p-4 overflow-auto"></div>
+            <div class="px-4 py-3 border-t flex flex-wrap justify-end gap-2">
+                <button onclick="closeBroughtForwardPreview()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-semibold">ยกเลิก</button>
+                <button id="apply-brought-forward-button" onclick="applyBroughtForwardImport()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold"><i class="fa-solid fa-check mr-1"></i> นำยอดที่แสดงไปใช้</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Preview Modal -->
+    <div id="print-preview-modal" class="fixed inset-0 z-50 bg-slate-900/80 hidden items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-7xl w-full flex flex-col p-2 sm:p-3 relative z-10">
+            <div class="flex justify-between items-center pb-2 border-b no-print">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-eye text-emerald-700 text-lg"></i>
+                    <h3 class="text-sm font-bold text-slate-800">ตัวอย่างก่อนพิมพ์ · แก้ยอดสรุป v3</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="printCurrentPreview()" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-print"></i> พิมพ์จริง
+                    </button>
+                    <button onclick="closePrintPreview()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold">
+                        ปิด
+                    </button>
+                </div>
+            </div>
+            
+            <div id="print-preview-scroll-area" class="flex-grow overflow-auto bg-slate-200 rounded-xl my-2 border border-slate-300">
+                <div id="print-preview-paper" class="text-[8pt] relative pb-4">
+                    <div class="mb-3" style="display:flex;align-items:center;justify-content:center;gap:12px">
+                        <div class="text-center">
+                        <div class="font-bold text-[13pt] text-slate-900">บัญชีแยกประเภท สถานธนานุบาลเทศบาลเมืองกระบี่</div>
+                        <div class="text-[10pt] text-slate-700 font-semibold">ประจำวันที่ <span id="preview-date-text"></span><span style="display:none"> พ.ศ. <span id="preview-year-text"></span> (<span id="preview-day-name"></span>)</span></div>
+                        </div>
+                    </div>
+                    <div id="print-preview-table-container" class="w-full"></div>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between text-xs text-slate-600 font-medium px-1 no-print">
+                <span>💡 คำแนะนำ: ตรวจสอบความถูกต้องก่อนกดพิมพ์จริง (พิมพ์เป็นแนวนอน Landscape)</span>
+                <span id="preview-col-count" class="font-bold text-emerald-800"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- เสียงเอฟเฟกต์ไซไฟ (Web Audio API) -->
+    

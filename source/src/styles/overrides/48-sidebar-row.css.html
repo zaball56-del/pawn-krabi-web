@@ -1,0 +1,19 @@
+<style id="sb-row">
+@media (min-width:1024px){
+  #app-sidebar{display:flex !important;flex-direction:row !important;align-items:center !important;gap:6px !important;left:72px !important;right:auto !important;top:10px !important;bottom:auto !important;width:auto !important;max-width:calc(100vw - 100px);padding:6px 8px !important;border-radius:14px !important;overflow:visible !important;z-index:60}
+  body.sb-open #sb-toggle{position:fixed;z-index:61}
+  #app-sidebar .sb-brand,#app-sidebar .sb-ver,#app-sidebar .sb-sep{display:none !important}
+  #app-sidebar .sb-gw{position:relative;display:flex;align-items:center}
+  #app-sidebar .sb-gw.first .sb-grp{display:none}
+  #app-sidebar .sb-gw.first .sb-gb{display:flex !important;gap:4px !important;padding:0 !important;grid-column:auto}
+  #app-sidebar .sb-gw:not(.first) .sb-grp{width:auto;margin:0 !important;padding:0 12px !important;height:34px;background:rgba(255,255,255,.08);color:#e2e8f0;font-size:13px !important;letter-spacing:0;border-radius:9px !important;gap:6px;white-space:nowrap}
+  #app-sidebar .sb-gw:not(.first) .sb-grp .n{display:none}
+  #app-sidebar .sb-gw:not(.first) .sb-gb{position:absolute;top:calc(100% + 8px);left:0;min-width:250px;display:block !important;background:#0f2a57;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:6px !important;box-shadow:0 16px 36px rgba(0,0,0,.5)}
+  #app-sidebar .sb-gw:not(.first) .sb-gb.shut{display:none !important}
+  #app-sidebar .sb-gw:not(.first) .sb-gb .sb-item{width:100%}
+  #app-sidebar .sb-item{padding:4px 10px !important;height:34px;min-height:0 !important;gap:7px !important;font-size:13px !important;border-radius:9px !important;white-space:nowrap}
+  #app-sidebar .sb-item .sb-ic{width:22px !important;height:22px !important;flex:none}
+  #app-sidebar .sb-item .sb-ic svg{width:13px !important;height:13px !important}
+  #app-sidebar .sb-item small{display:none}
+}
+</style>

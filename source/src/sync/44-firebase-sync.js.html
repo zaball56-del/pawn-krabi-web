@@ -1,0 +1,240 @@
+<script>
+/* ซิงค์ข้อมูลบัญชีขึ้น Firebase (Firestore) ใช้ร่วมกันทุกเครื่อง */
+(function(){
+  var COL='ledger';
+  var cfg=window.FIREBASE_CONFIG||{};
+  var cloud={on:false,col:null,last:{},timer:null,busy:false,again:false,deferRender:false,failTimer:null};
+  var origInd=window.setSaveIndicator, origSave=window.saveDB, origInit=window.initApp;
+  function ind(s,m){ try{ origInd(s,m); }catch(e){} }
+  function toast(m){ try{ showToast(m); }catch(e){} }
+  function docId(k){ var s=String(k).replace(/[^A-Za-z0-9_\-.:@+]/g,function(c){ return '~'+c.charCodeAt(0).toString(16)+'~'; }).slice(0,200); return s||'_'; }
+  function compactOf(k){ return JSON.stringify(db[k], stripTrailingBlankRows); }
+  function localMap(){ var o=JSON.parse(serializeDBCompact()), m={}; Object.keys(o).forEach(function(k){ if(k!=='') m[k]=JSON.stringify(o[k]); }); return m; }
+  function bytes(s){ try{ return new TextEncoder().encode(s).length; }catch(e){ return s.length*3; } }
+  /* จำว่าแต่ละวันซิงค์ล่าสุดเป็นเนื้อหาไหน (เก็บเป็นลายนิ้วมือสั้น ๆ) เพื่อรู้ว่าวันไหนแก้ค้างอยู่ในเครื่อง */
+  function hash(str){ var h=2166136261; for(var i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36)+':'+str.length; }
+  var HK='pawn_krabi_fb_hashes', hs={}, hsTimer=null;
+  try{ hs=JSON.parse(localStorage.getItem(HK)||'{}')||{}; }catch(e){ hs={}; }
+  function saveHs(){ clearTimeout(hsTimer); hsTimer=setTimeout(function(){ try{ localStorage.setItem(HK,JSON.stringify(hs)); }catch(e){} },300); }
+  function setLast(k,json){ cloud.last[k]=json; hs[k]=hash(json); saveHs(); }
+  function unsetLast(k){ delete cloud.last[k]; delete hs[k]; saveHs(); }
+  /* เก็บเป็นเอกสารรายสัปดาห์ (7 วัน/เอกสาร) แต่ละวันเป็นฟิลด์แยก ลดจำนวนการอ่านลงราว 7 เท่า
+     และแก้คนละวันพร้อมกันก็ไม่ทับกัน */
+  function hex(k){ return Array.from(new TextEncoder().encode(k)).map(function(b){ return ('0'+b.toString(16)).slice(-2); }).join(''); }
+  function unhex(h){ var a=[]; for(var i=0;i<h.length;i+=2) a.push(parseInt(h.substr(i,2),16)); return new TextDecoder().decode(new Uint8Array(a)); }
+  function fieldOf(k){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(k); return m?'d'+m[1]+m[2]+m[3]:'x'+hex(k); }
+  function keyOfField(f){ if(/^d\d{8}$/.test(f)) return f.slice(1,5)+'-'+f.slice(5,7)+'-'+f.slice(7,9); if(f.charAt(0)==='x') return unhex(f.slice(1)); return null; }
+  function chunkOf(k){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(k); return m?('w'+Math.floor(Date.UTC(+m[1],+m[2]-1,+m[3])/864e5/7)):'wx'; }
+  /* อ่านรายการ {k,json} จากเอกสาร รองรับทั้งแบบรายสัปดาห์และแบบรายวันเดิม */
+  function entriesOf(d){
+    var x=d.data()||{}, out=[];
+    if(typeof x.json==='string'){ out.push({k:(x.k!==undefined?x.k:d.id),json:x.json,legacy:true,id:d.id}); return out; }
+    Object.keys(x).forEach(function(f){ var k=keyOfField(f); if(k!==null && typeof x[f]==='string') out.push({k:k,json:x[f]}); });
+    return out;
+  }
+
+  var QUOTA_MSG='โควตาฟรีวันนี้เต็ม · กรอกต่อได้ ระบบจะซิงค์ให้เองหลังรีเซ็ต (ราว 14:00 น.)';
+  var configured = !!(cfg.apiKey && cfg.projectId && window.firebase);
+
+  /* ---------- หน้าล็อกอินอีเมล/รหัสผ่าน ---------- */
+  function authOverlay(msg){
+    var el=document.getElementById('fb-auth');
+    if(!el){
+      el=document.createElement('div'); el.id='fb-auth';
+      el.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#0a1020;display:flex;align-items:center;justify-content:center;padding:16px;font-family:Sarabun,sans-serif';
+      el.innerHTML='<form id="fb-auth-form" style="width:100%;max-width:380px;background:#fff;color:#0B2244;border-radius:16px;padding:28px 24px;display:flex;flex-direction:column;gap:12px">'
+        +'<div style="font-size:20px;font-weight:700">เข้าสู่ระบบบัญชีสถานธนานุบาล</div>'
+        +'<div style="font-size:13px;color:#51607a">ใช้อีเมลและรหัสผ่านที่ผู้ดูแลสร้างให้</div>'
+        +'<input id="fb-email" type="email" autocomplete="username" placeholder="อีเมล" required style="border:1px solid #c5cddc;border-radius:10px;padding:10px 12px;font-size:16px">'
+        +'<input id="fb-pass" type="password" autocomplete="current-password" placeholder="รหัสผ่าน" required style="border:1px solid #c5cddc;border-radius:10px;padding:10px 12px;font-size:16px">'
+        +'<div id="fb-err" style="color:#b42318;font-size:13px;min-height:18px"></div>'
+        +'<button id="fb-go" type="submit" style="background:#065f46;color:#fff;border:0;border-radius:10px;padding:11px;font-size:16px;font-weight:600;cursor:pointer">เข้าสู่ระบบ</button></form>';
+      document.body.appendChild(el);
+      document.getElementById('fb-auth-form').addEventListener('submit',function(ev){
+        ev.preventDefault();
+        var b=document.getElementById('fb-go'); b.disabled=true;
+        firebase.auth().signInWithEmailAndPassword(document.getElementById('fb-email').value.trim(),document.getElementById('fb-pass').value)
+          .catch(function(e){ var c=(e&&e.code)||''; document.getElementById('fb-err').textContent=/network/.test(c)?'เชื่อมต่ออินเทอร์เน็ตไม่ได้':'อีเมลหรือรหัสผ่านไม่ถูกต้อง'; })
+          .then(function(){ b.disabled=false; });
+      });
+    }
+    if(msg) document.getElementById('fb-err').textContent=msg;
+    el.style.display='flex';
+  }
+  function hideAuth(){ var el=document.getElementById('fb-auth'); if(el) el.style.display='none'; }
+
+  /* ---------- ส่งขึ้นฐานข้อมูล ---------- */
+  window.saveDB=function(){
+    var r=origSave.apply(this,arguments);
+    if(cloud.on){ ind('pending','กำลังซิงค์ข้อมูลกลาง…'); clearTimeout(cloud.timer); cloud.timer=setTimeout(push,700); }
+    return r;
+  };
+  window.setSaveIndicator=function(s,m){
+    if(cloud.on && s==='saved' && /เครื่อง/.test(m||'')){ s='pending'; m='กำลังซิงค์ข้อมูลกลาง…'; }
+    origInd(s,m);
+  };
+  async function push(){
+    if(!cloud.on) return;
+    if(cloud.busy){ cloud.again=true; return; }
+    cloud.busy=true;
+    var failed=0, tooBig=0, quota=false;
+    try{
+      do{
+        cloud.again=false;
+        var loc=localMap(), byChunk={};
+        Object.keys(loc).forEach(function(k){
+          if(loc[k]===cloud.last[k]) return;
+          if(bytes(loc[k])>900000){ tooBig++; return; }
+          var c=chunkOf(k); (byChunk[c]=byChunk[c]||{f:{},sets:[],dels:[]}); byChunk[c].f[fieldOf(k)]=loc[k]; byChunk[c].sets.push(k);
+        });
+        var del=Object.keys(cloud.last).filter(function(k){ return !(k in loc); });
+        if(del.length && !Object.keys(loc).length){ del=[]; toast('ข้อมูลในเครื่องว่าง จึงไม่ลบข้อมูลกลาง'); }
+        del.forEach(function(k){ var c=chunkOf(k); (byChunk[c]=byChunk[c]||{f:{},sets:[],dels:[]}); byChunk[c].f[fieldOf(k)]=firebase.firestore.FieldValue.delete(); byChunk[c].dels.push(k); });
+        var ids=Object.keys(byChunk), i=0;
+        var worker=async function(){
+          while(i<ids.length){
+            var cid=ids[i++], ch=byChunk[cid];
+            try{
+              var remain=Object.keys(cloud.last).filter(function(k){ return chunkOf(k)===cid && ch.dels.indexOf(k)<0; }).length;
+              if(!ch.sets.length && !remain) await cloud.col.doc(cid).delete();     // ไม่เหลือวันไหนในสัปดาห์นี้ ลบเอกสารทิ้ง
+              else await cloud.col.doc(cid).set(ch.f,{merge:true});
+              ch.sets.forEach(function(k){ setLast(k,loc[k]); });
+              ch.dels.forEach(function(k){ unsetLast(k); });
+            }catch(e){ failed++; if(e&&e.code==='resource-exhausted') quota=true; console.warn('sync',cid,e); }
+          }
+        };
+        await Promise.all([worker(),worker(),worker(),worker()]);
+      }while(cloud.again);
+      if(!failed && cloud.legacy && cloud.legacy.length){
+        var L=cloud.legacy; cloud.legacy=[];
+        L.forEach(function(id){ cloud.col.doc(id).delete().catch(function(e){ console.warn('legacy',id,e); }); });
+      }
+      if(tooBig) ind('error','ข้อมูลบางวันใหญ่เกินกำหนด · ไม่ได้ซิงค์');
+      else if(failed){ ind('error',quota?QUOTA_MSG:'ซิงค์ไม่สำเร็จ · กำลังลองใหม่'); clearTimeout(cloud.failTimer); cloud.failTimer=setTimeout(push,quota?300000:8000); }
+      else ind('saved','ซิงค์ข้อมูลกลางแล้ว');
+    }finally{ cloud.busy=false; }
+  }
+
+  /* ---------- รับข้อมูลที่เครื่องอื่นแก้ ---------- */
+  function editing(){ var a=document.activeElement; return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest && a.closest('#app-container')); }
+  function refresh(){
+    if(editing()){ cloud.deferRender=true; return; }
+    cloud.deferRender=false;
+    try{ getCurrentDayData(); renderTable(); }catch(e){ console.warn(e); }
+  }
+  document.addEventListener('focusout',function(){ if(cloud.deferRender) setTimeout(function(){ if(!editing()) refresh(); },400); },true);
+  cloud.chunkKeys={}; cloud.legacy=[];
+  function applyKey(k,json,st){
+    if(json===cloud.last[k]) return;
+    var cur=(k in db)?compactOf(k):undefined;
+    if(cur===json){ setLast(k,json); return; }
+    if(cur!==undefined && cur!==cloud.last[k]) return;      // เครื่องนี้กำลังแก้ ให้ของเครื่องนี้ทับ
+    try{ db[k]=JSON.parse(json); setLast(k,json); if(k===currentDate) st.cur=true; }catch(e){}
+  }
+  function dropKey(k,st){
+    if(!(k in cloud.last)) return;
+    var dirty=(k in db) && compactOf(k)!==cloud.last[k];
+    unsetLast(k);
+    if(!dirty && (k in db)){ delete db[k]; if(k===currentDate) st.cur=true; }
+  }
+  function applyRemote(snap){
+    var st={cur:false};
+    snap.docChanges().forEach(function(ch){
+      var id=ch.doc.id;
+      if(ch.type==='removed'){
+        (cloud.chunkKeys[id]||[]).forEach(function(k){ dropKey(k,st); }); delete cloud.chunkKeys[id]; return;
+      }
+      var es=entriesOf(ch.doc), now={};
+      es.forEach(function(e){ now[e.k]=1; if(!e.legacy) applyKey(e.k,e.json,st); else applyKey(e.k,e.json,st); });
+      (cloud.chunkKeys[id]||[]).forEach(function(k){ if(!now[k]) dropKey(k,st); });
+      cloud.chunkKeys[id]=Object.keys(now);
+    });
+    if(st.cur){ try{ origSave(); }catch(e){} refresh(); toast('มีการอัปเดตข้อมูลจากอีกเครื่อง'); }
+  }
+  function loadAll(snap){
+    var o={}, last={};
+    snap.docs.forEach(function(d){
+      var es=entriesOf(d), ks=[];
+      es.forEach(function(e){
+        try{ o[e.k]=JSON.parse(e.json); ks.push(e.k); }catch(x){ return; }
+        if(e.legacy){ cloud.legacy.push(e.id); } else last[e.k]=e.json;   // ข้อมูลแบบเดิมจะถูกย้ายเข้าเอกสารรายสัปดาห์
+      });
+      cloud.chunkKeys[d.id]=ks;
+    });
+    return {o:o,last:last};
+  }
+
+  /* ---------- เชื่อมต่อ ---------- */
+  var conflicts=[];
+  function merge(snap,live){
+    var r=loadAll(snap), keep={}, nd=r.o;
+    Object.keys(db).forEach(function(k){
+      if(k==='') return;
+      var cur; try{ cur=compactOf(k); }catch(e){ return; }
+      var cj=(k in nd)?(r.last[k]!==undefined?r.last[k]:JSON.stringify(nd[k])):undefined;
+      var was=hs[k], dirty=(was!==undefined && was!==hash(cur) && (cj===undefined || hash(cj)!==hash(cur)));
+      if(cj===undefined){ if(was===undefined || dirty) keep[k]=1; }                // วันที่มีแต่ในเครื่อง
+      else if(dirty){ keep[k]=1; if(hash(cj)!==was) conflicts.push(k); }            // แก้ค้างในเครื่อง (และอีกเครื่องแก้ด้วย = ชน)
+    });
+    Object.keys(keep).forEach(function(k){ nd[k]=db[k]; });
+    db=nd; cloud.last=r.last;
+    Object.keys(hs).forEach(function(k){ if(!keep[k]) delete hs[k]; });
+    Object.keys(r.last).forEach(function(k){ if(!keep[k]) hs[k]=hash(r.last[k]); });
+    saveHs();
+    try{ origSave(); }catch(e){}
+    if(conflicts.length){ toast('วันที่ '+conflicts.slice(0,3).join(', ')+' ถูกแก้ทั้งสองฝั่ง ใช้ของเครื่องนี้'); conflicts=[]; }
+    if(live){ refresh(); }
+    return Object.keys(keep).length>0;
+  }
+  var ready=new Promise(function(resolve){
+    if(!configured){ resolve(false); return; }
+    firebase.initializeApp(cfg);
+    var fs=firebase.firestore();
+    try{ fs.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
+    var auth=firebase.auth(), started=false, firstResolve=resolve;
+    function connect(){
+      cloud.col=fs.collection(COL);
+      var first=true, held=null, holdTimer=null, un=null;
+      function accept(snap,offline){
+        first=false; clearTimeout(holdTimer);
+        var hadLocal=merge(snap,!firstResolve);
+        cloud.on=true;
+        if(firstResolve){ var f=firstResolve; firstResolve=null; f(offline?'offline':true); }
+        else ind(offline?'pending':'saved',offline?'ออฟไลน์ · จะซิงค์เมื่อกลับมาออนไลน์':'ซิงค์ข้อมูลกลางแล้ว');
+        if(hadLocal || cloud.legacy.length) push();
+      }
+      un=cloud.col.onSnapshot(function(snap){
+        if(first){
+          if(!snap.metadata.fromCache) accept(snap,false);
+          else { held=snap; if(!holdTimer) holdTimer=setTimeout(function(){ if(first) accept(held,true); },4000); }
+        }else applyRemote(snap);
+      },function(err){
+        var quota=err&&err.code==='resource-exhausted';
+        console.warn('firestore',err); cloud.on=false; clearTimeout(holdTimer);
+        if(first && firstResolve){ var f=firstResolve; firstResolve=null; f(err&&err.code==='permission-denied'?'denied':(quota?'quota':false)); }
+        ind('error',err&&err.code==='permission-denied'?'บัญชีนี้ไม่มีสิทธิ์ใช้ข้อมูล':(quota?QUOTA_MSG:'ฐานข้อมูลกลางใช้ไม่ได้ · บันทึกในเครื่องนี้ชั่วคราว'));
+        if(!(err&&err.code==='permission-denied')) setTimeout(connect,quota?300000:60000);   // ลองเชื่อมใหม่เอง
+      });
+    }
+    auth.onAuthStateChanged(function(user){
+      if(!user){ authOverlay(); return; }
+      hideAuth();
+      if(started) return; started=true; connect();
+    });
+  });
+
+  window.initApp=function(){
+    ind('pending','กำลังเชื่อมต่อฐานข้อมูลกลาง…');
+    ready.then(function(r){
+      origInit();
+      if(r===true) ind('saved','ซิงค์ข้อมูลกลางแล้ว · ใช้ร่วมกันทุกเครื่อง');
+      else if(r==='offline') ind('pending','ออฟไลน์ · จะซิงค์เมื่อกลับมาออนไลน์');
+      else if(r==='denied') ind('error','บัญชีนี้ไม่มีสิทธิ์ · ติดต่อผู้ดูแล');
+      else if(r==='quota') ind('error',QUOTA_MSG);
+      else if(!configured) ind('error','ยังไม่ได้ตั้งค่า Firebase · บันทึกในเครื่องนี้เท่านั้น');
+      else ind('error','เชื่อมต่อฐานข้อมูลกลางไม่ได้ · บันทึกในเครื่องนี้เท่านั้น');
+    });
+  };
+})();
+
+</script>

@@ -1,0 +1,28 @@
+<style id="perks-css">
+@keyframes pk-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+body.page-home #home-page > *{animation:pk-in .32s ease both}
+body.page-home #home-page > *:nth-child(2){animation-delay:.04s}body.page-home #home-page > *:nth-child(3){animation-delay:.08s}
+body.page-home #home-page > *:nth-child(4){animation-delay:.12s}body.page-home #home-page > *:nth-child(5){animation-delay:.16s}
+@media (prefers-reduced-motion:reduce){body.page-home #home-page > *{animation:none}}
+@media (max-width:640px){#pk-snd{display:none !important}.hp-hero .hp-ghost{min-width:32px !important;padding:0 6px !important}.hp-hero .hp-datebar{gap:3px !important}.hp-hero .hp-datebar b{min-width:68px !important;font-size:13px !important}.hp-hero .hp-ghost.on{padding:0 9px !important}}
+body.app-shell .hp-hero{overflow:hidden}
+html body.page-home #home-page .hb-l small#hb-tip{display:block !important;align-self:auto;margin:2px 0 0;padding:0;background:none;letter-spacing:0;font-size:13px;color:#fef3c7}
+.hp-ghost.pk-b svg{width:18px;height:18px}
+#pk-confetti{position:fixed;inset:0;width:100%;height:100%;z-index:80;pointer-events:none}
+/* ธีมกลางคืน (เฉพาะหน้าแรก) */
+html body.page-home.hp-night,html body.page-home.hp-night #app-container{background:linear-gradient(160deg,#050b1f 0%,#0b1d45 55%,#0f3a6b 130%) fixed !important}
+html body.page-home.hp-night #home-page .hp-hero{background:linear-gradient(90deg,#0b1d45,#102a5c) !important;color:#fff !important;box-shadow:0 1px 0 rgba(255,255,255,.08) !important}
+html body.page-home.hp-night #home-page .hp-hero .hp-title,html body.page-home.hp-night #home-page .hp-hero #hp-date,html body.page-home.hp-night #home-page .hp-hero b{color:#fff !important}
+html body.page-home.hp-night #home-page .hp-hero .hp-sub{color:#9fb3d1 !important}
+html body.page-home.hp-night #home-page .hp-hero .hp-ghost{background:rgba(255,255,255,.10) !important;color:#fff !important;border:1px solid rgba(255,255,255,.22) !important}
+html body.page-home.hp-night #home-page .hp-hero .hp-ghost.on{background:#2563eb !important;border-color:#2563eb !important}
+html body.page-home.hp-night #sb-toggle{background:rgba(255,255,255,.12) !important;color:#fff !important;border:1px solid rgba(255,255,255,.25) !important}
+html body.page-home.hp-night #home-page .hp-panel,html body.page-home.hp-night #home-page #hp-ai{background:rgba(255,255,255,.07) !important;color:#e5edff !important;border:1px solid rgba(255,255,255,.12) !important;box-shadow:none !important}
+html body.page-home.hp-night #home-page .hp-panel h2,html body.page-home.hp-night #home-page #hp-ai .ai-x{color:#fff !important}
+html body.page-home.hp-night #home-page #hp-recent,html body.page-home.hp-night #home-page #hp-recent *{color:#cbd5e1}
+html body.page-home.hp-night #home-page .hp-tile{background:rgba(255,255,255,.08) !important;color:#bfdbfe !important;border:1px solid rgba(255,255,255,.14) !important}
+html body.page-home.hp-night #home-page .hp-tile.pri{background:linear-gradient(135deg,#4f46e5,#0ea5e9) !important;color:#fff !important}
+html body.page-home.hp-night #home-page #hp-ai .ai-t,html body.page-home.hp-night #home-page #hp-ai [class*=ai-]{color:#9fb3d1 !important}
+html body.page-home.hp-night #home-page #hp-ai .ai-x{color:#fff !important}
+html body.page-home.hp-night #home-page .hb-l b,html body.page-home.hp-night #home-page .hb-l b em{color:#fff}
+</style>

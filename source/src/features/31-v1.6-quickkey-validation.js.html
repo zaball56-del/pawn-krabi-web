@@ -1,0 +1,54 @@
+<script>
+/* v1.6: ตรวจความถูกต้องก่อนบันทึกในคีย์ด่วน (กันหยิบตั๋วผิดเล่ม/ผิดเลข) — อ่านข้อมูลอย่างเดียว ไม่แก้สูตร */
+(function(){
+    var RED=['ถ','ส','พ','ผ'];
+    function val(id){ var e=document.getElementById(id); return e?String(e.value||'').trim():''; }
+    function nt(v){ try{ return normalizeCompareTicket(v); }catch(e){ return String(v||'').trim().toLowerCase(); } }
+    function fmt(v){ try{ var n=cleanNumberString(v); return n?Number(n).toLocaleString('th-TH',{maximumFractionDigits:2}):'-'; }catch(e){ return v||'-'; } }
+    function thDate(k){ var p=String(k).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+(Number(p[0])+543):k; }
+    function setting(){ try{ var s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); return s.qsConfirm!==false; }catch(e){ return true; } }
+    function rowBook(r){ return String((r&&(r.book||r.importBook))||'').trim(); }
+    function analyse(){
+        var type=val('qs-type'), mNum=parseInt(val('qs-month'),10), oldT=val('qs-ticket'), oldB=val('qs-book'), oldA=val('qs-amount'),
+            newT=val('qs-new-ticket'), newB=val('qs-new-book'), newA=val('qs-new-amount');
+        var out={ok:false};
+        if(!type||isNaN(mNum)||mNum<1||mNum>12||!oldT) return out;      /* ให้ฟังก์ชันเดิมแจ้งข้อผิดพลาดพื้นฐานเอง */
+        out.ok=true; out.type=type; out.month=thaiMonths[mNum-1]; out.oldT=oldT; out.oldB=oldB; out.oldA=oldA; out.newT=newT; out.newB=newB; out.newA=newA;
+        var warn=[], d=db[currentDate], tkey=nt(oldT), bkey=nt(oldB);
+        if(!oldB) warn.push('ยังไม่ได้กรอกเล่มที่ของตั๋วเดิม — เลขตั๋วเดียวกันอาจมีหลายเล่ม กดยืนยันเฉพาะกรณีตั๋วใบนี้ไม่มีเล่มที่');
+        if(d&&Array.isArray(d.months)&&d.data){
+            var same=[], hasImport=false, exact=null;
+            d.months.forEach(function(m){ if(!m||!Array.isArray(d.data[m])) return; d.data[m].forEach(function(r){ if(!r) return; if(r.importSource==='PDF') hasImport=true;
+                if(String(r.ticket||'').trim()&&nt(r.ticket)===tkey){ var b=rowBook(r); same.push({m:m,b:b,r:r}); if(oldB&&b&&nt(b)===bkey&&!exact) exact=same[same.length-1]; } }); });
+            if(oldB&&!exact){
+                var otherBook=same.filter(function(x){ return x.b&&nt(x.b)!==bkey; });
+                if(otherBook.length) warn.push('พบตั๋วเลข '+oldT+' ในตารางวันนี้ แต่เป็นเล่มที่ '+otherBook.map(function(x){ return x.b+' ('+x.m+')'; }).join(', ')+' ไม่ใช่เล่มที่ '+oldB+' — ตรวจกับตัวตั๋วอีกครั้ง');
+                else if(hasImport) warn.push('ตั๋วเลข '+oldT+' เล่มที่ '+oldB+' ไม่อยู่ในรายการ สธ.3 ที่นำเข้าวันนี้');
+            } else if(exact&&exact.m!==out.month) warn.push('ตั๋วนี้อยู่ในตารางเดือน'+exact.m+' แต่คุณเลือกเดือน'+out.month);
+            if(oldB&&exact&&exact.r.type&&exact.r.type!==type) warn.push('แถวนี้มีประเภท "'+exact.r.type+'" อยู่แล้ว แต่คุณเลือก "'+type+'"');
+            out.exactRow=exact?exact.r:null;
+        }
+        /* เคยถูกไถ่แล้วในวันอื่น (เทียบเล่ม+เลข เฉพาะแถวที่ระบุประเภท ถ/ส/พ/ผ) */
+        if(oldB){ Object.keys(db).forEach(function(k){ if(k===currentDate) return; var x=db[k]; if(!x||!Array.isArray(x.months)||!x.data) return;
+            x.months.forEach(function(m){ if(!m||!Array.isArray(x.data[m])) return; x.data[m].forEach(function(r){ if(r&&RED.indexOf(String(r.type||'').trim())>=0&&String(r.ticket||'').trim()&&nt(r.ticket)===tkey&&nt(rowBook(r))===bkey) warn.push('ตั๋วนี้เคยถูกไถ่/ส่งขายแล้ว เมื่อวันที่ '+thDate(k)+' ('+m+')'); }); }); }); }
+        out.warn=warn; return out;
+    }
+    var busy=false, orig=window.submitQuickScan;
+    if(typeof orig==='function'){
+        window.submitQuickScan=function(){
+            if(busy) return; var self=this, args=arguments;
+            try{ if(window.__isLocked&&window.__isLocked(currentDate)) return orig.apply(self,args); }catch(e){}
+            var a; try{ a=analyse(); }catch(e){ console.error('qs analyse',e); return orig.apply(self,args); }
+            if(!a.ok) return orig.apply(self,args);
+            if(!a.warn.length&&!setting()) return orig.apply(self,args);
+            var lines=['ตรวจก่อนบันทึก','',
+              'ตั๋วเดิม   เล่มที่ '+(a.oldB||'-')+'   เลขที่ '+a.oldT+'   ยอด '+(a.oldA?fmt(a.oldA):(a.exactRow?fmt(a.exactRow.amount):'-')),
+              a.newT?('ตั๋วใหม่  เล่มที่ '+(a.newB||'-')+'   เลขที่ '+a.newT+'   ยอด '+(a.newA?fmt(a.newA):'-')):'ตั๋วใหม่  (ไม่มี)',
+              'ประเภท '+a.type+' · เดือน'+a.month];
+            if(a.warn.length){ lines.push('',''); a.warn.forEach(function(w){ lines.push('⚠ '+w); }); lines.push('','ตรวจกับตัวตั๋วจริงแล้วยืนยันบันทึกหรือไม่?'); }
+            busy=true;
+            window.uiConfirm(lines.join('\n')).then(function(ok){ busy=false; if(ok){ busy=true; try{ orig.apply(self,args); } finally{ busy=false; } } else { var e=document.getElementById(a.warn.length?(a.oldB?'qs-ticket':'qs-book'):'qs-ticket'); if(e){ e.focus(); if(e.select) e.select(); } } });
+        };
+    }
+})();
+</script>
