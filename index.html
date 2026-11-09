@@ -6955,7 +6955,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
   function num(v){var n=parseFloat(String(v==null?'':v).replace(/,/g,''));return isNaN(n)?0:n}
 
   async function parse(buf){
-    var lib=await window.__ensurePdfjs();
+    window.__s2dbg=null; var lib=await window.__ensurePdfjs();
     var pdf=await lib.getDocument({data:new Uint8Array(buf)}).promise;
     var rows=[],pages=[],tot={};
     for(var p=1;p<=pdf.numPages;p++){
@@ -6975,6 +6975,8 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
         var tb=/^(\d+)\s*\/\s*(\d+)$/.exec(a.s.trim());
         var old=null,om=null;
         near.forEach(function(i){ if(i.x<a.x-8){var m=/^([สพผถ])\s*(\d+)\s*\/\s*(\d+)$/.exec(i.s.trim()); if(m) om=m; }});
+        if(!om){ var left=near.filter(function(i){return i.x<a.x-8}).sort(function(p,q){return p.x-q.x}).map(function(i){return i.s}).join('').replace(/[\u0E50-\u0E59]/g,function(c){return String(c.charCodeAt(0)-0x0E50)}).replace(/[\u0660-\u0669]/g,function(c){return String(c.charCodeAt(0)-0x0660)}).replace(/[\s\u200b\u00a0]/g,'').replace(/[／∕⁄]/g,'/');
+          var m2=/([สพผถ])(\d+)\/(\d+)/.exec(left); if(m2) om=m2; else if(!window.__s2dbg) window.__s2dbg=Array.prototype.map.call(near.filter(function(i){return i.x<a.x-8}).sort(function(p,q){return p.x-q.x}).map(function(i){return i.s}).join('|'),function(ch){return ch.charCodeAt(0)>127?'U+'+ch.charCodeAt(0).toString(16):ch}).join('')+' [รอบแถว '+a.s+']'; }
         var w=near.filter(function(i){return i.x>300&&i.x<430&&/^\d+(?:\.\d+)?$/.test(i.s.trim())})[0];
         var am=near.filter(function(i){return i.x>=420&&/^[\d,]+\.\d\d$/.test(i.s.trim())})[0];
         rows.push({type:om?om[1]:'',oldT:om?String(Number(om[2])):'',oldM:om?Number(om[3]):0,ticket:String(Number(tb[1])),book:String(Number(tb[2])),weight:w?w.s.trim():'',amount:am?num(am.s):NaN,page:p,y:a.y});
@@ -7105,7 +7107,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
       if(P.rows.some(function(r){return isNaN(r.amount)})) throw new Error('อ่านจำนวนเงินบางแถวไม่ได้ กรุณาแจ้งผู้พัฒนา');
       S.parsed=P; if(P.date) $('s2-date').value=P.date;
       var a=analyze(P,$('s2-date').value); S.res=a.res;S.extra=a.extra;S.fix={};S.filter='all';S.setSummary=undefined;
-      $('s2-st').innerHTML='<b style="color:#047857">อ่านสำเร็จ '+P.rows.length+' รายการ</b> · ไฟล์ '+esc(f.name)+(P.date?' · ประจำวันที่ '+esc(P.date):' · ไม่พบวันที่ในหัวรายงาน กรุณาเลือกวันที่เอง')+(P.goldBuy?' · ทองซื้อ '+fmt(P.goldBuy)+' ขาย '+fmt(P.goldSell):'');
+      $('s2-st').innerHTML='<b style="color:#047857">อ่านสำเร็จ '+P.rows.length+' รายการ</b> · ไฟล์ '+esc(f.name)+(P.date?' · ประจำวันที่ '+esc(P.date):' · ไม่พบวันที่ในหัวรายงาน กรุณาเลือกวันที่เอง')+(P.goldBuy?' · ทองซื้อ '+fmt(P.goldBuy)+' ขาย '+fmt(P.goldSell):'')+((!P.rows.some(function(r){return r.oldT})&&window.__s2dbg)?'<div style="margin-top:6px;color:#b91c1c;font-size:12px;word-break:break-all">⚠ อ่านตั๋วเดิมไม่ได้ · ข้อมูลตรวจสอบ: '+esc(window.__s2dbg)+'</div>':'');
       $('s2-main').style.display='flex'; render();
     }catch(e){ console.error(e); $('s2-st').innerHTML='<b style="color:#b91c1c">อ่าน PDF ไม่สำเร็จ</b> '+esc(e.message||e); }
   };
