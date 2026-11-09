@@ -5646,7 +5646,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             var inc=[];
             (d.months||[]).forEach(function(m){ if(!m) return; (d.data[m]||[]).forEach(function(r,i){ if(!r) return; var ty=String(r.type||'').trim(); if(RED.indexOf(ty)<0) return; var tk=String(r.ticket||'').trim();
                 if(!tk||num(r.amount)===0) inc.push('['+m+'] แถว '+(i+1)+(tk?' ตั๋ว '+tk:' (ไม่มีเลขตั๋ว)')+(num(r.amount)===0?' ไม่มียอดเงิน':''));
-                if(tk){ var key=normT(r.book)+'|'+normT(tk); (seen[key]=seen[key]||[]).push({k:k,m:m,t:tk}); } }); });
+                if(tk){ var key=m+'|'+normT(r.book)+'|'+normT(tk); (seen[key]=seen[key]||[]).push({k:k,m:m,t:tk}); } }); });
             if(inc.length) F.push({sev:'warn',date:k,t:'แถวไถ่ถอนข้อมูลไม่ครบ ('+inc.length+' แถว)',x:inc.slice(0,4).join(' · ')+(inc.length>4?' …':'')});
             (d.months||[]).forEach(function(m){ if(!m) return; try{ var cb=getMonthCarriedBalance(k,m); if(cb<0) F.push({sev:'warn',date:k,t:'ยอดยกไปของเดือน'+m+' ติดลบ',x:'ไถ่ถอนมากกว่ายอดยกมา: '+fmt(cb)+' บาท'}); }catch(e){} });
         });
