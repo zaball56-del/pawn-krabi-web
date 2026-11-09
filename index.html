@@ -7089,7 +7089,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     var dk=$('s2-date').value, day=(typeof db!=='undefined')?db[dk]:null, srow=day&&day.data&&day.data['สรุปประจำวัน']&&day.data['สรุปประจำวัน'][1]||{};
     var curC=num(srow.count),curA=num(srow.amount);
     var diff=(curC||curA)&&(curC!==n||Math.abs(curA-sum)>0.009);
-    S.setSummary=S.setSummary===undefined?false:S.setSummary; if(S.fillT===undefined) S.fillT=true;
+    S.setSummary=S.setSummary===undefined?true:S.setSummary; if(S.fillT===undefined) S.fillT=true;
     $('s2-sum').innerHTML='<b>หมวดจำนำ</b> · จำนำใหม่ '+fmt0(cnt.new)+' ราย ('+fmt(amt.new)+') + ต่อตั๋ว '+fmt0(n-cnt.new)+' ราย ('+fmt(amt.renew)+') = <b>'+fmt0(n)+' ราย / '+fmt(sum)+' บาท</b>'
       +'<br>สรุปประจำวัน แถว "รับจำนำ" ตอนนี้: '+(curC||curA?fmt0(curC)+' ราย / '+fmt(curA)+' บาท'+(diff?' <b style="color:#b45309">⚠ ไม่ตรงกับ สธ.2</b>':' ✓ ตรงกับ สธ.2'):'ยังว่าง')
       +'<label class="chk"><input type="checkbox" id="s2-setsum" '+(S.setSummary?'checked':'')+' onchange="sor2SetSum(this.checked)"> ตั้งยอด "รับจำนำ" ในสรุปประจำวันเป็น '+fmt0(n)+' ราย / '+fmt(sum)+' บาท</label>'
