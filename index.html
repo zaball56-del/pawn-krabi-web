@@ -6900,7 +6900,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
 #sor2-modal .s2-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 #sor2-modal .s2-tab{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:999px;padding:5px 14px;font:inherit;font-size:12.5px;cursor:pointer}
 #sor2-modal .s2-tab.on{background:#4f46e5;border-color:#4f46e5;color:#fff;font-weight:700}
-#sor2-modal .s2-sum{font-size:13px;line-height:1.7;padding:10px 12px;border-radius:12px;background:#eef2ff;border:1px solid #c7d2fe;color:#312e81}
+#sor2-modal .s2-sug{font-size:13px;padding:10px 12px;border-radius:12px;background:#fffbeb;border:1px solid #fcd34d;color:#78350f;line-height:1.6}#sor2-modal .s2-sug button{margin-top:6px;border:0;border-radius:8px;padding:6px 14px;background:#f59e0b;color:#fff;font:inherit;font-weight:700;cursor:pointer}#sor2-modal .s2-sum{font-size:13px;line-height:1.7;padding:10px 12px;border-radius:12px;background:#eef2ff;border:1px solid #c7d2fe;color:#312e81}
 #sor2-modal .s2-sum label.chk{display:flex;gap:8px;align-items:center;margin:4px 0 0;font-weight:700;color:#1e1b4b;font-size:13px}
 #sor2-modal .s2-tw{flex:none;border:1px solid #e2e8f0;border-radius:12px;overflow:auto;max-height:42vh;background:#fff}
 #sor2-modal table{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}
@@ -6930,6 +6930,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
    <div id="s2-st" class="s2-st">เลือกไฟล์ PDF เพื่อเริ่มต้น ระบบจะยังไม่บันทึกอะไรจนกว่าจะกดยืนยัน · แนะนำให้นำเข้า สธ.3 ของวันเดียวกันก่อน</div>
    <div id="s2-main" style="display:none;flex-direction:column;gap:12px">
     <div id="s2-chips" class="s2-chips"></div>
+    <div id="s2-sug" class="s2-sug" style="display:none"></div>
     <div id="s2-sum" class="s2-sum"></div>
     <div id="s2-extra" class="s2-extra" style="display:none"></div>
     <div class="s2-tabs" id="s2-tabs"></div>
@@ -7034,6 +7035,20 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     return {res:res,extra:extra};
   }
 
+
+  function matchedCount(P,dk){ try{ var a=analyze(P,dk); return a.res.filter(function(o){return o.kind!=='new'&&o.kind!=='nofound'}).length; }catch(e){return 0} }
+  function suggest(){
+    var box=$('s2-sug'); box.style.display='none'; box.innerHTML='';
+    var P=S.parsed; if(!P||typeof db==='undefined') return;
+    var dk=$('s2-date').value, renew=P.rows.filter(function(r){return r.oldT}).length; if(!renew) return;
+    var cur=matchedCount(P,dk);
+    if(cur>=renew*0.5) return;
+    var best=null,bm=cur;
+    Object.keys(db).filter(function(k){return /^\d{4}-\d\d-\d\d$/.test(k)&&db[k]&&db[k].data}).sort().reverse().slice(0,90).forEach(function(k){ if(k===dk) return; var m=matchedCount(P,k); if(m>bm){bm=m;best=k;} });
+    if(best){ box.style.display='block'; box.innerHTML='<b>⚠ ตั๋วเดิมส่วนใหญ่ไม่พบในบัญชีวันที่ '+esc(dk)+'</b> (พบ '+cur+' จาก '+renew+' ราย) แต่พบในบัญชีวันที่ <b>'+esc(best)+'</b> ถึง '+bm+' ราย<br>ถ้าคุณคีย์ตั๋วไว้ในวันที่นั้น ให้ใช้วันที่ดังกล่าวแทน<br><button type="button" onclick="sor2UseDate(\''+esc(best)+'\')">ใช้วันที่ '+esc(best)+'</button>'; }
+    else { box.style.display='block'; box.innerHTML='<b>⚠ ไม่พบตั๋วเดิมใน สธ.2 ในบัญชีวันที่ '+esc(dk)+'</b> (พบ '+cur+' จาก '+renew+' ราย) และไม่พบในบัญชีวันอื่นด้วย<br>ตรวจดูว่าเลขตั๋วอยู่ในคอลัมน์เดือนที่ตรงกับ "เดือนเดิม" ใน สธ.2 หรือไม่ (ดูข้อความในช่องสถานะ) หรือยังไม่ได้คีย์/นำเข้า สธ.3 ของวันนั้น'; }
+  }
+  window.sor2UseDate=function(d){ $('s2-date').value=d; sor2Reanalyze(); };
   function render(){
     var P=S.parsed; if(!P) return;
     var cnt={new:0,fill:0,ok:0,conflict:0,nofound:0},amt={new:0,renew:0};
@@ -7069,6 +7084,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     });
     $('s2-tb').innerHTML=html||'<tr><td colspan="7" style="text-align:center;padding:18px;color:#94a3b8">ไม่มีรายการ</td></tr>';
     $('s2-go').disabled=!(P.rows.length&&/^\d{4}-\d\d-\d\d$/.test(dk));
+    suggest();
   }
   function histo(){
     var a=[]; if(typeof db!=='undefined') Object.keys(db).forEach(function(k){ if(db[k]&&db[k].sor2) a.push([k,db[k].sor2]); }); a.sort(function(x,y){return x[0]<y[0]?1:-1});
