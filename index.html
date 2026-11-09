@@ -7225,6 +7225,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
   enable(); window.addEventListener('load',function(){enable();setTimeout(enable,500);setTimeout(enable,1800)});
 })();
 </script>
+
 <style id="as-css">
 #as-modal{position:fixed;inset:0;z-index:75;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(15,23,42,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);font-family:Sarabun,sans-serif}
 #as-modal.on{display:flex}
@@ -7415,6 +7416,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
   enable();
 })();
 </script>
+
 <script id="qk-js">
 (function(){
   function $(i){return document.getElementById(i)}
@@ -7433,6 +7435,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
   bind(); window.addEventListener('load',bind);
 })();
 </script>
+
 <style id="st-css">
 #st-modal{position:fixed;inset:0;z-index:76;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(15,23,42,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 #st-modal.on{display:flex}
@@ -7524,5 +7527,148 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&$('st-modal').classList.contains('on')) closeStorageModal(); });
 })();
 </script>
+
+<style id="mob-css">
+@media (max-width:640px){
+/* ===== บัญชีรายวันบนมือถือ ===== */
+html body.app-shell:not(.page-home) header{position:sticky;top:0;z-index:40}
+html body.app-shell:not(.page-home) header > div{flex-direction:row !important;flex-wrap:nowrap !important;gap:6px !important;padding:8px 10px 8px 64px !important;min-height:54px;align-items:center !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1){display:flex !important;flex:1;min-width:0;margin:0 !important;align-items:center}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) > div{display:block !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) h1{color:#fff !important;display:block !important;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:15px !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1){min-width:90px;flex:1 1 auto}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) img{display:none !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) p{display:none !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) h1{font-size:16px !important;white-space:nowrap}
+html body.app-shell:not(.page-home) header > div > div:nth-child(2){flex:none;flex-wrap:nowrap !important;gap:6px !important;margin:0 !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button:not(#hdr-gear):not(#m-add):not(#m-more),
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button[onclick*="openQuickScanModal"],
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button[onclick*="addRow"]:not(#m-add),
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button[onclick*="openPrintPreview"],
+html body.app-shell:not(.page-home) header > div > div:nth-child(2) > button[onclick*="logout"]{display:none !important}
+html body.app-shell:not(.page-home) #m-add{display:flex !important;width:40px;height:40px;min-width:0 !important;padding:0 !important;border-radius:12px !important;font-size:20px !important;background:rgba(255,255,255,.25) !important;color:#fff !important;align-items:center;justify-content:center;border:0}
+html body.app-shell:not(.page-home) header #hdr-tools>summary{font-size:0 !important;width:40px;height:40px;padding:0 !important;display:flex !important;align-items:center;justify-content:center;border-radius:12px !important}
+html body.app-shell:not(.page-home) header #hdr-tools>summary::after{content:"⋯";font-size:22px;color:#4338ca;line-height:1}
+html body.app-shell:not(.page-home) header #hdr-tools>summary::marker,html body.app-shell:not(.page-home) header #hdr-tools>summary::-webkit-details-marker{display:none}
+html body.app-shell:not(.page-home) header #hdr-tools .hdr-menu-panel{position:fixed !important;left:10px !important;right:10px !important;top:60px !important;max-height:70vh;width:auto !important}
+/* ซ่อนส่วนที่ใหญ่/ซ้ำซ้อน */
+html body.app-shell:not(.page-home) #daily-balance-calculator{display:none !important}
+html body.app-shell:not(.page-home) #ledger-page > div.print-only{display:none !important}
+html body.app-shell:not(.page-home) #ur-bar{display:none !important}
+html body.app-shell:not(.page-home) #ledger-page{padding:6px 6px 96px !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print:not(#daily-balance-calculator){padding:6px !important;border-radius:14px !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child{display:flex !important;flex-wrap:nowrap !important;gap:6px !important;width:100%;align-items:center}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div{display:flex;align-items:center;gap:6px;flex-wrap:nowrap !important;width:100%}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child label{display:none !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child input[type=date]{flex:1;min-width:0;height:40px !important;font-size:15px !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child button{flex:none;height:40px;min-width:40px;padding:0 10px !important;white-space:nowrap}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div > span:last-child{display:none !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2){display:none !important;margin-top:6px;flex-direction:column;align-items:stretch !important;gap:6px !important}
+html body.app-shell.m-search:not(.page-home) #ledger-page > section.no-print > div:nth-child(2){display:flex !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2) > *{width:100% !important}
+html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2) input,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2) select,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:nth-child(2) button{height:42px;font-size:15px !important}
+html body.app-shell:not(.page-home) #ledger-page > section:not(.no-print) > div.no-print{display:none !important}
+/* ตัวควบคุม: สรุป + แท็บเดือน */
+#m-ctl{display:none}
+html body.app-shell:not(.page-home) #m-ctl{display:block}
+#m-date{font-size:13px;font-weight:700;color:#a7f3d0;margin:0 2px 6px}
+#m-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+#m-sum button{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);border-radius:12px;padding:6px 8px;text-align:left;color:#e8ecf8;font-family:inherit;cursor:pointer}
+#m-sum small{display:block;font-size:10.5px;color:#aab4d4}#m-sum b{display:block;font-size:15px;line-height:1.25;font-variant-numeric:tabular-nums}#m-sum i{display:block;font-style:normal;font-size:10px;color:#94a3b8;white-space:nowrap}
+#m-sum button.k b{color:#5eead4}
+#m-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch}
+#m-tabs button{flex:none;position:relative;border:0;border-radius:999px;padding:8px 12px;background:rgba(255,255,255,.1);color:#c7d2fe;font:700 14px Sarabun,sans-serif;cursor:pointer}
+#m-tabs button.on{background:#6366f1;color:#fff}
+#m-tabs button em{position:absolute;top:-3px;right:-2px;background:#f59e0b;color:#1c1917;font-style:normal;font-size:10px;border-radius:99px;padding:0 5px;line-height:15px}
+/* ตาราง */
+html body.app-shell:not(.page-home) #ledger-page > section:not(.no-print){padding:0 !important;border-radius:16px !important}
+html body.app-shell:not(.page-home) .ledger-scroll{overflow:visible !important;max-height:none !important}
+html body.app-shell:not(.page-home) #ledger-page table{width:100% !important;min-width:0 !important;table-layout:fixed}
+html body.app-shell:not(.page-home) #ledger-page table td,html body.app-shell:not(.page-home) #ledger-page table th{padding:4px 3px !important}
+html body.app-shell:not(.page-home) #ledger-page table tbody input,html body.app-shell:not(.page-home) #ledger-page table tbody select{height:42px !important;font-size:15px !important;font-weight:700;min-width:0;width:100% !important;border-radius:10px !important}
+html body.app-shell:not(.page-home) #ledger-page table thead th{font-size:11px !important;position:static !important}
+html body.app-shell:not(.page-home) #ledger-page table thead tr:first-child th:first-child,html body.app-shell:not(.page-home) #ledger-page table tbody tr > td:first-child{width:46px !important;min-width:0 !important}
+html body.app-shell:not(.page-home) #ledger-page table tbody tr > td:first-child{font-size:11px !important;white-space:nowrap}
+/* แถบล่าง */
+#m-bar{display:none}
+html body.app-shell:not(.page-home) #m-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:44;height:62px;padding:0 6px env(safe-area-inset-bottom);background:#0f172a;border-top:1px solid rgba(255,255,255,.14);align-items:center;justify-content:space-around}
+#m-bar button{border:0;background:none;color:#cbd5e1;font:600 10.5px Sarabun,sans-serif;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;padding:4px 2px;cursor:pointer}
+#m-bar button b{font-size:19px;line-height:1;font-weight:400}
+#m-bar button.main{background:#f59e0b;color:#1c1917;border-radius:16px;flex-direction:row;gap:6px;padding:10px 18px;font-size:14px;font-weight:700}
+#m-bar button.main b{font-size:16px}
+#m-bar button:disabled{opacity:.35}
+html body.app-shell:not(.page-home) #save-indicator{bottom:72px !important;left:8px !important;top:auto !important}
+html body.app-shell:not(.page-home) #toast{bottom:76px !important;left:10px !important;right:10px !important}
+}
+@media (min-width:641px){#m-ctl,#m-bar{display:none !important}}
+</style>
+<div id="m-bar" class="no-print"><button type="button" id="m-undo"><b>↶</b>เลิกทำ</button><button type="button" id="m-find"><b>🔍</b>ค้นหา</button><button type="button" class="main" id="m-quick"><b>⚡</b>คีย์ด่วน</button><button type="button" id="m-addrow"><b>＋</b>เพิ่มแถว</button><button type="button" id="m-print"><b>🖨</b>พิมพ์</button></div>
+<script id="mob-js">
+(function(){
+  var MQ=window.matchMedia('(max-width:640px)'), SEL=null, viewCss=null, lastSig='';
+  var SH={'มกราคม':'ม.ค.','กุมภาพันธ์':'ก.พ.','มีนาคม':'มี.ค.','เมษายน':'เม.ย.','พฤษภาคม':'พ.ค.','มิถุนายน':'มิ.ย.','กรกฎาคม':'ก.ค.','สิงหาคม':'ส.ค.','กันยายน':'ก.ย.','ตุลาคม':'ต.ค.','พฤศจิกายน':'พ.ย.','ธันวาคม':'ธ.ค.'};
+  function $(i){return document.getElementById(i)}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function num(v){var n=Number(String(v==null?'':v).replace(/,/g,''));return isFinite(n)?n:0}
+  function fmt(n){return Math.round(n).toLocaleString('en-US')}
+  function compact(n){n=num(n); if(Math.abs(n)>=1e6) return (n/1e6).toFixed(2)+' ล.'; return fmt(n)}
+  function visible(){ var a=$('app-container'); return MQ.matches&&a&&a.style.display==='flex'&&document.body.classList.contains('app-shell')&&!document.body.classList.contains('page-home')&&$('ledger-page'); }
+  function day(){ try{ return db[currentDate]; }catch(e){ return null; } }
+  function sumRow(d,i){ var a=d&&d.data&&d.data['สรุปประจำวัน']; return (a&&a[i])||{}; }
+  function setup(){
+    var lp=$('ledger-page'); if(!lp||$('m-ctl')) return !!$('m-ctl');
+    var secs=lp.querySelectorAll(':scope > section'); var tableSec=secs[secs.length-1]; if(!tableSec) return false;
+    var c=document.createElement('div'); c.id='m-ctl'; c.className='no-print'; c.innerHTML='<div id="m-date"></div><div id="m-sum"></div><div id="m-tabs"></div>';
+    lp.insertBefore(c,tableSec);
+    var hd=document.querySelector('header > div > div:nth-child(2)');
+    if(hd&&!$('m-add')){ var b=document.createElement('button'); b.id='m-add'; b.type='button'; b.textContent='＋'; b.setAttribute('aria-label','เพิ่มแถว'); b.style.display='none'; b.onclick=function(){ try{addRow()}catch(e){} }; hd.insertBefore(b,hd.firstChild); }
+    var pn=document.querySelector('#hdr-tools .hdr-menu-panel');
+    if(pn&&!$('m-logout')){ var o=document.createElement('button'); o.id='m-logout'; o.type='button'; o.className='menu-item'; o.innerHTML='<i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ'; o.onclick=function(){ try{logout()}catch(e){} }; pn.appendChild(o); }
+    $('m-undo').onclick=function(){ try{undoEdit()}catch(e){} };
+    $('m-find').onclick=function(){ document.body.classList.toggle('m-search'); if(document.body.classList.contains('m-search')){ var s=$('search-ticket'); if(s) setTimeout(function(){s.focus()},50); } };
+    $('m-quick').onclick=function(){ try{openQuickScanModal()}catch(e){} };
+    $('m-addrow').onclick=function(){ try{addRow()}catch(e){} };
+    $('m-print').onclick=function(){ var b=[].slice.call(document.querySelectorAll('header button')).filter(function(x){return /openPrintPreview/.test(x.getAttribute('onclick')||'')})[0]; if(b) b.click(); else try{openPrintPreview()}catch(e){} };
+    $('m-sum').addEventListener('click',function(e){ if(e.target.closest('button')){ SEL='S'; refresh(true); } });
+    $('m-tabs').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; SEL=b.getAttribute('data-s'); refresh(true); });
+    return true;
+  }
+  function defaultSel(d){ var ms=d.months||[]; var mi=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(String(currentDate).slice(5,7))-1]; var i=ms.indexOf(mi); return String(i>=0?i:Math.max(0,ms.length-1)); }
+  function applyView(d){
+    var N=(d.months||[]).length; if(!viewCss){ viewCss=document.createElement('style'); viewCss.id='m-view-css'; document.head.appendChild(viewCss); }
+    var T='#ledger-page table', css='@media (max-width:640px){body.app-shell:not(.page-home) ', rules=[];
+    function hideMonth(i){ rules.push(T+' thead tr:first-child th:nth-child('+(i+2)+')'); for(var k=1;k<=3;k++){ rules.push(T+' thead tr:nth-child(2) th:nth-child('+(3*i+k)+')'); rules.push(T+' tbody tr td:nth-child('+(3*i+k+1)+')'); } }
+    function hideSum(){ rules.push(T+' thead tr:first-child th:nth-child('+(N+2)+')'); for(var k=1;k<=3;k++){ rules.push(T+' thead tr:nth-child(2) th:nth-child('+(3*N+k)+')'); rules.push(T+' tbody tr td:nth-child('+(3*N+k+1)+')'); } }
+    if(SEL==='S'){ for(var i=0;i<N;i++) hideMonth(i); }
+    else { var s=Number(SEL); for(var j=0;j<N;j++) if(j!==s) hideMonth(j); hideSum(); }
+    css=rules.length?('@media (max-width:640px){'+rules.map(function(r){return 'body.app-shell:not(.page-home) '+r}).join(',')+'{display:none !important}}'):'';
+    viewCss.textContent=css;
+    // โหมดสรุป: แสดงเฉพาะแถวที่มีข้อมูลสรุป (แถวที่ 1-5)
+    var rows=document.querySelectorAll('#ledger-page table tbody tr'); for(var r=0;r<rows.length;r++){ rows[r].style.display=(SEL==='S'&&r>4)?'none':''; }
+  }
+  function refresh(force){
+    if(!visible()){ return; } if(!setup()) return;
+    var d=day(); if(!d||!Array.isArray(d.months)) return;
+    if(SEL===null||(SEL!=='S'&&Number(SEL)>=d.months.length)) SEL=defaultSel(d);
+    var rows=['ย/ม','รับจำนำ','ไถ่ถอน','คงเหลือ'].map(function(t,i){var r=sumRow(d,i);return {t:t,c:r.count,a:r.amount}});
+    var cnt=d.months.map(function(m){ return (d.data[m]||[]).filter(function(r){return r&&String(r.ticket||'').trim()}).length; });
+    var sig=currentDate+'|'+SEL+'|'+JSON.stringify(rows)+'|'+d.months.join(',')+'|'+cnt.join(',')+'|'+document.querySelectorAll('#ledger-page table tbody tr').length;
+    if(!force&&sig===lastSig) return; lastSig=sig;
+    var dt=$('display-date-th'),dn=$('day-name-display'); $('m-date').textContent=dt?('📅 '+dt.textContent.trim()+' '+(dn?dn.textContent.trim():'')):'';
+    $('m-sum').innerHTML=rows.map(function(r,i){ return '<button type="button" class="'+(i===3?'k':'')+'"><small>'+r.t+'</small><b>'+(r.c===''||r.c==null?'-':fmt(num(r.c)))+'</b><i>'+(r.a===''||r.a==null?'&nbsp;':compact(r.a))+'</i></button>'; }).join('');
+    $('m-tabs').innerHTML=d.months.map(function(m,i){ return '<button type="button" data-s="'+i+'" class="'+(String(i)===SEL?'on':'')+'">'+esc(SH[m]||m||('ช่อง '+(i+1)))+(cnt[i]?'<em>'+cnt[i]+'</em>':'')+'</button>'; }).join('')+'<button type="button" data-s="S" class="'+(SEL==='S'?'on':'')+'">สรุป</button>';
+    applyView(d);
+    var u=$('m-undo'),ub=$('ur-u'); if(u&&ub) u.disabled=ub.disabled;
+  }
+  // เชื่อมกับการวาดตารางใหม่
+  function hook(name){ var f=window[name]; if(typeof f!=='function'||f.__mob) return; var w=function(){ var r=f.apply(this,arguments); try{ lastSig=''; setTimeout(function(){refresh(true)},0); }catch(e){} return r; }; w.__mob=1; window[name]=w; try{ eval(name+'=w'); }catch(e){} }
+  function init(){ ['renderTable','changeDate','updateSummaryColumn'].forEach(hook); }
+  init(); setTimeout(init,1500); setTimeout(init,4000);
+  setInterval(function(){ try{ refresh(false); }catch(e){} },700);
+  MQ.addEventListener&&MQ.addEventListener('change',function(){ lastSig=''; refresh(true); if(!MQ.matches&&viewCss) viewCss.textContent=''; });
+  window.addEventListener('resize',function(){ if(!MQ.matches&&viewCss) viewCss.textContent=''; });
+})();
+</script>
+
 </body>
 </html>
