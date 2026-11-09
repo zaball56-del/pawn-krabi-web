@@ -1155,7 +1155,13 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
   .hp-hero .hp-ghost{min-width:34px !important;min-height:36px !important;padding:0 8px !important;font-size:13px !important}
   .hp-hero .hp-datebar b{min-width:78px !important;font-size:13.5px !important}
 }
-</style></head>
+</style><style id="hd3-css">
+/* หัวบัญชีแยกประเภทชิดปุ่มเมนู 3 ขีด */
+html body.app-shell:not(.page-home) header > div{max-width:none !important;margin-left:0 !important;margin-right:0 !important;padding-left:70px !important;padding-right:16px !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right:auto}
+@media(max-width:640px){html body.app-shell:not(.page-home) header > div{padding-left:64px !important}}
+</style>
+<style id="cu-hint-css">#custody-modal .cu-hint{font-size:12px;color:#64748b;margin-top:4px}#custody-modal .cu-hint a{color:#4338ca;font-weight:700;text-decoration:underline}#custody-modal select.cu-i{appearance:auto;cursor:pointer}</style></head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col cyber-grid-bg page-home app-shell">
 
     <!-- หน้าจอ Login แบบห้องนิรภัยไฮเทค (Sci-Fi HUD) -->
@@ -5031,11 +5037,22 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
           +'<div class="ds-f"><label for="ds-margin">ขอบกระดาษ (มม.)</label><input id="ds-margin" type="number" min="0" max="30" value="'+esc(s.margin)+'"></div></div>'
           +'<div class="ds-row"><button type="button" class="ds-btn" id="ds-preview">ดูตัวอย่างพิมพ์</button></div></div>';
     }
+    function cuNamesHtml(){
+        var a = (window.custodyNamesGet ? window.custodyNamesGet() : []);
+        var h = '<div class="ds-row" style="margin-top:0;gap:8px"><input id="ds-cu-in" type="text" placeholder="พิมพ์ชื่อผู้เบิก แล้วกดเพิ่ม" maxlength="60" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\'){event.preventDefault();dsCuAdd()}"><button type="button" class="ds-btn pri" onclick="dsCuAdd()">เพิ่มชื่อ</button></div>';
+        if (!a.length) return h + '<div class="ds-note">ยังไม่มีรายชื่อ</div>';
+        return h + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' + a.map(function (n, i) {
+            return '<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border-radius:999px;background:#eef2ff;border:1px solid #c7d2fe;color:#312e81;font-size:13px">' + String(n).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }) + '<button type="button" aria-label="ลบชื่อ" onclick="dsCuDel(' + i + ')" style="width:22px;height:22px;border-radius:50%;border:0;background:#c7d2fe;color:#312e81;cursor:pointer;line-height:1;font-size:14px">×</button></span>';
+        }).join('') + '</div>';
+    }
+    window.dsCuAdd = function () { var el = document.getElementById('ds-cu-in'); if (!el) return; var ok = window.custodyNamesAdd(el.value); var box = document.getElementById('ds-cu-names'); if (box) box.innerHTML = cuNamesHtml(); var e2 = document.getElementById('ds-cu-in'); if (e2) e2.focus(); if (!ok && el.value.trim()) { try { toast('มีชื่อนี้อยู่แล้ว'); } catch (_) {} } };
+    window.dsCuDel = function (i) { window.custodyNamesDel(i); var box = document.getElementById('ds-cu-names'); if (box) box.innerHTML = cuNamesHtml(); };
     function tabUse(){
         var s=load();
         return '<div class="ds-sec"><h3>การแสดงผล</h3><div class="ds-2"><div class="ds-f"><label for="ds-theme">ธีม</label><select id="ds-theme"><option value="light"'+(s.theme!=='dark'?' selected':'')+'>สว่าง</option><option value="dark"'+(s.theme==='dark'?' selected':'')+'>มืด</option></select></div>'
           +'<div class="ds-f"><label for="ds-font">ขนาดตัวอักษร</label><select id="ds-font">'+[[100,'ปกติ'],[115,'ใหญ่'],[130,'ใหญ่มาก']].map(function(o){ return '<option value="'+o[0]+'"'+(Number(s.fontScale||100)===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div></div>'
           +'<div class="ds-note">ธีมมืดและขนาดตัวอักษรมีผลทั้งโปรแกรม ไม่มีผลกับการพิมพ์</div></div>'
+          +'<div class="ds-sec"><h3>รายชื่อผู้เบิกทรัพย์จำนำ</h3><div id="ds-cu-names">'+cuNamesHtml()+'</div><div class="ds-note">ชื่อที่เพิ่มไว้จะขึ้นให้เลือกในหน้า "เบิก-คืนทรัพย์จำนำ" (เก็บไว้ในเครื่องนี้)</div></div>'
           +'<div class="ds-sec"><h3>การใช้งาน</h3>'+ck('ds-sound','เปิดเสียงเตือน (ตอนเข้าระบบ/รหัสผิด)','',s.sound!==false)
           +ck('ds-qsc','ยืนยันก่อนบันทึกทุกครั้งในคีย์ด่วน','แสดงสรุปตั๋วเดิม/ตั๋วใหม่ให้เทียบกับตัวตั๋ว (ถ้าพบความผิดปกติจะเตือนเสมอ แม้ปิดข้อนี้)',s.qsConfirm!==false)
           +ck('ds-warn','แสดงแถบเตือนเมื่อไม่ได้สำรองข้อมูลเกิน 7 วัน','ปิดไว้เป็นค่าเริ่มต้น',s.warnBackup)+'</div>'
@@ -6231,6 +6248,12 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
   function pad(n){return n<10?'0'+n:''+n}
   function nowInfo(){var d=new Date();return {ts:d.getTime(),date:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),time:pad(d.getHours())+':'+pad(d.getMinutes())};}
   function dth(k){var p=k.split('-');return p[2]+'/'+p[1]+'/'+(parseInt(p[0],10)+543)}
+  var NKEY='pawn_krabi_custody_names';
+  function getNames(){ try{ var a=JSON.parse(localStorage.getItem(NKEY)||'[]'); return Array.isArray(a)?a.filter(function(x){return typeof x==='string'&&x.trim()}):[]; }catch(e){ return []; } }
+  function setNames(a){ try{ localStorage.setItem(NKEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
+  window.custodyNamesGet=getNames;
+  window.custodyNamesAdd=function(v){ v=String(v||'').replace(/\s+/g,' ').trim(); if(!v) return false; var a=getNames(); if(a.some(function(x){return x.toLowerCase()===v.toLowerCase()})) return false; a.push(v); return setNames(a); };
+  window.custodyNamesDel=function(i){ var a=getNames(); if(i<0||i>=a.length) return false; a.splice(i,1); return setNames(a); };
   var REASONS=['ตรวจสอบ','โชว์ลูกค้า','เตรียมขาย','อื่น ๆ'];
   var mode='out', reason='ตรวจสอบ';
   // สถานะปัจจุบันของแต่ละตั๋ว: คืนค่า {out:true, ev:เหตุการณ์เบิก} ถ้ายังไม่ได้คืน
@@ -6264,7 +6287,7 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
      +'<div class="cu-tabs"><button class="cu-tab on out" id="cu-tab-out">เบิกออก</button><button class="cu-tab in" id="cu-tab-in">คืนเข้า</button></div>'
      +'<div class="cu-row"><div style="flex:1"><label class="cu-l" for="cu-ticket">เลขตั๋ว</label><input class="cu-i" id="cu-ticket" inputmode="numeric" autocomplete="off"></div>'
      +'<div style="flex:1"><label class="cu-l" for="cu-book">เล่มที่</label><input class="cu-i" id="cu-book" inputmode="numeric" autocomplete="off"></div></div>'
-     +'<label class="cu-l" for="cu-who">ผู้เบิก/ผู้คืน</label><input class="cu-i" id="cu-who" list="cu-names" autocomplete="off"><datalist id="cu-names"></datalist>'
+     +'<label class="cu-l" for="cu-who">ผู้เบิก/ผู้คืน</label><select class="cu-i" id="cu-who"></select><div class="cu-hint" id="cu-who-hint"></div>'
      +'<div id="cu-reason-wrap"><label class="cu-l">เหตุผล</label><div class="cu-chips" id="cu-chips"></div></div>'
      +'<label class="cu-l" for="cu-note">หมายเหตุ (ถ้ามี)</label><input class="cu-i" id="cu-note" autocomplete="off">'
      +'<div class="cu-warn" id="cu-warn"></div>'
@@ -6310,15 +6333,20 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
   }
   function render(){
     var ev=load(), m=openMap(ev), list=Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return a.ts-b.ts}), n=nowInfo();
-    var names={}; ev.forEach(function(e){ if(e.who) names[e.who]=(names[e.who]||0)+1; });
-    document.getElementById('cu-names').innerHTML=Object.keys(names).sort(function(a,b){return names[b]-names[a]}).slice(0,12).map(function(x){return '<option value="'+esc(x)+'">'}).join('');
+    (function fillWho(){
+      var sel=document.getElementById('cu-who'), cur=sel.value, nm=getNames();
+      sel.innerHTML='<option value="">— เลือกชื่อ —</option>'+nm.map(function(x){return '<option value="'+esc(x)+'">'+esc(x)+'</option>'}).join('');
+      if(cur&&nm.indexOf(cur)<0) sel.insertAdjacentHTML('beforeend','<option value="'+esc(cur)+'">'+esc(cur)+'</option>');
+      sel.value=cur||'';
+      document.getElementById('cu-who-hint').innerHTML=nm.length?'<a href="#" onclick="event.preventDefault();openDataSettings()">จัดการรายชื่อในหน้าตั้งค่า</a>':'ยังไม่มีรายชื่อ · <a href="#" onclick="event.preventDefault();openDataSettings()">ไปเพิ่มชื่อผู้เบิกในหน้าตั้งค่า</a>';
+    })();
     function days(e){ return Math.floor((new Date(n.date+'T00:00:00')-new Date(e.date+'T00:00:00'))/86400000); }
     var today=list.filter(function(e){return days(e)<=0}).length, d3=list.filter(function(e){return days(e)>=3}).length, d7=list.filter(function(e){return days(e)>=7}).length;
     document.getElementById('cu-kpis').innerHTML='<div class="cu-kpi"><b>'+list.length+'</b><span>ค้างทั้งหมด</span></div><div class="cu-kpi"><b>'+today+'</b><span>เบิกวันนี้</span></div><div class="cu-kpi w"><b>'+d3+'</b><span>ค้าง 3 วันขึ้นไป</span></div><div class="cu-kpi r"><b>'+d7+'</b><span>ค้าง 7 วันขึ้นไป</span></div>';
     var L=document.getElementById('cu-list');
     if(!list.length) L.innerHTML='<div class="cu-empty">ไม่มีของค้างอยู่ — ทุกชิ้นอยู่ในตู้เรียบร้อย ✔</div>';
     else L.innerHTML=list.map(function(e,i){ var d=days(e); return '<div class="cu-item'+(d>=7?' d7':d>=3?' d3':'')+'"><div class="g"><div class="t">ตั๋ว '+esc(e.ticket)+(e.book?' · เล่ม '+esc(e.book):'')+'</div><div class="s">'+esc(e.who)+' · '+esc(e.reason)+' · '+dth(e.date)+' '+esc(e.time)+(d>0?' · ค้าง '+d+' วัน':' · วันนี้')+(e.note?' · '+esc(e.note):'')+'</div></div><button class="cu-btn" data-ret="'+esc(e.id)+'">คืนเข้า</button></div>'; }).join('');
-    Array.prototype.forEach.call(L.querySelectorAll('[data-ret]'),function(b){ b.onclick=function(){ var e=ev.filter(function(x){return x.id===b.getAttribute('data-ret')})[0]; if(!e) return; setMode('in'); document.getElementById('cu-ticket').value=e.ticket; document.getElementById('cu-book').value=e.book||''; warn(); document.getElementById('cu-who').focus(); }; });
+    Array.prototype.forEach.call(L.querySelectorAll('[data-ret]'),function(b){ b.onclick=function(){ var e=ev.filter(function(x){return x.id===b.getAttribute('data-ret')})[0]; if(!e) return; setMode('in'); document.getElementById('cu-ticket').value=e.ticket; document.getElementById('cu-book').value=e.book||''; warn(); var w=document.getElementById('cu-who'); if(e.who){ if(!Array.prototype.some.call(w.options,function(o){return o.value===e.who})) w.insertAdjacentHTML('beforeend','<option value="'+esc(e.who)+'">'+esc(e.who)+'</option>'); w.value=e.who; } w.focus(); }; });
     var lg=ev.slice().sort(function(a,b){return b.ts-a.ts}).slice(0,12);
     document.getElementById('cu-log').innerHTML=lg.length?lg.map(function(e){ return '<div class="'+(e.void?'v':'')+'"><b>'+(e.kind==='out'?'เบิกออก':'คืนเข้า')+'</b> ตั๋ว '+esc(e.ticket)+(e.book?'/'+esc(e.book):'')+' · '+esc(e.who)+' · '+dth(e.date)+' '+esc(e.time)+(e.void?' (ยกเลิก)':'<button class="cu-btn sm" style="margin-left:auto" data-void="'+esc(e.id)+'">ยกเลิก</button>')+'</div>'; }).join(''):'<div class="cu-empty">ยังไม่มีประวัติ</div>';
     Array.prototype.forEach.call(document.querySelectorAll('#cu-log [data-void]'),function(b){ b.onclick=function(){ var id=b.getAttribute('data-void'); var go=function(ok){ if(!ok) return; var a=load(); a.forEach(function(x){ if(x.id===id){ x.void=true; x.voidAt=nowInfo().ts; } }); save(a); render(); warn(); }; if(window.uiConfirm) window.uiConfirm('ยกเลิกรายการนี้? (รายการจะยังอยู่ในประวัติแต่ถูกขีดฆ่า)').then(go); else go(true); }; });
@@ -6326,7 +6354,7 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
   function submit(){
     var t=document.getElementById('cu-ticket').value.trim(), b=document.getElementById('cu-book').value.trim(), who=document.getElementById('cu-who').value.trim(), note=document.getElementById('cu-note').value.trim();
     if(!t){ toast('กรอกเลขตั๋วก่อน'); return; }
-    if(!who){ toast('กรอกชื่อผู้'+(mode==='out'?'เบิก':'คืน')+'ก่อน'); document.getElementById('cu-who').focus(); return; }
+    if(!who){ toast('เลือกชื่อผู้'+(mode==='out'?'เบิก':'คืน')+'ก่อน'); document.getElementById('cu-who').focus(); return; }
     var ev=load(), m=openMap(ev), k=norm(t)+'|'+norm(b), ex=m[k];
     if(!ex&&!b){ Object.keys(m).forEach(function(kk){ if(kk.split('|')[0]===norm(t)) ex=m[kk]; }); }
     if(mode==='out'&&ex){ toast('ตั๋วนี้ถูกเบิกออกไปแล้ว ต้องคืนเข้าก่อน'); return; }
