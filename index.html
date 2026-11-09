@@ -2335,6 +2335,17 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
             return null;
         }
 
+        // หาวันก่อนหน้าล่าสุดที่มีคอลัมน์เดือนนี้ (ข้ามวันที่มีแต่ยอดสรุป ไม่มีคอลัมน์เดือน เช่น วันหยุด)
+        function getPrevDateForMonth(dateStr, monthName) {
+            let d = getLatestAvailablePreviousDate(dateStr), guard = 0;
+            while (d && guard++ < 400) {
+                const day = db[d];
+                if (day && Array.isArray(day.months) && day.months.includes(monthName)) return d;
+                d = getLatestAvailablePreviousDate(d);
+            }
+            return null;
+        }
+
         function getPreviousDaySummary() {
             let prevDate = getLatestAvailablePreviousDate(currentDate);
             if (!prevDate || !db[prevDate]) return { count: 0, amount: 0 };
@@ -2477,11 +2488,13 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
             while (day.bf.length < day.months.length) { day.bf.push(0); changed = true; }
             while (day.bfCount.length < day.months.length) { day.bfCount.push(0); changed = true; }
 
-            if (prevDay && Array.isArray(prevDay.months)) {
+            if (prevDay) {
                 day.months.forEach((monthName, idx) => {
-                    if (!monthName || !prevDay.months.includes(monthName)) return;
-                    const carried = getMonthCarriedBalance(prevDate, monthName);
-                    const carriedCount = getMonthCarriedCount(prevDate, monthName);
+                    if (!monthName) return;
+                    const srcDate = getPrevDateForMonth(dateStr, monthName);
+                    if (!srcDate) return;
+                    const carried = getMonthCarriedBalance(srcDate, monthName);
+                    const carriedCount = getMonthCarriedCount(srcDate, monthName);
                     // ป้องกันข้อมูลยอดยกมาที่ผู้ใช้บันทึกไว้หายเมื่อรีเฟรช:
                     // ตอนเปิดหน้าให้เติมเฉพาะช่องว่าง/ศูนย์ แต่เมื่อแก้ข้อมูลย้อนหลัง
                     // ให้ forceUpdate=true เพื่อส่งยอดใหม่ไปยังวันถัดไป
@@ -2719,9 +2732,11 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
                 const rows = [];
                 dayData.months.forEach((monthName, idx) => {
                     if (!monthName) return;
-                    const previousHasMonth = previousDay.months.includes(monthName);
-                    const carried = previousHasMonth ? getMonthCarriedBalance(previousDate, monthName) : null;
-                    rows.push({ monthName, idx, previousHasMonth, carried, current: cleanNumberString(dayData.bf?.[idx] ?? 0) });
+                    const srcDate = getPrevDateForMonth(currentDate, monthName);
+                    const previousHasMonth = !!srcDate;
+                    const carried = previousHasMonth ? getMonthCarriedBalance(srcDate, monthName) : null;
+                    const carriedCount = previousHasMonth ? getMonthCarriedCount(srcDate, monthName) : null;
+                    rows.push({ monthName, idx, previousHasMonth, carried, carriedCount, srcDate, current: cleanNumberString(dayData.bf?.[idx] ?? 0) });
                 });
                 pendingBroughtForwardImport = { date: currentDate, previousDate, rows };
                 sourceLabel.textContent = `วันที่ปัจจุบัน ${currentDate} · จะดึงจากวันที่มีข้อมูลล่าสุด ${previousDate}`;
@@ -2730,7 +2745,7 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
                     <div class="overflow-x-auto rounded-xl border border-slate-200">
                       <table class="w-full text-sm border-collapse">
                         <thead><tr class="bg-slate-100 text-slate-700"><th class="p-2 text-left border-b">เดือน</th><th class="p-2 text-right border-b">ยอดยกมาปัจจุบัน</th><th class="p-2 text-right border-b">ยอดยกไปสุทธิจากวันก่อนหน้า</th><th class="p-2 text-center border-b">สถานะ</th></tr></thead>
-                        <tbody>${rows.map(r => `<tr class="${r.previousHasMonth ? '' : 'bg-amber-50'}"><td class="p-2 border-b font-semibold">${escapeHtml(r.monthName)}</td><td class="p-2 border-b text-right tabular-nums">${formatNumber(r.current)}</td><td class="p-2 border-b text-right tabular-nums">${r.previousHasMonth ? formatNumber(r.carried) : '—'}</td><td class="p-2 border-b text-center ${r.previousHasMonth ? 'text-emerald-700' : 'text-amber-700'}">${r.previousHasMonth ? 'พร้อมนำเข้า' : 'ไม่พบเดือนนี้ในวันก่อนหน้า'}</td></tr>`).join('')}</tbody>
+                        <tbody>${rows.map(r => `<tr class="${r.previousHasMonth ? '' : 'bg-amber-50'}"><td class="p-2 border-b font-semibold">${escapeHtml(r.monthName)}</td><td class="p-2 border-b text-right tabular-nums">${formatNumber(r.current)}</td><td class="p-2 border-b text-right tabular-nums">${r.previousHasMonth ? formatNumber(r.carried) : '—'}</td><td class="p-2 border-b text-center ${r.previousHasMonth ? 'text-emerald-700' : 'text-amber-700'}">${r.previousHasMonth ? 'พร้อมนำเข้า (จากวันที่ ' + r.srcDate + ')' : 'ไม่พบเดือนนี้ในวันก่อนหน้า'}</td></tr>`).join('')}</tbody>
                       </table>
                     </div>
                     ${rows.some(r => !r.previousHasMonth) ? '<p class="text-xs text-amber-800 mt-3">หมายเหตุ: เดือนที่ไม่พบในวันก่อนหน้าจะไม่ถูกเปลี่ยนแปลง</p>' : ''}
@@ -2764,6 +2779,8 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
             pending.rows.forEach(row => {
                 if (row.previousHasMonth && dayData.months[row.idx] === row.monthName) {
                     dayData.bf[row.idx] = row.carried;
+                    if (!Array.isArray(dayData.bfCount)) dayData.bfCount = new Array(dayData.months.length).fill(0);
+                    dayData.bfCount[row.idx] = row.carriedCount;
                     imported++;
                 }
             });
