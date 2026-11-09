@@ -7700,6 +7700,22 @@ html body.app-shell:not(.page-home) #m-bar{z-index:48 !important}html body.sb-op
 /* toast must never swallow taps; keep it above the bottom bar */
 #toast{pointer-events:none !important}
 @media (max-width:640px){html body.app-shell:not(.page-home) #toast{bottom:84px !important;left:12px !important;right:12px !important;max-width:none}}
+@media (max-width:640px){
+/* header symmetry: hamburger left, action buttons pinned right */
+html body.app-shell:not(.page-home) header > div{justify-content:flex-start !important;margin:0 !important;max-width:none !important;width:100% !important;padding:8px 12px 8px 68px !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(2){margin-left:auto !important;width:auto !important;min-width:0 !important;flex:none !important;justify-content:flex-end !important}
+}
+
+/* desktop ledger header: logo snug against the menu button, same type as the home header */
+@media (min-width:641px){
+html body.app-shell:not(.page-home) header > div{padding-left:12px !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1){gap:12px;align-items:center}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) img{width:38px !important;height:38px !important;margin:0 !important;flex:none;box-shadow:0 4px 10px rgba(0,0,0,.28)}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) > div{margin:0 !important;padding:0 !important}
+html body.app-shell:not(.page-home) header h1{font:700 17px/1.25 Sarabun,sans-serif !important;letter-spacing:0 !important;margin:0 !important}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) p{font:400 12px/1.3 Sarabun,sans-serif !important;margin:0 !important}
+}
+html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-type(2){display:none !important}
 </style>
 <div id="m-bar" class="no-print"><button type="button" id="m-undo"><b>↶</b>เลิกทำ</button><button type="button" id="m-find"><b>🔍</b>ค้นหา</button><button type="button" class="main" id="m-quick"><b>⚡</b>คีย์ด่วน</button><button type="button" id="m-addrow"><b>＋</b>เพิ่มแถว</button><button type="button" id="m-print"><b>🖨</b>พิมพ์</button></div>
 <script id="mob-js">
