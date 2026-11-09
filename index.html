@@ -1232,6 +1232,7 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
             <button class="sb-item" onclick="sbClose();openPDFImportModal()"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> นำเข้า สธ.3</button>
             <button class="sb-item" disabled title="รอตัวอย่างไฟล์ สธ.2"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> นำเข้า สธ.2 <span style="font-size:11px;margin-left:auto">เร็วๆ นี้</span></button>
             <button class="sb-item" onclick="sbClose();openAssetModal()"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ฐานข้อมูลตั๋วตั้งต้น </button>
+            <button class="sb-item" onclick="sbClose();openStorageModal()"><span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ตรวจขนาดข้อมูล </button>
             <button class="sb-item" onclick="sbClose();openPDFCompareModal()"><span class="sb-ic" style="--c:#22D3EE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5zM9 14l2 2 4-4"/></svg></span> ตรวจ PDF เทียบข้อมูล</button>
             <button class="sb-item" onclick="sbClose();openGlobalSearch()"><span class="sb-ic" style="--c:#F472B6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span> ค้นหาตั๋ว</button>
             <button class="sb-item" onclick="sbClose();openPrintPreview()"><span class="sb-ic" style="--c:#FB923C"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5v-6h14v6h-2M7 14h10v6H7z"/></svg></span> รายงาน / พิมพ์</button>
@@ -1285,6 +1286,7 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
                             <button class="menu-item" onclick="openPDFImportModal()"><i class="fa-solid fa-file-arrow-down"></i> นำเข้า สธ.3 (PDF)</button>
                             <button class="menu-item" disabled title="รอตัวอย่างไฟล์ สธ.2 เพื่อทำตัวอ่านให้ตรงรูปแบบ" style="opacity:.55;cursor:not-allowed"><i class="fa-solid fa-file-arrow-down"></i> นำเข้า สธ.2 (PDF) <span style="font-size:11px;margin-left:auto;color:#64748b">เร็วๆ นี้</span></button>
                             <button class="menu-item" onclick="openAssetModal()"><i class="fa-solid fa-database"></i> ฐานข้อมูลตั๋วตั้งต้น (PDF)</button>
+                            <button class="menu-item" onclick="openStorageModal()"><i class="fa-solid fa-hard-drive"></i> ตรวจขนาดข้อมูล</button>
                         </div></details>
                     <details class="hdr-menu"><summary><i class="fa-solid fa-database"></i> ข้อมูล</summary>
                         <div class="hdr-menu-panel">
@@ -6692,7 +6694,7 @@ body.app-shell .hp-hero .hp-datebar svg{display:block !important;width:18px;heig
 (function(){
   var GROUPS=[
     ['ใช้ทุกวัน',['หน้าแรก','บัญชีรายวัน','คีย์ด่วน','ค้นหาตั๋ว','ปิดยอดวัน'],true],
-    ['นำเข้าและตรวจสอบ',['นำเข้า สธ.3','นำเข้า สธ.2','ฐานข้อมูลตั๋วตั้งต้น','ตรวจ PDF','ตรวจความสอดคล้อง'],false],
+    ['นำเข้าและตรวจสอบ',['นำเข้า สธ.3','นำเข้า สธ.2','ฐานข้อมูลตั๋วตั้งต้น','ตรวจขนาดข้อมูล','ตรวจ PDF','ตรวจความสอดคล้อง'],false],
     ['รายงาน',['รายงาน','สรุปรายเดือน'],false],
     ['ข้อมูลและระบบ',['ประวัติการแก้ไข','จุดกู้คืน','สำรองข้อมูล','ลบข้อมูลเก่า','ตั้งค่า','ตรวจสอบอัปเดต','น้อง'],false]
   ];
@@ -7401,6 +7403,97 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     };
   }
   bind(); window.addEventListener('load',bind);
+})();
+</script>
+<style id="st-css">
+#st-modal{position:fixed;inset:0;z-index:76;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(15,23,42,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#st-modal.on{display:flex}
+#st-modal .s-box{width:100%;max-width:980px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;background:#fff;color:#1e293b;box-shadow:0 24px 70px rgba(15,23,42,.3);font-family:Sarabun,sans-serif}
+#st-modal .s-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:linear-gradient(90deg,#06b6d4,#3b82f6 55%,#8b5cf6);color:#fff}
+#st-modal .s-head h3{margin:0;font-size:17px;font-weight:700}#st-modal .s-head p{margin:2px 0 0;font-size:12px;opacity:.92}
+#st-modal .s-x{width:34px;height:34px;border-radius:10px;border:0;background:rgba(255,255,255,.25);color:#fff;font-size:20px;cursor:pointer}
+#st-modal .s-body{padding:14px 18px;overflow:auto;display:flex;flex-direction:column;gap:12px;background:#f8fafc}
+#st-modal .s-chips{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+#st-modal .s-chip{border-radius:14px;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-top:4px solid #94a3b8}
+#st-modal .s-chip small{display:block;font-size:11.5px;color:#64748b}#st-modal .s-chip b{display:block;font-size:19px;line-height:1.25;color:#0f172a}#st-modal .s-chip i{font-style:normal;font-size:11.5px;color:#64748b}
+#st-modal .s-chip.ok{border-top-color:#10b981}#st-modal .s-chip.ok b{color:#047857}#st-modal .s-chip.warn{border-top-color:#f59e0b}#st-modal .s-chip.warn b{color:#b45309}#st-modal .s-chip.bad{border-top-color:#ef4444}#st-modal .s-chip.bad b{color:#b91c1c}#st-modal .s-chip.blue{border-top-color:#3b82f6}#st-modal .s-chip.blue b{color:#1d4ed8}
+#st-modal .s-sum{font-size:13px;line-height:1.7;padding:11px 14px;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+#st-modal .s-sum.warn{background:#fffbeb;border-color:#fcd34d;color:#78350f}#st-modal .s-sum.bad{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+#st-modal .s-split{display:flex;gap:14px;align-items:flex-start}
+#st-modal .s-pn{flex:1;min-width:260px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px}
+#st-modal .s-pn h4{margin:0 0 8px;font-size:13px;font-weight:700;color:#312e81}
+#st-modal .s-bar{margin:8px 0}#st-modal .s-bar .t{display:flex;justify-content:space-between;font-size:12.5px;color:#334155;gap:8px}
+#st-modal .s-bar .b{height:8px;border-radius:99px;background:#e2e8f0;margin-top:3px;overflow:hidden}#st-modal .s-bar .b i{display:block;height:100%;background:linear-gradient(90deg,#06b6d4,#6366f1)}
+#st-modal .s-bar.warn .b i{background:#f59e0b}#st-modal .s-bar.bad .b i{background:#ef4444}
+#st-modal .s-kv{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:12.5px;color:#475569}#st-modal .s-kv b{color:#0f172a;text-align:right}
+#st-modal .s-sm{font-size:11.5px;color:#64748b;line-height:1.6}
+#st-modal .s-foot{display:flex;justify-content:flex-end;gap:10px;padding:12px 18px;border-top:1px solid #e2e8f0;background:#fff}
+#st-modal .s-foot button{border:0;border-radius:10px;padding:9px 18px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:#e2e8f0;color:#334155}
+@media(max-width:860px){#st-modal .s-split{flex-direction:column;align-items:stretch}#st-modal .s-chips{grid-template-columns:repeat(2,1fr)}#st-modal{padding:6px}}
+</style>
+<div id="st-modal" class="no-print" role="dialog" aria-modal="true" aria-label="ตรวจขนาดข้อมูล">
+ <div class="s-box">
+  <div class="s-head"><div><h3>ตรวจขนาดข้อมูล</h3><p>ประเมินว่าข้อมูลที่เก็บอยู่ใกล้เพดานของ Firebase แผนฟรีแค่ไหน</p></div><button class="s-x" type="button" onclick="closeStorageModal()">×</button></div>
+  <div class="s-body">
+   <div id="st-chips" class="s-chips"></div>
+   <div id="st-sum" class="s-sum"></div>
+   <div class="s-split"><div class="s-pn"><h4>สัปดาห์ที่ใหญ่ที่สุด (เพดาน 1 MiB ต่อสัปดาห์)</h4><div id="st-weeks"></div></div>
+   <div class="s-pn"><h4>ข้อมูลแยกตามประเภท</h4><div id="st-parts"></div><h4 style="margin-top:14px">ประมาณการ</h4><div id="st-proj" class="s-kv"></div></div></div>
+   <div class="s-sm">หมายเหตุ: คำนวณจากข้อมูลที่เครื่องนี้โหลดอยู่ตอนนี้ (นับเป็นไบต์ UTF-8) ขนาดจริงใน Firebase อาจมากกว่าเล็กน้อยจากชื่อฟิลด์ จึงคิดค่าเผื่อไว้ 1.3 เท่า · แผนฟรี: พื้นที่ 1 GiB, อ่าน 50,000 / เขียน 20,000 ครั้งต่อวัน, เอกสารละ 1 MiB</div>
+  </div>
+  <div class="s-foot"><button type="button" onclick="closeStorageModal()">ปิด</button></div>
+ </div>
+</div>
+<script id="st-js">
+(function(){
+  function $(i){return document.getElementById(i)}
+  var enc=new TextEncoder(), FAC=1.3, MIB=1048576, GIB=1073741824;
+  function bytes(o){ try{ return enc.encode(JSON.stringify(o)).length }catch(e){return 0} }
+  function fmt(n){ if(n>=MIB) return (n/MIB).toFixed(2)+' MiB'; if(n>=1024) return (n/1024).toFixed(1)+' KB'; return n+' B'; }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function wk(k){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(k); return m?Math.floor(Date.UTC(+m[1],+m[2]-1,+m[3])/864e5/7):null; }
+  function wkLabel(w){ var d=new Date(w*7*864e5), e=new Date((w*7+6)*864e5); function f(x){return x.toISOString().slice(0,10)} return f(d)+' ถึง '+f(e); }
+  function compute(){
+    var days=[],parts={'ตารางบัญชีรายวัน':0,'ประวัติ สธ.2':0,'ฐานข้อมูลตั๋วตั้งต้น':0,'อื่น ๆ':0},byW={},total=0,other=0;
+    Object.keys(db||{}).forEach(function(k){
+      var d=db[k], w=wk(k);
+      if(w===null||!d||typeof d!=='object'){ other+=bytes(d); return; }
+      var s2=d.sor2?bytes(d.sor2):0, ab=d.assetBase?bytes(d.assetBase):0, dt=d.data?bytes(d.data):0, all=bytes(d);
+      parts['ประวัติ สธ.2']+=s2; parts['ฐานข้อมูลตั๋วตั้งต้น']+=ab; parts['ตารางบัญชีรายวัน']+=dt; parts['อื่น ๆ']+=Math.max(0,all-s2-ab-dt);
+      days.push({k:k,b:all}); total+=all; byW[w]=(byW[w]||0)+all;
+    });
+    parts['อื่น ๆ']+=other; total+=other;
+    return {days:days,parts:parts,byW:byW,total:total};
+  }
+  window.openStorageModal=function(){
+    var R=compute(), n=R.days.length;
+    var maxD=R.days.slice().sort(function(a,b){return b.b-a.b})[0]||{k:'-',b:0};
+    var ws=Object.keys(R.byW).map(function(w){return {w:+w,b:R.byW[w]}}).sort(function(a,b){return b.b-a.b});
+    var maxW=ws[0]||{w:0,b:0}, maxWe=maxW.b*FAC, pct=maxWe/MIB*100, head=pct>0?(100/pct):0;
+    var cls=pct>=80?'bad':pct>=50?'warn':'ok';
+    var avg=n?R.total/n:0, keys=R.days.map(function(d){return d.k}).sort();
+    var perYear=250; if(n>=60){ var span=(Date.UTC(+keys[keys.length-1].slice(0,4),+keys[keys.length-1].slice(5,7)-1,+keys[keys.length-1].slice(8,10))-Date.UTC(+keys[0].slice(0,4),+keys[0].slice(5,7)-1,+keys[0].slice(8,10)))/864e5+1; perYear=Math.min(366,Math.max(120,n/span*365)); }
+    var perYearB=avg*FAC*perYear, yrs=perYearB>0?GIB/perYearB:0, used=R.total*FAC/GIB*100;
+    $('st-chips').innerHTML=[
+      ['blue','ขนาดข้อมูลรวม',fmt(R.total*FAC),n+' วันที่มีข้อมูล · ใช้ '+used.toFixed(2)+'% ของ 1 GiB'],
+      ['','วันที่ใหญ่ที่สุด',fmt(maxD.b*FAC),esc(maxD.k)],
+      [cls,'สัปดาห์ที่ใหญ่ที่สุด',fmt(maxWe),pct.toFixed(0)+'% ของเพดาน 1 MiB'],
+      ['ok','พื้นที่รวมจะพอใช้ประมาณ',yrs>=100?'100+ ปี':yrs.toFixed(0)+' ปี','ที่ปริมาณงานเท่าตอนนี้']
+    ].map(function(c){return '<div class="s-chip '+c[0]+'"><small>'+c[1]+'</small><b>'+c[2]+'</b><i>'+c[3]+'</i></div>'}).join('');
+    var msg, mc=cls;
+    if(!n){ msg='ยังไม่มีข้อมูลในเครื่อง'; mc=''; }
+    else if(cls==='ok') msg='<b>ปลอดภัย</b> · สัปดาห์ที่ใหญ่ที่สุดใช้ '+pct.toFixed(0)+'% ของเพดานเอกสาร (ยังเหลืออีกประมาณ '+head.toFixed(1)+' เท่าตัว) และพื้นที่รวมใช้ไป '+used.toFixed(2)+'% ของที่ได้ฟรี';
+    else if(cls==='warn') msg='<b>เริ่มต้องจับตา</b> · สัปดาห์ที่ใหญ่ที่สุดใช้ '+pct.toFixed(0)+'% ของเพดานเอกสาร 1 MiB เหลือที่ว่างอีกประมาณ '+head.toFixed(1)+' เท่าตัว ถ้าสัปดาห์ไหนข้อมูลโตกว่านี้อีกเท่าตัวจะบันทึกไม่ได้ ควรแจ้งให้ผมแยกเก็บเป็นรายวัน';
+    else msg='<b>ใกล้เพดาน</b> · สัปดาห์ที่ใหญ่ที่สุดใช้ '+pct.toFixed(0)+'% ของเพดานเอกสาร 1 MiB ถ้าเกินจะบันทึกสัปดาห์นั้นไม่ได้ ควรแจ้งผมให้แยกการเก็บข้อมูลเป็นรายวันโดยเร็ว';
+    var el=$('st-sum'); el.className='s-sum'+(mc==='warn'?' warn':mc==='bad'?' bad':''); el.innerHTML=msg;
+    $('st-weeks').innerHTML=ws.slice(0,6).map(function(x){var p=x.b*FAC/MIB*100,c=p>=80?'bad':p>=50?'warn':'';return '<div class="s-bar '+c+'"><div class="t"><span>'+wkLabel(x.w)+'</span><b>'+fmt(x.b*FAC)+' · '+p.toFixed(0)+'%</b></div><div class="b"><i style="width:'+Math.min(100,p)+'%"></i></div></div>'}).join('')||'<div class="s-sm">ไม่มีข้อมูล</div>';
+    var tp=R.total||1;
+    $('st-parts').innerHTML=Object.keys(R.parts).map(function(k){var p=R.parts[k]/tp*100;return '<div class="s-bar"><div class="t"><span>'+k+'</span><b>'+fmt(R.parts[k]*FAC)+' · '+p.toFixed(0)+'%</b></div><div class="b"><i style="width:'+p+'%"></i></div></div>'}).join('');
+    $('st-proj').innerHTML='<span>เฉลี่ยต่อวันที่มีข้อมูล</span><b>'+fmt(avg*FAC)+'</b><span>วันทำการต่อปี (ประมาณ)</span><b>'+Math.round(perYear)+' วัน</b><span>ข้อมูลที่เพิ่มต่อปี</span><b>'+fmt(perYearB)+'</b><span>ใช้พื้นที่ฟรีหมดใน</span><b>'+(yrs>=100?'100+ ปี':yrs.toFixed(0)+' ปี')+'</b>'+(n<60?'<span class="s-sm" style="grid-column:1/-1">ข้อมูลยังน้อยกว่า 60 วัน จึงสมมติ 250 วันทำการต่อปี</span>':'');
+    $('st-modal').classList.add('on');
+  };
+  window.closeStorageModal=function(){ $('st-modal').classList.remove('on'); };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&$('st-modal').classList.contains('on')) closeStorageModal(); });
 })();
 </script>
 </body>
