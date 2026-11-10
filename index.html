@@ -7832,7 +7832,12 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
     function stop(){ if(timer){clearInterval(timer);timer=null} if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null} ov.classList.remove('on'); var tb=document.getElementById('cam-torch'); if(tb)tb.classList.remove('on'); }
     function done(v){ var el=$(target); stop(); try{ navigator.vibrate&&navigator.vibrate(70); }catch(e){} if(!el)return; el.value=String(v).trim(); el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); try{ var o=$('qs-msg'); if(o&&el.value===String(v).trim()){o.textContent='สแกนได้: '+v;} }catch(e){} el.focus(); }
     function mk(){ if(det)return det; if(!('BarcodeDetector' in window))return null; try{ det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','code_128','code_39','itf']}); }catch(e){ try{det=new BarcodeDetector();}catch(e2){det=null} } return det; }
-    async function tick(){ if(busy||!stream)return; busy=true; try{ var r=await det.detect($('cam-v')); if(r&&r.length){ done(r[0].rawValue); } }catch(e){} busy=false; }
+    var lastV='';
+    function accept(v,needTwice){ v=String(v||'').trim(); var P=window.__parseTicketBarcode;
+      if(/^\d{12,13}$/.test(v)&&P&&!P(v)){ raw('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว (อาจอ่านผิด) — ขยับแล้วสแกนใหม่'); lastV=''; return false; }
+      if(needTwice&&v!==lastV){ lastV=v; return false; }
+      done(v); return true; }
+    async function tick(){ if(busy||!stream)return; busy=true; try{ var r=await det.detect($('cam-v')); if(r&&r.length){ accept(r[0].rawValue,true); } }catch(e){} busy=false; }
     var zl=[1],zi=0;
     async function tune(){ zl=[1]; zi=0; var zb=$('cam-zoom'); zb.style.display='none';
       try{ var t=stream&&stream.getVideoTracks()[0]; var cp=t&&t.getCapabilities&&t.getCapabilities(); if(!cp) return;
@@ -7840,14 +7845,14 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
         if(cp.zoom&&cp.zoom.max>1){ var mn=cp.zoom.min||1,mx=cp.zoom.max; zl=[mn]; [2,3].forEach(function(z){ if(z>mn&&z<=mx) zl.push(z); }); if(zl.length>1){ zi=(zl.length>1)?1:0; await t.applyConstraints({advanced:[{zoom:zl[zi]}]}); zb.textContent='🔍 '+zl[zi]+'×'; zb.style.display=''; } }
       }catch(e){} }
     $('cam-zoom').onclick=async function(){ try{ var t=stream&&stream.getVideoTracks()[0]; if(!t||zl.length<2) return; zi=(zi+1)%zl.length; await t.applyConstraints({advanced:[{zoom:zl[zi]}]}); this.textContent='🔍 '+zl[zi]+'×'; }catch(e){} };
-    async function open(id){ target=id; try{ var ae=document.activeElement; if(ae&&ae.blur) ae.blur(); }catch(e){} var d=mk(); ov.classList.add('on'); raw('กำลังเปิดกล้อง...');
+    async function open(id){ target=id; lastV=''; try{ var ae=document.activeElement; if(ae&&ae.blur) ae.blur(); }catch(e){} var d=mk(); ov.classList.add('on'); raw('กำลังเปิดกล้อง...');
       if(!d){ raw('เบราว์เซอร์นี้ยังไม่รองรับสแกนสด ใช้ปุ่มถ่ายรูปแทนได้ (หรือเปิดด้วย Chrome บน Android)'); }
       try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}); var v=$('cam-v'); v.srcObject=stream; await v.play(); raw('ส่องบาร์โค้ดให้อยู่ในกรอบสีส้ม'); await tune(); if(d) timer=setInterval(tick,160); }
       catch(e){ raw('เปิดกล้องไม่ได้: '+(e&&e.name||e)+' (ตรวจสอบว่ากดอนุญาตใช้กล้อง) · ใช้ปุ่มถ่ายรูปแทนได้'); } }
     $('cam-x').onclick=stop;
     $('cam-torch').onclick=async function(){ try{ var t=stream&&stream.getVideoTracks()[0]; var cp=t&&t.getCapabilities&&t.getCapabilities(); if(!cp||!cp.torch){raw('เครื่องนี้เปิดไฟฉายผ่านเว็บไม่ได้');return;} var on=!this.classList.contains('on'); await t.applyConstraints({advanced:[{torch:on}]}); this.classList.toggle('on',on); }catch(e){raw('เปิดไฟฉายไม่ได้');} };
     $('cam-pic').onclick=function(){ $('cam-file').click() };
-    $('cam-file').onchange=async function(){ var f=this.files&&this.files[0]; this.value=''; if(!f)return; var d=mk(); if(!d){raw('เบราว์เซอร์นี้อ่านบาร์โค้ดจากรูปไม่ได้');return;} raw('กำลังอ่านรูป...'); try{ var bm=await createImageBitmap(f); var r=await d.detect(bm); if(r&&r.length){done(r[0].rawValue);} else raw('อ่านบาร์โค้ดจากรูปไม่ได้ ลองถ่ายใหม่ให้ใกล้และคมขึ้น'); }catch(e){ raw('อ่านรูปไม่ได้: '+(e&&e.message||e)); } };
+    $('cam-file').onchange=async function(){ var f=this.files&&this.files[0]; this.value=''; if(!f)return; var d=mk(); if(!d){raw('เบราว์เซอร์นี้อ่านบาร์โค้ดจากรูปไม่ได้');return;} raw('กำลังอ่านรูป...'); try{ var bm=await createImageBitmap(f); var r=await d.detect(bm); if(r&&r.length){accept(r[0].rawValue,false);} else raw('อ่านบาร์โค้ดจากรูปไม่ได้ ลองถ่ายใหม่ให้ใกล้และคมขึ้น'); }catch(e){ raw('อ่านรูปไม่ได้: '+(e&&e.message||e)); } };
     [['qs-ticket','สแกนเลขตั๋วเดิม'],['qs-new-ticket','สแกนเลขตั๋วใหม่']].forEach(function(p){ var inp=$(p[0]); if(!inp)return; var wrap=inp.parentElement; if(!wrap||wrap.querySelector('.cam-btn'))return; var row=document.createElement('div'); row.className='qs-camrow'; var b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกน</span>'; b.setAttribute('aria-label',p[1]); inp.style.flex='1'; inp.parentNode.insertBefore(row,inp); row.appendChild(inp); row.appendChild(b); b.onclick=function(){ $('cam-t').textContent=p[1]; open(p[0]); }; });
   }catch(e){ try{console.error(e)}catch(_){} } })();
 
@@ -8013,7 +8018,9 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
    ตัวอย่าง 6900205001342 = ปีงบ 69 · เล่ม 205 · เลขที่ 134 */
 (function(){ try{
   function ok13(s){ if(!/^\d{13}$/.test(s)) return false; var t=0; for(var i=0;i<12;i++) t+=(+s[i])*(i%2?3:1); return (10-t%10)%10===+s[12]; }
-  function parse(s){ s=String(s||'').trim(); if(/^\d{12}$/.test(s)) s='0'+s; if(!ok13(s)) return null; return {yy:s.slice(0,2),book:String(+s.slice(3,7)),ticket:String(+s.slice(7,12))}; }
+  function fyYY(){ var d=new Date(), y=d.getFullYear()+543+(d.getMonth()>=9?1:0); return y%100; }
+  function yyOk(yy){ var f=fyYY(), n=+yy, diff=((f-n)%100+100)%100; return diff<=5||diff>=99; }
+  function parse(s){ s=String(s||'').trim(); if(/^\d{12}$/.test(s)) s='0'+s; if(!ok13(s)||!yyOk(s.slice(0,2))) return null; return {yy:s.slice(0,2),book:String(+s.slice(3,7)),ticket:String(+s.slice(7,12))}; }
   window.__parseTicketBarcode=parse;
   var PAIRS={'qs-ticket':'qs-book','qs-new-ticket':'qs-new-book'};
   function fire(el){ el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
