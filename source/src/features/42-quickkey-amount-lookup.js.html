@@ -25,8 +25,10 @@
     if(!t) return {status:'none'};
     var TM=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
     var mEl0=document.getElementById('qs-month'), mn=mEl0?(Number(mEl0.value)||0):0, mName=(mn>=1&&mn<=12)?TM[mn-1]:'';
+    var cutKey=''; try{ var cp=String(currentDate).split('-'); if(cp.length===3){ var cd=new Date(Number(cp[0]),Number(cp[1])-1,Number(cp[2]),12); cd.setDate(cd.getDate()-365); cutKey=cd.getFullYear()+'-'+String(cd.getMonth()+1).padStart(2,'0')+'-'+String(cd.getDate()).padStart(2,'0'); } }catch(e){}
     for(var k in db){
       if(k.indexOf('-')<0||k.length!==10) continue;
+      if(cutKey&&k<=cutKey) continue;   // ไม่ดึงข้อมูลเกิน 1 ปี กันปนกับปี พ.ศ. ก่อน
       var d=db[k]; if(!d||!d.months||!d.data) continue;
       d.months.forEach(function(m){ var rows=d.data[m]; if(!m||!rows) return;
         if(mName&&String(m).trim()!==mName) return;
