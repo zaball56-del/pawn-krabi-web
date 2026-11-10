@@ -49,7 +49,7 @@
       b.textContent=nb.pre+fmt(Math.round(nb.v*e),0)+nb.post; if(ni&&i) i.textContent=ni.pre+fmt(ni.v*e,ni.dec)+ni.post;
       if(k<1) requestAnimationFrame(f); else { b.textContent=bt; if(i) i.textContent=it; last[el.id]=fin; setTimeout(function(){ el.__busy=false; },60); } })(t0);
   }
-  function watch(){ ['hb-pl','hb-rd','hb-bal','hb-new'].forEach(function(id){ var el=document.getElementById(id); if(!el||el.__w) return; el.__w=1;
+  function watch(){ ['hb-pl','hb-rd','hb-bal'].forEach(function(id){ var el=document.getElementById(id); if(!el||el.__w) return; el.__w=1;
     new MutationObserver(function(){ run(el); }).observe(el,{childList:true,subtree:true,characterData:true}); run(el); }); }
   // ข้อความกำลังใจ
   var TIPS=['อย่าลืมสำรองข้อมูลสิ้นเดือนนะครับ','ตรวจยอดคงเหลือก่อนปิดวันทุกครั้ง','พักสายตาบ้างนะ ทำงานเก่งอยู่แล้ว 👍','ตั๋วใกล้ครบกำหนด ลองค้นดูก่อนสิ้นเดือน','วันนี้ก็สู้ๆ นะครับ ✨','บันทึกทีละรายการ ผิดน้อยลงเยอะ','กด “ค้นหาตั๋ว” หาเลขตั๋วได้ไวกว่าเลื่อนหา'];
