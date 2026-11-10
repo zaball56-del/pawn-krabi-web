@@ -5646,7 +5646,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     function normT(v){ try{ return normalizeCompareTicket(v); }catch(e){ return String(v||'').trim().toLowerCase(); } }
     function srow(d,r){ var a=d.data&&d.data['สรุปประจำวัน']; var x=(a&&a[r])||{}; return {a:x.amount,c:x.count,ea:(x.amount===''||x.amount==null),ec:(x.count===''||x.count==null)}; }
     function runChecks(){
-        var F=[], keys=dayKeys().filter(function(k){ try{ return hasDayData(k); }catch(e){ return false; } });
+        var tdy=(function(){ var n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); })();
+        /* ข้ามวันในอนาคต (วันที่เปิดดูล่วงหน้า มีแค่ยอดยกมาที่ระบบเติมให้ ยังไม่มีรายการจริง) */
+        var F=[], keys=dayKeys().filter(function(k){ if(k>tdy&&k!==currentDate) return false; try{ return hasDayData(k); }catch(e){ return false; } });
         var seen={};
         keys.forEach(function(k,ki){
             var d=db[k], b=srow(d,3);
