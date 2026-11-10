@@ -5,6 +5,9 @@ html body #quick-scan-modal.fixed #qs-next{display:none !important}
 html body #quick-scan-modal.fixed .qs-right > div:last-child{position:static !important;margin:0 !important;padding:6px 0 18px !important;background:none !important;border-top:0 !important}
 html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qsClearFields"]{background:#e2e8f0 !important;border:1.5px solid #94a3b8 !important;color:#334155 !important}
 }
+/* ประเภท ถ (ไถ่ถอน): ไม่ใช้ตั๋วใหม่ → ทึบ/ล็อกส่วนตั๋วใหม่ */
+#quick-scan-modal.qs-redeem .qs-sec.new,#quick-scan-modal.qs-redeem #qs-pv-new,#quick-scan-modal.qs-redeem .qs-pv-arrow{opacity:.28;filter:grayscale(1);pointer-events:none;user-select:none}
+#quick-scan-modal.qs-redeem .qs-sec.new .qs-in{background:#e5e7eb}
 </style>
 <script id="bc-js">
 /* แยกค่าบาร์โค้ดตั๋ว (EAN-13): ปีงบประมาณ(2, เริ่ม 1 ต.ค.) + 0(1) + เล่ม(4) + เลขที่(5) + ตัวตรวจสอบ(1) → ใส่ช่องเลขตั๋ว/เล่มที่ให้เอง
@@ -30,5 +33,27 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   }
   document.addEventListener('input',onIn,true);
   document.addEventListener('change',onIn,true);
+}catch(e){ try{console.error(e)}catch(_){} } })();
+(function(){ try{
+  var M=document.getElementById('quick-scan-modal'); if(!M) return;
+  function typ(){ var e=document.getElementById('qs-type'); return e?e.value:''; }
+  function apply(){
+    var on=typ()==='ถ'; M.classList.toggle('qs-redeem',on);
+    ['qs-new-ticket','qs-new-book','qs-new-amount'].forEach(function(id){ var e=document.getElementById(id); if(!e) return; if(on&&e.value){ e.value=''; delete e.dataset.barcode; e.dispatchEvent(new Event('input',{bubbles:true})); } e.disabled=on; });
+    var nb=M.querySelector('.qs-sec.new .cam-btn'); if(nb) nb.disabled=on;
+  }
+  var op=window.qsPaintType; if(typeof op==='function') window.qsPaintType=function(){ var r=op.apply(this,arguments); try{apply()}catch(e){} return r; };
+  new MutationObserver(function(){ apply(); }).observe(M,{attributes:true,attributeFilter:['class']});
+  /* ประเภท ถ: กด Enter ที่ช่องเลขตั๋ว/เล่ม/ยอดเงิน = บันทึกเลย (ช่องเลข/เล่มต้องมียอดขึ้นแล้ว) */
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'||typ()!=='ถ') return; var id=e.target&&e.target.id;
+    if(id!=='qs-ticket'&&id!=='qs-book'&&id!=='qs-amount') return;
+    var tk=document.getElementById('qs-ticket'), am=document.getElementById('qs-amount');
+    if(!tk||!tk.value.trim()) return;
+    if(id!=='qs-amount'&&!(am&&am.value.trim())) return;
+    e.preventDefault(); e.stopPropagation();
+    if(typeof window.submitQuickScan==='function') window.submitQuickScan();
+  },true);
+  apply();
 }catch(e){ try{console.error(e)}catch(_){} } })();
 </script>
