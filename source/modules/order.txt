@@ -9,4 +9,5 @@ netstate.html
 barcode.html
 tweaks.html
 scanmode.html
+importguard.html
 swreg.html
