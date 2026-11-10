@@ -5659,6 +5659,17 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 if(!tk||num(r.amount)===0) inc.push('['+m+'] แถว '+(i+1)+(tk?' ตั๋ว '+tk:' (ไม่มีเลขตั๋ว)')+(num(r.amount)===0?' ไม่มียอดเงิน':''));
                 if(tk){ var key=m+'|'+normT(r.book)+'|'+normT(tk); (seen[key]=seen[key]||[]).push({k:k,m:m,t:tk}); } }); });
             if(inc.length) F.push({sev:'warn',date:k,t:'แถวไถ่ถอนข้อมูลไม่ครบ ('+inc.length+' แถว)',x:inc.slice(0,4).join(' · ')+(inc.length>4?' …':'')});
+            if(k===currentDate){ /* ตรวจเพิ่ม (v2): เฉพาะวันที่เปิดอยู่ */
+                var nb=[],nn=[],nd={};
+                (d.months||[]).forEach(function(m){ if(!m||m==='สรุปประจำวัน') return; (d.data[m]||[]).forEach(function(r,i){ if(!r) return; var tk=String(r.ticket||'').trim(), nt=String(r.newTicket||'').trim();
+                    if(tk&&!String(r.book||'').trim()) nb.push('['+m+'] ตั๋ว '+tk+' ไม่มีเล่มที่');
+                    if(nt){ if(!String(r.newBook||'').trim()) nb.push('['+m+'] ตั๋วใหม่ '+nt+' ไม่มีเล่มที่'); if(num(r.newAmount)===0) nn.push('['+m+'] ตั๋วใหม่ '+nt+' ไม่มียอดเงิน');
+                        var nk=normT(r.newBook)+'|'+normT(nt); (nd[nk]=nd[nk]||[]).push(m); } }); });
+                if(nb.length) F.push({sev:'warn',date:k,t:'ไม่มีเล่มที่ ('+nb.length+' แถว)',x:nb.slice(0,4).join(' · ')+(nb.length>4?' …':'')});
+                if(nn.length) F.push({sev:'warn',date:k,t:'ตั๋วใหม่ไม่มียอดเงิน ('+nn.length+' แถว)',x:nn.slice(0,4).join(' · ')+(nn.length>4?' …':'')});
+                Object.keys(nd).forEach(function(q){ if(nd[q].length>1){ var pr=q.split('|'); F.push({sev:'warn',date:k,t:'ตั๋วใหม่ซ้ำ: เล่ม '+(pr[0]||'-')+' เลข '+pr[1]+' ('+nd[q].length+' แถว)',x:'ตั๋วใหม่หมายเลขเดียวกันถูกบันทึกมากกว่า 1 แถวในวันนี้'}); } });
+                try{ var BL=JSON.parse(localStorage.getItem('pawn_bc_rej')||'[]').filter(function(z){ return z&&z.d===k; }); if(BL.length) F.push({sev:'warn',date:k,t:'บาร์โค้ดที่ระบบปฏิเสธ ('+BL.length+' ครั้ง)',x:'อ่านผิดและไม่ได้บันทึก เช่น '+BL.slice(-3).map(function(z){ return z.v; }).join(' · ')+' — ตรวจว่าคีย์ตั๋วใบนั้นครบหรือยัง'}); }catch(e){}
+            }
             (d.months||[]).forEach(function(m){ if(!m) return; try{ var cb=getMonthCarriedBalance(k,m); if(cb<0) F.push({sev:'warn',date:k,t:'ยอดยกไปของเดือน'+m+' ติดลบ',x:'ไถ่ถอนมากกว่ายอดยกมา: '+fmt(cb)+' บาท'}); }catch(e){} });
         });
         Object.keys(seen).forEach(function(key){ var a=seen[key]; if(a.length>1) F.push({sev:'warn',date:a[a.length-1].k,t:'ตั๋ว '+a[0].t+' ถูกไถ่/ส่งขายมากกว่า 1 ครั้ง',x:a.map(function(z){ return thDate(z.k)+' ['+z.m+']'; }).join(' · ')}); });
@@ -5682,7 +5693,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         ckm.innerHTML='<div class="mx-box"><div class="mx-head"><div><b>ตรวจความสอดคล้องของข้อมูล</b><small>'+(F.length?('พบ '+F.length+' รายการ (ร้ายแรง '+nb+' · ควรตรวจ '+(F.length-nb)+')'):'ไม่พบรายการผิดปกติ')+'</small></div><button type="button" id="ck-x">ปิด</button></div>'
           +'<div class="mx-body">'+(F.length?F.slice(0,200).map(function(x,i){ return '<div class="ck-i '+x.sev+'"><div><span class="ck-tag '+x.sev+'">'+(x.sev==='bad'?'ร้ายแรง':'ควรตรวจ')+'</span><b>'+esc(x.t)+'</b><small>วันที่ '+esc(thDate(x.date))+' · '+esc(x.x)+'</small></div><button type="button" class="ck-go" data-d="'+esc(x.date)+'">ไปที่วันนี้</button></div>'; }).join(''):'<div style="text-align:center;color:#047857;padding:24px;font-weight:600">✔ ข้อมูลทุกวันที่ตรวจแล้วสอดคล้องกัน</div>')
           +(F.length>200?'<div class="mx-note">แสดง 200 รายการแรก</div>':'')
-          +'<div class="mx-note">การตรวจเป็นการอ่านข้อมูลอย่างเดียว ไม่แก้ไขตัวเลข: ยอดติดลบ · ย/ม ไม่ตรงคงเหลือวันก่อน · แถวไถ่ถอนข้อมูลไม่ครบ · ยอดยกไปรายเดือนติดลบ · ตั๋วถูกไถ่ซ้ำ · ข้อมูลเปลี่ยนหลังปิดยอด รายการที่แจ้งอาจเป็นเรื่องปกติของหน่วยงานได้ โปรดใช้ดุลยพินิจ</div></div></div>';
+          +'<div class="mx-note">การตรวจเป็นการอ่านข้อมูลอย่างเดียว ไม่แก้ไขตัวเลข: ยอดติดลบ · ย/ม ไม่ตรงคงเหลือวันก่อน · แถวไถ่ถอนข้อมูลไม่ครบ · ยอดยกไปรายเดือนติดลบ · ตั๋วถูกไถ่ซ้ำ · ไม่มีเล่มที่ · ตั๋วใหม่ไม่มียอด/ซ้ำ · บาร์โค้ดที่ถูกปฏิเสธ · ข้อมูลเปลี่ยนหลังปิดยอด รายการที่แจ้งอาจเป็นเรื่องปกติของหน่วยงานได้ โปรดใช้ดุลยพินิจ</div></div></div>';
         ckm.classList.add('on'); ckm.querySelector('#ck-x').onclick=function(){ ckm.classList.remove('on'); };
         ckm.querySelectorAll('.ck-go').forEach(function(b){ b.onclick=function(){ goDate(b.getAttribute('data-d')); }; });
     };
@@ -7870,7 +7881,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
     function mk(){ if(det)return det; if(!('BarcodeDetector' in window))return null; try{ det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','code_128','code_39','itf']}); }catch(e){ try{det=new BarcodeDetector();}catch(e2){det=null} } return det; }
     var lastV='';
     function accept(v,needTwice){ v=String(v||'').trim(); var P=window.__parseTicketBarcode;
-      if(/^\d{12,13}$/.test(v)&&P&&!P(v)){ raw('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว (อาจอ่านผิด) — ขยับแล้วสแกนใหม่'); lastV=''; return false; }
+      if(/^\d{12,13}$/.test(v)&&P&&!P(v)){ try{ var BL=JSON.parse(localStorage.getItem('pawn_bc_rej')||'[]'); BL.push({d:(typeof currentDate!=='undefined'?currentDate:''),v:v,t:Date.now()}); localStorage.setItem('pawn_bc_rej',JSON.stringify(BL.slice(-100))); if(window.__ckSoon) window.__ckSoon(); }catch(e){} raw('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว (อาจอ่านผิด) — ขยับแล้วสแกนใหม่'); lastV=''; return false; }
       if(needTwice&&v!==lastV){ lastV=v; return false; }
       done(v); return true; }
     async function tick(){ if(busy||!stream)return; busy=true; try{ var r=await det.detect($('cam-v')); if(r&&r.length){ accept(r[0].rawValue,true); } }catch(e){} busy=false; }

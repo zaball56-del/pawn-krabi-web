@@ -290,7 +290,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
     function mk(){ if(det)return det; if(!('BarcodeDetector' in window))return null; try{ det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','code_128','code_39','itf']}); }catch(e){ try{det=new BarcodeDetector();}catch(e2){det=null} } return det; }
     var lastV='';
     function accept(v,needTwice){ v=String(v||'').trim(); var P=window.__parseTicketBarcode;
-      if(/^\d{12,13}$/.test(v)&&P&&!P(v)){ raw('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว (อาจอ่านผิด) — ขยับแล้วสแกนใหม่'); lastV=''; return false; }
+      if(/^\d{12,13}$/.test(v)&&P&&!P(v)){ try{ var BL=JSON.parse(localStorage.getItem('pawn_bc_rej')||'[]'); BL.push({d:(typeof currentDate!=='undefined'?currentDate:''),v:v,t:Date.now()}); localStorage.setItem('pawn_bc_rej',JSON.stringify(BL.slice(-100))); if(window.__ckSoon) window.__ckSoon(); }catch(e){} raw('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว (อาจอ่านผิด) — ขยับแล้วสแกนใหม่'); lastV=''; return false; }
       if(needTwice&&v!==lastV){ lastV=v; return false; }
       done(v); return true; }
     async function tick(){ if(busy||!stream)return; busy=true; try{ var r=await det.detect($('cam-v')); if(r&&r.length){ accept(r[0].rawValue,true); } }catch(e){} busy=false; }
