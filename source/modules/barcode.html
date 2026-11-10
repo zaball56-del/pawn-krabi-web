@@ -22,7 +22,7 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   function thd(k){var p=k.split('-');return p[2]+'/'+p[1]+'/'+(parseInt(p[0],10)+543)}
   var TH0=Date.now();
   /* หาตั๋วใบเดียวกัน (ต้องตรงทั้งเล่มและเลข — แถวที่ไม่มีเล่มไม่นับ เพราะเลขตั๋วซ้ำกันได้ข้ามเล่ม): วันนี้ทุกแถว และวันก่อนหน้าย้อนหลังไม่เกิน 366 วัน (เล่มขึ้นใหม่ทุกปี) */
-  function dupInfo(book,ticket){
+  function dupInfo(book,ticket,role){
     var out=[], tk=nz(ticket), bk=nz(book), today=(typeof currentDate!=='undefined')?currentDate:'';
     if(!tk||typeof db==='undefined') return out;
     var lim=today?new Date(today+'T00:00:00').getTime()-366*864e5:0;
@@ -31,14 +31,14 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
       if(k!==today && (k>today || new Date(k+'T00:00:00').getTime()<lim)) return;
       d.months.forEach(function(m){ var rows=d.data[m]; if(!rows) return;
         rows.forEach(function(r){ if(!r) return;
-          if(r.ticket&&nz(r.ticket)===tk&&bk&&r.book&&nz(r.book)===bk&&(r.type||r.newTicket)) out.push({k:k,m:m,t:r.type||'',ts:r.timestamp||'',as:'ตั๋วเดิม',b:r.book});
-          if(r.newTicket&&nz(r.newTicket)===tk&&bk&&r.newBook&&nz(r.newBook)===bk) out.push({k:k,m:m,t:r.type||'',ts:r.timestamp||'',as:'ตั๋วใหม่',b:r.newBook});
+          if(role!=='new'&&r.ticket&&nz(r.ticket)===tk&&bk&&r.book&&nz(r.book)===bk&&(r.type||r.newTicket)) out.push({k:k,m:m,t:r.type||'',ts:r.timestamp||'',as:'ตั๋วเดิม',b:r.book});
+          if(role!=='old'&&r.newTicket&&nz(r.newTicket)===tk&&bk&&r.newBook&&nz(r.newBook)===bk) out.push({k:k,m:m,t:r.type||'',ts:r.timestamp||'',as:'ตั๋วใหม่',b:r.newBook});
         }); });
     });
     return out;
   }
   function warnDup(book,ticket,elId){
-    var L=dupInfo(book,ticket); if(!L.length) return;
+    var L=dupInfo(book,ticket,(elId==='qs-new-ticket')?'new':'old'); if(!L.length) return;
     try{ if(typeof playSciFiSound==='function') playSciFiSound('access_denied'); }catch(e){}
     try{ navigator.vibrate&&navigator.vibrate([120,80,120]); }catch(e){}
     var today=(typeof currentDate!=='undefined')?currentDate:'';
