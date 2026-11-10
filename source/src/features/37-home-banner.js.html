@@ -5,7 +5,7 @@
   ph.innerHTML='<div class="hb-l"><small>KRABI MUNICIPAL PAWNSHOP · สถานธนานุบาล</small><b id="hb-title">ระบบบัญชีสถานธนานุบาล</b><span id="hb-sub">เทศบาลเมืองกระบี่ · จังหวัดกระบี่</span></div>'
    +'<div class="hb-chips"><span class="hb-chip" id="hb-pl"></span><span class="hb-chip" id="hb-rd"></span><span class="hb-chip bal" id="hb-bal"></span><span class="hb-chip" id="hb-new"></span></div>'
    +'<svg class="hb-spark" id="hb-spark" viewBox="0 0 300 120" aria-hidden="true"></svg>';
-  var st=document.createElement('style'); st.id='hb-prog-css'; st.textContent='#home-page .hb-chip.hb-prog{position:relative}html body.page-home #home-page #hb-new.hb-prog.pos{background:linear-gradient(135deg,#059669,#10b981) !important}html body.page-home #home-page #hb-new.hb-prog.neg{background:linear-gradient(135deg,#dc2626,#f43f5e) !important}html body.page-home #home-page #hb-new.hb-prog.zero{background:linear-gradient(135deg,#64748b,#94a3b8) !important}#home-page .hb-prog .hb-arr{position:absolute;right:12px;top:12px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:16px}#home-page .hb-prog.pos .hb-arr{color:#059669}#home-page .hb-prog.neg .hb-arr{color:#dc2626}#home-page .hb-prog.zero .hb-arr{color:#64748b}html body.page-home #home-page #hb-new.hb-prog>i{display:flex !important;gap:4px;flex-wrap:nowrap;font-style:normal}html body.page-home #home-page #hb-new.hb-prog .hb-d,html body.page-home #home-page #hb-new.hb-prog .hb-pill{background:rgba(255,255,255,.25);border-radius:999px;padding:0 8px;font-weight:700;font-size:11px;white-space:nowrap;font-style:normal}'; document.head.appendChild(st);
+  var st=document.createElement('style'); st.id='hb-prog-css'; st.textContent='#home-page .hb-chip.hb-prog{position:relative}html body.page-home #home-page #hb-new.hb-prog.pos{background:linear-gradient(135deg,#059669,#10b981) !important}html body.page-home #home-page #hb-new.hb-prog.neg{background:linear-gradient(135deg,#dc2626,#f43f5e) !important}html body.page-home #home-page #hb-new.hb-prog.zero{background:linear-gradient(135deg,#64748b,#94a3b8) !important}#home-page .hb-prog .hb-arr{position:absolute;right:12px;top:12px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:16px}#home-page .hb-prog.pos .hb-arr{color:#059669}#home-page .hb-prog.neg .hb-arr{color:#dc2626}#home-page .hb-prog.zero .hb-arr{color:#64748b}html body.page-home #home-page .hb-chip>.k,html body.page-home #home-page .hb-chip>b,html body.page-home #home-page .hb-chip>i{position:relative;z-index:3}html body.page-home #home-page #hb-new.hb-prog>i{display:flex !important;gap:4px;flex-wrap:nowrap;font-style:normal}html body.page-home #home-page #hb-new.hb-prog .hb-d,html body.page-home #home-page #hb-new.hb-prog .hb-pill{background:rgba(255,255,255,.25);border-radius:999px;padding:0 8px;font-weight:700;font-size:11px;white-space:nowrap;font-style:normal}'; document.head.appendChild(st);
   var TH_D=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   var TH_M=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   function g(id){ try{ return String(hpGet(id)||'').trim(); }catch(e){ return ''; } }
@@ -52,9 +52,31 @@
         +'<path d="'+line+' L'+W+' '+H+' L0 '+H+'Z" fill="url(#hbg)"/><path d="'+line+'" fill="none" stroke="#5eead4" stroke-width="2.5" stroke-linejoin="round"/><circle cx="'+last[0]+'" cy="'+last[1]+'" r="4.5" fill="#fff"/>';
     }catch(e){ console.error('home-banner',e); }
   }
+
+  function num2(v){ try{ return Number(cleanNumberString(v))||0; }catch(e){ return Number(String(v).replace(/[^0-9.\-]/g,''))||0; } }
+  function dayRows(k){ var d=db[k]; return d&&d.data&&Array.isArray(d.data['สรุปประจำวัน'])?d.data['สรุปประจำวัน']:null; }
+  function series(fn){ var keys=Object.keys(db).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k)&&k<=currentDate&&dayRows(k); }).sort().slice(-7); return keys.map(function(k){ return fn(dayRows(k),db[k]); }); }
+  function spark(el,vs,zero){
+    var o=el.querySelector('svg.hb-spark'); if(o) o.remove();
+    if(!el||vs.length<2) return;
+    var W=200,H=60,mx=Math.max.apply(null,zero?vs.concat([0]):vs),mn=Math.min.apply(null,zero?vs.concat([0]):vs),rg=(mx-mn)||1;
+    var X=function(i){ return (i/(vs.length-1))*W; }, Y=function(v){ return (mx===mn)?H-8:6+(1-(v-mn)/rg)*(H-12); };
+    var pts=vs.map(function(v,i){ return X(i).toFixed(1)+','+Y(v).toFixed(1); }).join(' ');
+    var base=zero?Y(0).toFixed(1):(H).toFixed(1);
+    el.insertAdjacentHTML('afterbegin','<svg class="hb-spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true" style="display:block !important;position:absolute;left:0;right:0;bottom:0;width:100%;height:58%;opacity:.38;pointer-events:none"><title>แนวโน้ม '+vs.length+' วันล่าสุด</title>'+(zero?'<line x1="0" x2="'+W+'" y1="'+base+'" y2="'+base+'" stroke="#fff" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>':'')+'<polygon points="0,'+base+' '+pts+' '+W+','+base+'" fill="#fff" opacity=".25"/><polyline points="'+pts+'" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>');
+  }
+  function sparks(){ try{
+    var net=function(r){ return num2(r[1]&&r[1].amount)-num2(r[2]&&r[2].amount); };
+    var bal=function(r,d){ var m=d&&d.balanceManual===true; return m?num2(r[3]&&r[3].amount):num2(r[0]&&r[0].amount)+num2(r[1]&&r[1].amount)-num2(r[2]&&r[2].amount); };
+    var P=document.getElementById('hb-pl'),R=document.getElementById('hb-rd'),B=document.getElementById('hb-bal'),N=document.getElementById('hb-new');
+    if(P){ P.style.position='relative'; spark(P,series(function(r){ return num2(r[1]&&r[1].amount); }),false); }
+    if(R){ R.style.position='relative'; spark(R,series(function(r){ return num2(r[2]&&r[2].amount); }),false); }
+    if(B){ B.style.position='relative'; spark(B,series(bal),false); }
+    if(N) spark(N,series(net),true);
+  }catch(e){ console.error('hb-spark',e); } }
   var r0=window.renderHome;
-  window.renderHome=function(){ var r=r0.apply(this,arguments); update(); return r; };
-  update();
+  window.renderHome=function(){ var r=r0.apply(this,arguments); update(); sparks(); return r; };
+  update(); sparks();
 })();
 </script>
 
