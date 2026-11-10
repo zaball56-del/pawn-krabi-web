@@ -8108,7 +8108,12 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 #quick-scan-modal.qs-single #qs-count{display:flex}
 #quick-scan-modal.qs-single .qs-sec.new,#quick-scan-modal.qs-single #qs-pv-new,#quick-scan-modal.qs-single .qs-pv-arrow,#quick-scan-modal.qs-single .qs-pv-h{display:none !important}
 @media (max-width:640px){#quick-scan-modal.qs-single #qs-bigscan{display:block}
-#quick-scan-modal.qs-single .qs-sec:not(.new) .cam-btn{display:none !important}}
+#quick-scan-modal.qs-single .qs-sec:not(.new) .cam-btn{display:none !important}
+#quick-scan-modal.qs-single h2{order:-1 !important}
+#quick-scan-modal.qs-single .qs-types{order:0 !important;margin-bottom:8px;position:sticky;top:0;z-index:20;padding:6px 0;background:#f8fafc;box-shadow:0 6px 10px -8px rgba(15,23,42,.4)}
+#quick-scan-modal.qs-single .qs-types .qs-type-btn{padding-top:8px;padding-bottom:8px;min-height:0;height:52px}
+#quick-scan-modal:not(.qs-single) .qs-types{position:sticky;top:0;z-index:20;padding:6px 0;background:#f8fafc;box-shadow:0 6px 10px -8px rgba(15,23,42,.4)}
+#quick-scan-modal:not(.qs-single) .qs-types .qs-type-btn{padding-top:8px;padding-bottom:8px;min-height:0;height:52px}}
 </style>
 <script id="sm-js">
 (function(){ try{
