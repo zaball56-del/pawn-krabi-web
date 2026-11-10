@@ -6,4 +6,5 @@ storage.html
 mobile.html
 backup.html
 netstate.html
+barcode.html
 swreg.html

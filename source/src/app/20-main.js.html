@@ -346,7 +346,7 @@
             el.style.color = open ? '#047857' : '#be123c';
         }
         function qsClearFields(keepContext) {
-            ['qs-ticket', 'qs-book', 'qs-amount', 'qs-new-ticket', 'qs-new-book', 'qs-new-amount'].forEach(id => { qsEl(id).value = ''; });
+            ['qs-ticket', 'qs-book', 'qs-amount', 'qs-new-ticket', 'qs-new-book', 'qs-new-amount'].forEach(id => { qsEl(id).value = ''; delete qsEl(id).dataset.barcode; });
             if (!keepContext) { qsEl('qs-type').value = ''; qsEl('qs-month').value = ''; }
             qsPaintType(); qsMonthHint();
         }
@@ -457,6 +457,10 @@
             if (!updating) { row.ticket = oldTicket; row.amount = cleanNumberString(oldAmountRaw); }
             else if (useTypedAmount && oldAmountRaw !== '') row.amount = cleanNumberString(oldAmountRaw);
             if (oldBook) row.book = oldBook;
+            // เลขบาร์โค้ด 13 หลัก เก็บเป็นข้อมูลตรวจสอบเบื้องหลัง (ไม่แสดงในตาราง) เฉพาะเมื่อยังตรงกับเลข/เล่มที่กรอก
+            { const bcOf = (id, tk, bk) => { const v = qsEl(id).dataset.barcode || ''; const p = window.__parseTicketBarcode && window.__parseTicketBarcode(v); return (p && qsIdKey(p.book, p.ticket) === qsIdKey(bk, tk)) ? v : ''; };
+              const ob = bcOf('qs-ticket', oldTicket, oldBook); if (ob) row.barcode = ob;
+              const nb = newTicket ? bcOf('qs-new-ticket', newTicket, newBook) : ''; if (nb) row.newBarcode = nb; }
             if (newTicket) { row.newTicket = newTicket; row.newBook = newBook; row.newAmount = newAmountRaw === '' ? '' : cleanNumberString(newAmountRaw); }
             row.timestamp = new Date().toLocaleTimeString('th-TH');
             row.attachedAt = new Date().toISOString();

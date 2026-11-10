@@ -1,0 +1,26 @@
+<script id="bc-js">
+/* แยกค่าบาร์โค้ดตั๋ว (EAN-13): ปีงบประมาณ(2, เริ่ม 1 ต.ค.) + 0(1) + เล่ม(4) + เลขที่(5) + ตัวตรวจสอบ(1) → ใส่ช่องเลขตั๋ว/เล่มที่ให้เอง
+   ตัวอย่าง 6900205001342 = ปีงบ 69 · เล่ม 205 · เลขที่ 134 */
+(function(){ try{
+  function ok13(s){ if(!/^\d{13}$/.test(s)) return false; var t=0; for(var i=0;i<12;i++) t+=(+s[i])*(i%2?3:1); return (10-t%10)%10===+s[12]; }
+  function parse(s){ s=String(s||'').trim(); if(!ok13(s)) return null; return {yy:s.slice(0,2),book:String(+s.slice(3,7)),ticket:String(+s.slice(7,12))}; }
+  window.__parseTicketBarcode=parse;
+  var PAIRS={'qs-ticket':'qs-book','qs-new-ticket':'qs-new-book'};
+  function fire(el){ el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
+  var busy=false;
+  function onIn(e){
+    var el=e.target; if(busy||!el||!PAIRS[el.id]) return;
+    var r=parse(el.value); if(!r) return;
+    var bk=document.getElementById(PAIRS[el.id]); if(!bk) return;
+    busy=true;
+    try{
+      var raw=el.value.trim(); el.value=r.ticket; bk.value=r.book; el.dataset.barcode=raw; fire(el); fire(bk);
+      var m=document.getElementById('qs-msg'); if(m){ m.textContent='อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket; m.className='qs-msg ok'; }
+      var mon=document.getElementById('qs-month'), amt=document.getElementById(el.id==='qs-ticket'?'qs-amount':'qs-new-amount');
+      var next=(el.id==='qs-ticket'&&mon&&!mon.value)?mon:amt; if(next) setTimeout(function(){ try{next.focus();}catch(_){} },30);
+    } finally { busy=false; }
+  }
+  document.addEventListener('input',onIn,true);
+  document.addEventListener('change',onIn,true);
+}catch(e){ try{console.error(e)}catch(_){} } })();
+</script>
