@@ -6,18 +6,18 @@
     function ensureLayer(){ if(layer) return layer; layer=document.createElement('div'); layer.id='ui-dialog'; layer.setAttribute('role','alertdialog'); layer.setAttribute('aria-modal','true');
         layer.style.cssText='position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(11,34,68,.55);font-family:Sarabun,sans-serif';
         document.body.appendChild(layer); return layer; }
-    function show(msg,withCancel,done){
+    function show(msg,withCancel,done,labels){ labels=(labels&&typeof labels==='object')?labels:{};
         var l=ensureLayer(); l.innerHTML='';
         var box=document.createElement('div'); box.style.cssText='width:100%;max-width:440px;background:#fff;color:#14213D;border-radius:18px;padding:22px 22px 16px;box-shadow:0 30px 70px -24px rgba(11,34,68,.6)';
         var p=document.createElement('div'); p.style.cssText='white-space:pre-line;font-size:15px;line-height:1.6;margin-bottom:16px'; p.textContent=String(msg==null?'':msg); box.appendChild(p);
         var row=document.createElement('div'); row.style.cssText='display:flex;gap:8px;justify-content:flex-end';
         function close(v){ l.style.display='none'; l.innerHTML=''; document.removeEventListener('keydown',onKey,true); if(done) done(v); }
         function onKey(e){ if(e.key==='Escape'){ e.stopPropagation(); close(false); } }
-        if(withCancel){ var c=document.createElement('button'); c.type='button'; c.textContent='ยกเลิก'; c.style.cssText='border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:10px 18px;font:600 14px Sarabun,sans-serif;cursor:pointer'; c.onclick=function(){close(false);}; row.appendChild(c); }
-        var ok=document.createElement('button'); ok.type='button'; ok.textContent=withCancel?'ยืนยัน':'ตกลง'; ok.style.cssText='border:0;background:#1D4ED8;color:#fff;border-radius:10px;padding:10px 20px;font:700 14px Sarabun,sans-serif;cursor:pointer'; ok.onclick=function(){close(true);}; row.appendChild(ok);
+        if(withCancel){ var c=document.createElement('button'); c.type='button'; c.textContent=labels.cancel||'ยกเลิก'; c.style.cssText='border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:10px 18px;font:600 14px Sarabun,sans-serif;cursor:pointer'; c.onclick=function(){close(false);}; row.appendChild(c); }
+        var ok=document.createElement('button'); ok.type='button'; ok.textContent=labels.ok||(withCancel?'ยืนยัน':'ตกลง'); ok.style.cssText='border:0;background:#1D4ED8;color:#fff;border-radius:10px;padding:10px 20px;font:700 14px Sarabun,sans-serif;cursor:pointer'; ok.onclick=function(){close(true);}; row.appendChild(ok);
         box.appendChild(row); l.appendChild(box); l.style.display='flex'; document.addEventListener('keydown',onKey,true); setTimeout(function(){ ok.focus(); },30);
     }
-    window.uiConfirm=function(msg){ return new Promise(function(res){ show(msg,true,res); }); };
+    window.uiConfirm=function(msg,labels){ return new Promise(function(res){ show(msg,true,res,labels); }); };
     window.uiAlert=function(msg){ return new Promise(function(res){ show(msg,false,res); }); };
     /* confirm: ถ้าเบราว์เซอร์ตอบ "ไม่" เร็วผิดปกติ (<40ms) แปลว่าถูกบล็อก -> ถามในหน้า แล้วเรียกฟังก์ชันเดิมซ้ำโดยถือว่าตอบ "ยืนยัน" */
     var blockedInRun=false;

@@ -12,27 +12,27 @@
   function head(f,n){ return f.slice(0,n).arrayBuffer().then(function(b){ return new Uint8Array(b); }); }
   function ascii(u8,from,to){ var s=''; for(var i=from;i<Math.min(to,u8.length);i++) s+=String.fromCharCode(u8[i]); return s; }
   function say(msg){ try{ if(typeof uiAlert==='function') return uiAlert(msg,'ไฟล์ไม่ผ่านการตรวจ'); }catch(e){} alert(msg); }
-  function ask(msg){ try{ if(typeof uiConfirm==='function') return uiConfirm(msg,'พบสิ่งผิดปกติในไฟล์'); }catch(e){} return Promise.resolve(confirm(msg)); }
+  function ask(msg){ try{ if(typeof uiConfirm==='function') return uiConfirm(msg,{ok:'นำเข้า',cancel:'ปฏิเสธ'}); }catch(e){} return Promise.resolve(confirm(msg)); }
   async function check(inp,f,r){
     if(f.size===0) return {ok:false,msg:'ไฟล์ว่างเปล่า (0 ไบต์)'};
-    if(f.size>r.max) return {ok:false,msg:'ไฟล์ใหญ่เกินกำหนด ('+Math.round(f.size/1048576)+' MB เกิน '+Math.round(r.max/1048576)+' MB) '};
+    if(f.size>r.max) return {ok:'warn',msg:'ไฟล์ใหญ่เกินกำหนด ('+Math.round(f.size/1048576)+' MB เกิน '+Math.round(r.max/1048576)+' MB) อาจทำให้เครื่องช้าหรือค้าง\n\nต้องการนำเข้าหรือปฏิเสธ?'};
     var h=await head(f,2048), nm=String(f.name||'').toLowerCase();
     if(r.kind==='pdf'){
-      if(!/\.pdf$/.test(nm)) return {ok:false,msg:'ชื่อไฟล์ไม่ใช่ .pdf'};
-      if(ascii(h,0,1024).indexOf('%PDF-')<0) return {ok:false,msg:'เนื้อไฟล์ไม่ใช่ PDF จริง (ไม่พบลายเซ็น %PDF) อาจเป็นไฟล์อื่นที่เปลี่ยนนามสกุล'};
+      if(!/\.pdf$/.test(nm)) return {ok:'warn',msg:'ชื่อไฟล์ไม่ใช่ .pdf\n\nต้องการนำเข้าหรือปฏิเสธ?'};
+      if(ascii(h,0,1024).indexOf('%PDF-')<0) return {ok:'warn',msg:'เนื้อไฟล์ไม่ใช่ PDF จริง (ไม่พบลายเซ็น %PDF) อาจเป็นไฟล์อื่นที่เปลี่ยนนามสกุล\n\nต้องการนำเข้าหรือปฏิเสธ?'};
       /* ส่วนที่เสี่ยง: สคริปต์/สั่งเปิดโปรแกรมในไฟล์ — เตือนให้ยืนยัน ไม่ปิดกั้นทันที */
       if(f.size<=40*1024*1024){
         var buf=new Uint8Array(await f.arrayBuffer()), txt=''; for(var i=0;i<buf.length;i+=65536) txt+=String.fromCharCode.apply(null,buf.subarray(i,i+65536));
         var hit=[]; ['/JavaScript','/JS ','/Launch','/EmbeddedFile'].forEach(function(k){ if(txt.indexOf(k)>=0) hit.push(k.trim()); });
-        if(hit.length) return {ok:'warn',msg:'ไฟล์นี้มีองค์ประกอบที่ไฟล์รายงานทั่วไปไม่ควรมี ('+hit.join(', ')+') ควรนำเข้าเฉพาะไฟล์ที่ได้จากระบบราชการโดยตรง\n\nต้องการใช้งานต่อหรือไม่?'};
+        if(hit.length) return {ok:'warn',msg:'ไฟล์นี้มีองค์ประกอบที่ไฟล์รายงานทั่วไปไม่ควรมี ('+hit.join(', ')+') ควรนำเข้าเฉพาะไฟล์ที่ได้จากระบบราชการโดยตรง\n\nต้องการนำเข้าหรือปฏิเสธ?'};
       }
     } else if(r.kind==='json'){
-      if(!/\.json$/.test(nm)) return {ok:false,msg:'ชื่อไฟล์ไม่ใช่ .json'};
+      if(!/\.json$/.test(nm)) return {ok:'warn',msg:'ชื่อไฟล์ไม่ใช่ .json\n\nต้องการนำเข้าหรือปฏิเสธ?'};
       var t=ascii(h,0,64).replace(/^﻿|^\xEF\xBB\xBF/,'').replace(/^\s+/,'');
-      if(t.charAt(0)!=='{') return {ok:false,msg:'เนื้อไฟล์ไม่ใช่ไฟล์สำรองข้อมูลของโปรแกรมนี้ (ต้องขึ้นต้นด้วย {)'};
+      if(t.charAt(0)!=='{') return {ok:'warn',msg:'เนื้อไฟล์ไม่ใช่ไฟล์สำรองข้อมูลของโปรแกรมนี้ (ต้องขึ้นต้นด้วย {)\n\nต้องการนำเข้าหรือปฏิเสธ?'};
       if(f.size<=60*1024*1024){ var s=await f.text(); if(/"(__proto__|constructor|prototype)"\s*:/.test(s)) return {ok:false,msg:'พบคีย์ต้องห้ามในไฟล์ (__proto__ / constructor / prototype) ไม่ปลอดภัยที่จะนำเข้า'}; }
     } else if(r.kind==='img'){
-      if(!/^image\//.test(f.type||'')) return {ok:false,msg:'ไฟล์ที่เลือกไม่ใช่รูปภาพ'};
+      if(!/^image\//.test(f.type||'')) return {ok:'warn',msg:'ไฟล์ที่เลือกไม่ใช่รูปภาพ\n\nต้องการนำเข้าหรือปฏิเสธ?'};
     }
     return {ok:true};
   }
