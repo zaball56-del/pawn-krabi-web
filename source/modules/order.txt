@@ -7,4 +7,5 @@ mobile.html
 backup.html
 netstate.html
 barcode.html
+tweaks.html
 swreg.html
