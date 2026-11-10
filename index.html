@@ -7986,6 +7986,14 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
 }catch(e){ try{console.error('ns',e)}catch(_){} } })();
 </script>
 
+<style id="bc-css">
+/* มือถือ: ไม่ลอยแถบปุ่มทับเหนือคีย์บอร์ดแล้ว (ใช้ปุ่ม "ถัดไป" ของคีย์บอร์ดเอง) ปุ่มบันทึก/ล้างอยู่ท้ายฟอร์ม */
+@media (max-width:640px){
+html body #quick-scan-modal.fixed #qs-next{display:none !important}
+html body #quick-scan-modal.fixed .qs-right > div:last-child{position:static !important;margin:0 !important;padding:6px 0 18px !important;background:none !important;border-top:0 !important}
+html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qsClearFields"]{background:#e2e8f0 !important;border:1.5px solid #94a3b8 !important;color:#334155 !important}
+}
+</style>
 <script id="bc-js">
 /* แยกค่าบาร์โค้ดตั๋ว (EAN-13): ปีงบประมาณ(2, เริ่ม 1 ต.ค.) + 0(1) + เล่ม(4) + เลขที่(5) + ตัวตรวจสอบ(1) → ใส่ช่องเลขตั๋ว/เล่มที่ให้เอง
    ตัวอย่าง 6900205001342 = ปีงบ 69 · เล่ม 205 · เลขที่ 134 */
