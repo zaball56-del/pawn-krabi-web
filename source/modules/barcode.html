@@ -14,7 +14,7 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
    ตัวอย่าง 6900205001342 = ปีงบ 69 · เล่ม 205 · เลขที่ 134 */
 (function(){ try{
   function ok13(s){ if(!/^\d{13}$/.test(s)) return false; var t=0; for(var i=0;i<12;i++) t+=(+s[i])*(i%2?3:1); return (10-t%10)%10===+s[12]; }
-  function parse(s){ s=String(s||'').trim(); if(!ok13(s)) return null; return {yy:s.slice(0,2),book:String(+s.slice(3,7)),ticket:String(+s.slice(7,12))}; }
+  function parse(s){ s=String(s||'').trim(); if(/^\d{12}$/.test(s)) s='0'+s; if(!ok13(s)) return null; return {yy:s.slice(0,2),book:String(+s.slice(3,7)),ticket:String(+s.slice(7,12))}; }
   window.__parseTicketBarcode=parse;
   var PAIRS={'qs-ticket':'qs-book','qs-new-ticket':'qs-new-book'};
   function fire(el){ el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
