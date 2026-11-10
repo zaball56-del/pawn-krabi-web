@@ -296,7 +296,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
         if(cp.zoom&&cp.zoom.max>1){ var mn=cp.zoom.min||1,mx=cp.zoom.max; zl=[mn]; [2,3].forEach(function(z){ if(z>mn&&z<=mx) zl.push(z); }); if(zl.length>1){ zi=(zl.length>1)?1:0; await t.applyConstraints({advanced:[{zoom:zl[zi]}]}); zb.textContent='🔍 '+zl[zi]+'×'; zb.style.display=''; } }
       }catch(e){} }
     $('cam-zoom').onclick=async function(){ try{ var t=stream&&stream.getVideoTracks()[0]; if(!t||zl.length<2) return; zi=(zi+1)%zl.length; await t.applyConstraints({advanced:[{zoom:zl[zi]}]}); this.textContent='🔍 '+zl[zi]+'×'; }catch(e){} };
-    async function open(id){ target=id; var d=mk(); ov.classList.add('on'); raw('กำลังเปิดกล้อง...');
+    async function open(id){ target=id; try{ var ae=document.activeElement; if(ae&&ae.blur) ae.blur(); }catch(e){} var d=mk(); ov.classList.add('on'); raw('กำลังเปิดกล้อง...');
       if(!d){ raw('เบราว์เซอร์นี้ยังไม่รองรับสแกนสด ใช้ปุ่มถ่ายรูปแทนได้ (หรือเปิดด้วย Chrome บน Android)'); }
       try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}); var v=$('cam-v'); v.srcObject=stream; await v.play(); raw('ส่องบาร์โค้ดให้อยู่ในกรอบสีส้ม'); await tune(); if(d) timer=setInterval(tick,160); }
       catch(e){ raw('เปิดกล้องไม่ได้: '+(e&&e.name||e)+' (ตรวจสอบว่ากดอนุญาตใช้กล้อง) · ใช้ปุ่มถ่ายรูปแทนได้'); } }
