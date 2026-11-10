@@ -50,9 +50,21 @@
       var after=null; try{ after=localStorage.getItem('pawn_krabi_last_backup'); }catch(e){}
       if(!after || after===before){ err.textContent='สำรองไฟล์ไม่สำเร็จ จึงยังไม่ลบ ลองกดใหม่'; go.disabled=false; return; }
       ks=oldKeys(cut);                                  // คำนวณใหม่ เผื่อข้อมูลเปลี่ยนระหว่างรอ
+      /* สำเนาถาวรของวันที่จะลบ: เก็บในโฟลเดอร์สำรอง (ไม่ถูกลบตามจำนวนวัน) ตรวจอ่านกลับแล้วจึงลบ */
+      var arcObj={}; ks.forEach(function(k){ arcObj[k]=db[k]; });
+      var arcText=JSON.stringify(arcObj), arcName='pawn-krabi-archive-'+ks[0]+'_to_'+ks[ks.length-1]+'.json', arcWhere='';
+      err.textContent='กำลังเก็บสำเนาถาวร…';
+      var ar=null; try{ ar=window.__bkArchive?await window.__bkArchive(arcText,arcName):null; }catch(e){ ar=null; }
+      if(ar&&ar.ok){ arcWhere='โฟลเดอร์สำรอง '+(ar.folder||'')+' ไฟล์ '+arcName; }
+      else {
+        try{ var bl=new Blob([arcText],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=arcName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); }catch(e){ console.warn(e); }
+        var yes=await window.uiConfirm('ยังไม่ได้ตั้งโฟลเดอร์สำรองอัตโนมัติ จึงดาวน์โหลดสำเนาถาวร '+arcName+' ลงเครื่องแทน\n\nโปรดตรวจว่าไฟล์นี้อยู่ในโฟลเดอร์ดาวน์โหลดและเก็บไว้ให้ดี ก่อนลบข้อมูลเก่า '+ks.length+' วัน\n\nข้อมูลที่ลบแล้วกู้ได้จากไฟล์สำเนานี้เท่านั้น',{ok:'ลบข้อมูลเก่า',cancel:'ยกเลิก'});
+        if(!yes){ err.textContent='ยกเลิกแล้ว ยังไม่ได้ลบข้อมูลใด ๆ'; go.disabled=false; return; }
+        arcWhere='ไฟล์ดาวน์โหลด '+arcName;
+      }
       ks.forEach(function(k){ delete db[k]; });
       try{ saveDB(); }catch(e){ console.warn(e); }
-      close(); toast('ลบข้อมูลเก่า '+ks.length+' วันแล้ว (สำรองไฟล์ไว้แล้ว)');
+      close(); toast('ลบข้อมูลเก่า '+ks.length+' วันแล้ว · สำเนาถาวร: '+arcWhere);
     });
     refresh();
   }

@@ -6685,6 +6685,26 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     });
   });
 
+  /* เทียบข้อมูลในเครื่องกับบนคลาวด์ (อ่านอย่างเดียว ไม่แก้ทั้งสองฝั่ง) */
+  function rowCount(o){ var n=0; try{ (o.months||[]).forEach(function(m){ if(m&&m!=='สรุปประจำวัน') n+=((o.data&&o.data[m])||[]).length; }); }catch(e){} return n; }
+  window.__cloudCompare=async function(snapIn){
+    var snap=snapIn;
+    if(!snap){ if(!cloud.col) throw new Error('ยังไม่ได้เชื่อมต่อฐานข้อมูลกลาง'); snap=await cloud.col.get({source:'server'}); }
+    var cl={}; snap.docs.forEach(function(d){ entriesOf(d).forEach(function(e){ cl[e.k]=e.json; }); });
+    var keys={}; Object.keys(db).forEach(function(k){ if(k!=='') keys[k]=1; }); Object.keys(cl).forEach(function(k){ if(k!=='') keys[k]=1; });
+    var out={at:Date.now(),local:0,cloud:0,same:0,onlyLocal:[],onlyCloud:[],diff:[]};
+    Object.keys(db).forEach(function(k){ if(k!=='') out.local++; }); Object.keys(cl).forEach(function(k){ if(k!=='') out.cloud++; });
+    Object.keys(keys).sort().forEach(function(k){
+      var inL=(k in db)&&k!=='', inC=(k in cl);
+      if(inL&&!inC){ out.onlyLocal.push({k:k,rows:rowCount(db[k])}); return; }
+      if(!inL&&inC){ var o=null; try{ o=JSON.parse(cl[k]); }catch(e){} out.onlyCloud.push({k:k,rows:o?rowCount(o):0}); return; }
+      var cur=compactOf(k), same=(hash(cur)===hash(cl[k]));
+      if(!same){ try{ same=(JSON.stringify(JSON.parse(cl[k]),stripTrailingBlankRows)===cur); }catch(e){} }
+      if(same) out.same++; else { var co=null; try{ co=JSON.parse(cl[k]); }catch(e){} out.diff.push({k:k,localRows:rowCount(db[k]),cloudRows:co?rowCount(co):0}); }
+    });
+    return out;
+  };
+
   window.initApp=function(){
     ind('pending','กำลังเชื่อมต่อฐานข้อมูลกลาง…');
     ready.then(function(r){
@@ -6752,9 +6772,21 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       var after=null; try{ after=localStorage.getItem('pawn_krabi_last_backup'); }catch(e){}
       if(!after || after===before){ err.textContent='สำรองไฟล์ไม่สำเร็จ จึงยังไม่ลบ ลองกดใหม่'; go.disabled=false; return; }
       ks=oldKeys(cut);                                  // คำนวณใหม่ เผื่อข้อมูลเปลี่ยนระหว่างรอ
+      /* สำเนาถาวรของวันที่จะลบ: เก็บในโฟลเดอร์สำรอง (ไม่ถูกลบตามจำนวนวัน) ตรวจอ่านกลับแล้วจึงลบ */
+      var arcObj={}; ks.forEach(function(k){ arcObj[k]=db[k]; });
+      var arcText=JSON.stringify(arcObj), arcName='pawn-krabi-archive-'+ks[0]+'_to_'+ks[ks.length-1]+'.json', arcWhere='';
+      err.textContent='กำลังเก็บสำเนาถาวร…';
+      var ar=null; try{ ar=window.__bkArchive?await window.__bkArchive(arcText,arcName):null; }catch(e){ ar=null; }
+      if(ar&&ar.ok){ arcWhere='โฟลเดอร์สำรอง '+(ar.folder||'')+' ไฟล์ '+arcName; }
+      else {
+        try{ var bl=new Blob([arcText],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=arcName; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); }catch(e){ console.warn(e); }
+        var yes=await window.uiConfirm('ยังไม่ได้ตั้งโฟลเดอร์สำรองอัตโนมัติ จึงดาวน์โหลดสำเนาถาวร '+arcName+' ลงเครื่องแทน\n\nโปรดตรวจว่าไฟล์นี้อยู่ในโฟลเดอร์ดาวน์โหลดและเก็บไว้ให้ดี ก่อนลบข้อมูลเก่า '+ks.length+' วัน\n\nข้อมูลที่ลบแล้วกู้ได้จากไฟล์สำเนานี้เท่านั้น',{ok:'ลบข้อมูลเก่า',cancel:'ยกเลิก'});
+        if(!yes){ err.textContent='ยกเลิกแล้ว ยังไม่ได้ลบข้อมูลใด ๆ'; go.disabled=false; return; }
+        arcWhere='ไฟล์ดาวน์โหลด '+arcName;
+      }
       ks.forEach(function(k){ delete db[k]; });
       try{ saveDB(); }catch(e){ console.warn(e); }
-      close(); toast('ลบข้อมูลเก่า '+ks.length+' วันแล้ว (สำรองไฟล์ไว้แล้ว)');
+      close(); toast('ลบข้อมูลเก่า '+ks.length+' วันแล้ว · สำเนาถาวร: '+arcWhere);
     });
     refresh();
   }
@@ -8025,6 +8057,16 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
   if(typeof o0==='function'){ window.openDataSettings=function(){ var r=o0.apply(this,arguments); setTimeout(function(){ var m=document.getElementById('ds-modal'); if(m&&!mo){ mo=new MutationObserver(function(){ if(!document.getElementById('bk-card')) inject(); }); mo.observe(m,{childList:true,subtree:true}); } inject(); },250); return r; }; }
   /* ---- เริ่มทำงานหลังเข้าโปรแกรม ---- */
   load().then(function(){ var tries=0; var t=setInterval(function(){ tries++; var a=document.getElementById('app-container'); if(a&&a.style.display==='flex'){ clearInterval(t); setTimeout(auto,3500); } else if(tries>240) clearInterval(t); },1000); setInterval(function(){ if(Date.now()-lastCheck>20*60*1000){ lastCheck=Date.now(); auto(); } },60*1000); });
+  /* สำเนาถาวร: เขียนไฟล์ที่ชื่อไม่ตรงรูปแบบสำรองรายวัน จึงไม่ถูกลบตามจำนวนวันที่ตั้งเก็บ; ตรวจอ่านกลับก่อนรายงานว่าสำเร็จ */
+  window.__bkArchive=async function(text,name){
+    var want=text.length;
+    if(handle&&await perm(handle,true)){
+      try{ var fh=await handle.getFileHandle(name,{create:true}); var w=await fh.createWritable(); await w.write(text); await w.close();
+        var back=await (await fh.getFile()).text(); if(back.length===want&&back===text) return {ok:true,where:'folder',name:name,folder:cfg.folder||''};
+      }catch(e){ try{console.warn('archive folder',e)}catch(_){} }
+    }
+    return {ok:false,why:'nofolder'};
+  };
   window.__bk={writeNow:writeNow,cfg:function(){return cfg},auto:auto,files:function(){return handle?files(handle):[]},setHandle:async function(h){handle=h;cfg.on=true;cfg.folder=h.name||'test';await kvSet('dir',h);await save();}};
 }catch(e){ try{console.error('bk',e)}catch(_){} } })();
 </script>
@@ -8265,6 +8307,52 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
     }).catch(function(e){ console.error('importguard',e); inp.__igOk=true; inp.dispatchEvent(new Event('change',{bubbles:true})); });
   },true);
 })();
+</script>
+
+<script id="cc-js">
+/* เทียบข้อมูลในเครื่องกับบนคลาวด์ — อ่านอย่างเดียว ไม่แก้ข้อมูลทั้งสองฝั่ง */
+(function(){ try{
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function th(k){ var p=String(k).split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+(Number(p[0])+543)):k; }
+  function close(){ var el=document.getElementById('cc-modal'); if(el) el.remove(); }
+  function list(title,arr,cls,fmt){
+    if(!arr.length) return '';
+    return '<div class="cc-blk '+cls+'"><b>'+title+' ('+arr.length+' วัน)</b><div class="cc-l">'+arr.slice(0,60).map(fmt).join('')+(arr.length>60?'<div class="cc-m">แสดง 60 วันแรก</div>':'')+'</div></div>';
+  }
+  function open(){
+    try{ if(typeof sbClose==='function') sbClose(); }catch(e){}
+    close();
+    var el=document.createElement('div'); el.id='cc-modal';
+    el.style.cssText='position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(11,34,68,.55);font-family:Sarabun,sans-serif';
+    el.innerHTML='<style>#cc-modal .cc-box{width:100%;max-width:520px;max-height:90vh;overflow:auto;background:#fff;color:#14213D;border-radius:18px;padding:20px 20px 16px;box-shadow:0 30px 70px -24px rgba(11,34,68,.6)}#cc-modal h3{margin:0 0 4px;font-size:19px}#cc-modal .cc-s{font-size:13px;color:#5b6b86;margin:0 0 12px;line-height:1.5}#cc-modal .cc-g{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}#cc-modal .cc-k{border-radius:12px;padding:10px 12px;background:#f1f5f9}#cc-modal .cc-k b{display:block;font-size:22px}#cc-modal .cc-k.ok{background:#dcfce7;color:#166534}#cc-modal .cc-k.w{background:#fef3c7;color:#92400e}#cc-modal .cc-blk{border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;margin-top:8px;font-size:14px}#cc-modal .cc-l div{padding:3px 0;border-top:1px solid #f1f5f9}#cc-modal .cc-m{color:#64748b;font-size:12px}#cc-modal button{border-radius:10px;padding:10px 18px;font:700 14px Sarabun,sans-serif;cursor:pointer}</style>'
+      +'<div class="cc-box"><h3>เทียบกับคลาวด์</h3><p class="cc-s">ตรวจว่าข้อมูลในเครื่องนี้ตรงกับที่เก็บบนฐานข้อมูลกลางหรือไม่ อ่านอย่างเดียว ไม่แก้ข้อมูลทั้งสองฝั่ง การเทียบ 1 ครั้งอ่านข้อมูลจากคลาวด์ทั้งชุด (นับเป็นจำนวนเอกสารรายสัปดาห์ ไม่กี่ร้อยครั้งจากโควตาฟรีวันละ 50,000)</p>'
+      +'<div id="cc-out"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button id="cc-x" type="button" style="border:1px solid #cbd5e4;background:#fff;color:#14213D">ปิด</button><button id="cc-go" type="button" style="border:0;background:#1d4ed8;color:#fff">เริ่มเทียบ</button></div></div>';
+    document.body.appendChild(el);
+    el.querySelector('#cc-x').onclick=close;
+    var out=el.querySelector('#cc-out'), go=el.querySelector('#cc-go');
+    go.onclick=async function(){
+      go.disabled=true; go.style.opacity='.6'; out.innerHTML='<p class="cc-s">กำลังอ่านข้อมูลจากคลาวด์…</p>';
+      try{
+        if(typeof window.__cloudCompare!=='function') throw new Error('ยังไม่ได้ตั้งค่าฐานข้อมูลกลาง');
+        var r=await window.__cloudCompare(); var bad=r.diff.length+r.onlyLocal.length+r.onlyCloud.length;
+        out.innerHTML='<div class="cc-g"><div class="cc-k ok"><b>'+r.same+'</b>วันที่ตรงกัน</div><div class="cc-k '+(r.diff.length?'w':'')+'"><b>'+r.diff.length+'</b>วันที่เนื้อหาต่างกัน</div><div class="cc-k '+(r.onlyLocal.length?'w':'')+'"><b>'+r.onlyLocal.length+'</b>มีเฉพาะในเครื่องนี้</div><div class="cc-k '+(r.onlyCloud.length?'w':'')+'"><b>'+r.onlyCloud.length+'</b>มีเฉพาะบนคลาวด์</div></div>'
+          +(bad?'':'<div class="cc-blk"><b>ข้อมูลในเครื่องตรงกับคลาวด์ทุกวัน ✓</b></div>')
+          +list('เนื้อหาต่างกัน',r.diff,'',function(x){ return '<div>'+esc(th(x.k))+' · เครื่อง '+x.localRows+' แถว / คลาวด์ '+x.cloudRows+' แถว</div>'; })
+          +list('มีเฉพาะในเครื่องนี้ (ยังไม่ขึ้นคลาวด์)',r.onlyLocal,'',function(x){ return '<div>'+esc(th(x.k))+' · '+x.rows+' แถว</div>'; })
+          +list('มีเฉพาะบนคลาวด์ (เครื่องนี้ไม่มี)',r.onlyCloud,'',function(x){ return '<div>'+esc(th(x.k))+' · '+x.rows+' แถว</div>'; })
+          +'<p class="cc-m" style="margin-top:10px">เทียบเมื่อ '+new Date(r.at).toLocaleTimeString('th-TH')+' · ถ้ายังมีวันที่ต่างกันหลังรอสักครู่ ให้เปิดดูวันนั้นและบันทึกซ้ำ ระบบจะซิงค์ให้</p>';
+      }catch(e){ out.innerHTML='<div class="cc-blk w"><b>เทียบไม่สำเร็จ</b><div class="cc-l"><div>'+esc((e&&e.message)||e)+'</div><div>ตรวจอินเทอร์เน็ตและการเข้าสู่ระบบ แล้วลองใหม่</div></div></div>'; }
+      go.disabled=false; go.style.opacity='1'; go.textContent='เทียบอีกครั้ง';
+    };
+  }
+  window.openCloudCompare=open;
+  function addBtn(){
+    if(document.getElementById('sb-cc-btn')) return;
+    var ref=document.getElementById('sb-prune-btn')||document.querySelector('.sb-item[onclick*="openRestorePoints"]'); if(!ref) return;
+    ref.insertAdjacentHTML('beforebegin','<button id="sb-cc-btn" class="sb-item" onclick="openCloudCompare()"><span class="sb-ic" style="--c:#38BDF8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5a4.5 4.5 0 0 1 .5 9.5H7z"/><path d="M9 13l2 2 4-4"/></svg></span><span>เทียบกับคลาวด์</span></button>');
+  }
+  addBtn(); setTimeout(addBtn,1500);
+}catch(e){ try{console.error('cc',e)}catch(_){} } })();
 </script>
 
 <script id="sw-reg-js">

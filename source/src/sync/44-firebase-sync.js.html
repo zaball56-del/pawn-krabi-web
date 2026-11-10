@@ -223,6 +223,26 @@
     });
   });
 
+  /* เทียบข้อมูลในเครื่องกับบนคลาวด์ (อ่านอย่างเดียว ไม่แก้ทั้งสองฝั่ง) */
+  function rowCount(o){ var n=0; try{ (o.months||[]).forEach(function(m){ if(m&&m!=='สรุปประจำวัน') n+=((o.data&&o.data[m])||[]).length; }); }catch(e){} return n; }
+  window.__cloudCompare=async function(snapIn){
+    var snap=snapIn;
+    if(!snap){ if(!cloud.col) throw new Error('ยังไม่ได้เชื่อมต่อฐานข้อมูลกลาง'); snap=await cloud.col.get({source:'server'}); }
+    var cl={}; snap.docs.forEach(function(d){ entriesOf(d).forEach(function(e){ cl[e.k]=e.json; }); });
+    var keys={}; Object.keys(db).forEach(function(k){ if(k!=='') keys[k]=1; }); Object.keys(cl).forEach(function(k){ if(k!=='') keys[k]=1; });
+    var out={at:Date.now(),local:0,cloud:0,same:0,onlyLocal:[],onlyCloud:[],diff:[]};
+    Object.keys(db).forEach(function(k){ if(k!=='') out.local++; }); Object.keys(cl).forEach(function(k){ if(k!=='') out.cloud++; });
+    Object.keys(keys).sort().forEach(function(k){
+      var inL=(k in db)&&k!=='', inC=(k in cl);
+      if(inL&&!inC){ out.onlyLocal.push({k:k,rows:rowCount(db[k])}); return; }
+      if(!inL&&inC){ var o=null; try{ o=JSON.parse(cl[k]); }catch(e){} out.onlyCloud.push({k:k,rows:o?rowCount(o):0}); return; }
+      var cur=compactOf(k), same=(hash(cur)===hash(cl[k]));
+      if(!same){ try{ same=(JSON.stringify(JSON.parse(cl[k]),stripTrailingBlankRows)===cur); }catch(e){} }
+      if(same) out.same++; else { var co=null; try{ co=JSON.parse(cl[k]); }catch(e){} out.diff.push({k:k,localRows:rowCount(db[k]),cloudRows:co?rowCount(co):0}); }
+    });
+    return out;
+  };
+
   window.initApp=function(){
     ind('pending','กำลังเชื่อมต่อฐานข้อมูลกลาง…');
     ready.then(function(r){

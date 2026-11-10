@@ -112,6 +112,16 @@
   if(typeof o0==='function'){ window.openDataSettings=function(){ var r=o0.apply(this,arguments); setTimeout(function(){ var m=document.getElementById('ds-modal'); if(m&&!mo){ mo=new MutationObserver(function(){ if(!document.getElementById('bk-card')) inject(); }); mo.observe(m,{childList:true,subtree:true}); } inject(); },250); return r; }; }
   /* ---- เริ่มทำงานหลังเข้าโปรแกรม ---- */
   load().then(function(){ var tries=0; var t=setInterval(function(){ tries++; var a=document.getElementById('app-container'); if(a&&a.style.display==='flex'){ clearInterval(t); setTimeout(auto,3500); } else if(tries>240) clearInterval(t); },1000); setInterval(function(){ if(Date.now()-lastCheck>20*60*1000){ lastCheck=Date.now(); auto(); } },60*1000); });
+  /* สำเนาถาวร: เขียนไฟล์ที่ชื่อไม่ตรงรูปแบบสำรองรายวัน จึงไม่ถูกลบตามจำนวนวันที่ตั้งเก็บ; ตรวจอ่านกลับก่อนรายงานว่าสำเร็จ */
+  window.__bkArchive=async function(text,name){
+    var want=text.length;
+    if(handle&&await perm(handle,true)){
+      try{ var fh=await handle.getFileHandle(name,{create:true}); var w=await fh.createWritable(); await w.write(text); await w.close();
+        var back=await (await fh.getFile()).text(); if(back.length===want&&back===text) return {ok:true,where:'folder',name:name,folder:cfg.folder||''};
+      }catch(e){ try{console.warn('archive folder',e)}catch(_){} }
+    }
+    return {ok:false,why:'nofolder'};
+  };
   window.__bk={writeNow:writeNow,cfg:function(){return cfg},auto:auto,files:function(){return handle?files(handle):[]},setHandle:async function(h){handle=h;cfg.on=true;cfg.folder=h.name||'test';await kvSet('dir',h);await save();}};
 }catch(e){ try{console.error('bk',e)}catch(_){} } })();
 </script>

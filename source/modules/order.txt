@@ -10,4 +10,5 @@ barcode.html
 tweaks.html
 scanmode.html
 importguard.html
+cloudcmp.html
 swreg.html
