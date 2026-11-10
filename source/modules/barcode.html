@@ -18,6 +18,37 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   window.__parseTicketBarcode=parse;
   var PAIRS={'qs-ticket':'qs-book','qs-new-ticket':'qs-new-book'};
   function fire(el){ el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
+  function nz(v){ try{return normalizeCompareTicket(v)}catch(e){return String(v||'').trim().toLowerCase()} }
+  function thd(k){var p=k.split('-');return p[2]+'/'+p[1]+'/'+(parseInt(p[0],10)+543)}
+  var TH0=Date.now();
+  /* หาตั๋วใบเดียวกัน (เล่ม+เลข) ที่ถูกบันทึกแล้ว: วันนี้ทุกแถว และวันก่อนหน้าย้อนหลังไม่เกิน 366 วัน (เล่มขึ้นใหม่ทุกปี) */
+  function dupInfo(book,ticket){
+    var out=[], tk=nz(ticket), bk=nz(book), today=(typeof currentDate!=='undefined')?currentDate:'';
+    if(!tk||typeof db==='undefined') return out;
+    var lim=today?new Date(today+'T00:00:00').getTime()-366*864e5:0;
+    Object.keys(db).forEach(function(k){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(k)) return; var d=db[k]; if(!d||!d.months||!d.data) return;
+      if(k!==today && (k>today || new Date(k+'T00:00:00').getTime()<lim)) return;
+      d.months.forEach(function(m){ var rows=d.data[m]; if(!rows) return;
+        rows.forEach(function(r){ if(!r) return;
+          if(r.ticket&&nz(r.ticket)===tk&&(!bk||!r.book||nz(r.book)===bk)&&(r.type||r.newTicket)) out.push({k:k,m:m,t:r.type||'',ts:r.timestamp||'',as:'ตั๋วเดิม'});
+          if(r.newTicket&&nz(r.newTicket)===tk&&(!bk||!r.newBook||nz(r.newBook)===bk)) out.push({k:k,m:m,t:r.type||'',ts:r.timestamp||'',as:'ตั๋วใหม่'});
+        }); });
+    });
+    return out;
+  }
+  function warnDup(book,ticket,elId){
+    var L=dupInfo(book,ticket); if(!L.length) return;
+    try{ if(typeof playSciFiSound==='function') playSciFiSound('access_denied'); }catch(e){}
+    try{ navigator.vibrate&&navigator.vibrate([120,80,120]); }catch(e){}
+    var today=(typeof currentDate!=='undefined')?currentDate:'';
+    var lines=['⚠ ตั๋วใบนี้สแกน/บันทึกไว้แล้ว','','เล่มที่ '+(book||'-')+'   เลขที่ '+ticket,''];
+    L.slice(0,5).forEach(function(x){ lines.push('• '+(x.k===today?'วันนี้':thd(x.k))+' · '+x.m+(x.t?' · ประเภท '+x.t:'')+' · เป็น'+x.as+(x.ts?' · '+x.ts:'')); });
+    if(L.length>5) lines.push('… และอีก '+(L.length-5)+' รายการ');
+    lines.push('','ยืนยัน = เก็บค่าไว้ คีย์ต่อ   ·   ยกเลิก = ล้างช่องนี้');
+    if(window.uiConfirm) window.uiConfirm(lines.join('\n')).then(function(ok){ if(!ok){ ['qs-ticket','qs-book','qs-amount','qs-new-ticket','qs-new-book','qs-new-amount'].forEach(function(i){ if((i==='qs-ticket'||i==='qs-book'||i==='qs-amount')===(elId==='qs-ticket')){ var e=document.getElementById(i); if(e){ e.value=''; delete e.dataset.barcode; e.dispatchEvent(new Event('input',{bubbles:true})); } } }); var f=document.getElementById(elId); if(f) f.focus(); } });
+  }
+  window.__qsDupInfo=dupInfo;
   var busy=false;
   function onIn(e){
     var el=e.target; if(busy||!el||!PAIRS[el.id]) return;
@@ -27,6 +58,7 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
     try{
       var raw=el.value.trim(); el.value=r.ticket; bk.value=r.book; el.dataset.barcode=raw; fire(el); fire(bk);
       var m=document.getElementById('qs-msg'); if(m){ m.textContent='อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket; m.className='qs-msg ok'; }
+      var wd=function(){ warnDup(r.book,r.ticket,el.id); }; setTimeout(wd,60);
       var mon=document.getElementById('qs-month'), amt=document.getElementById(el.id==='qs-ticket'?'qs-amount':'qs-new-amount');
       var next=(el.id==='qs-ticket'&&mon&&!mon.value)?mon:amt; if(next) setTimeout(function(){ try{next.focus();}catch(_){} },30);
     } finally { busy=false; }

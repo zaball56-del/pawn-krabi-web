@@ -8,4 +8,5 @@ backup.html
 netstate.html
 barcode.html
 tweaks.html
+scanmode.html
 swreg.html
