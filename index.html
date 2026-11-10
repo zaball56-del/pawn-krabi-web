@@ -2239,7 +2239,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 try { localStorage.setItem('pawn_krabi_master_db', serializeDBCompact()); } catch (_) {}
             }
             const todayStr = getTodayLocalDateStr();
-            currentDate = localStorage.getItem('pawn_krabi_selected_date') || todayStr;
+            /* เปิดโปรแกรมวันใหม่ → ไปที่วันนี้เสมอ; ถ้าเลือกวันอื่นไว้ในวันเดียวกัน (เช่น รีเฟรช) ยังคงวันที่เลือกไว้ */
+            let selOn = ''; try { selOn = localStorage.getItem('pawn_krabi_selected_on') || ''; } catch (_) {}
+            currentDate = (selOn === todayStr && localStorage.getItem('pawn_krabi_selected_date')) || todayStr;
 
             if (currentDate) {
                 let parts = currentDate.split('-');
@@ -2924,7 +2926,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 }
             }
             currentDate = rawDate;
-            localStorage.setItem('pawn_krabi_selected_date', currentDate);
+            localStorage.setItem('pawn_krabi_selected_date', currentDate); try { localStorage.setItem('pawn_krabi_selected_on', getTodayLocalDateStr()); } catch (_) {}
             updateHeaderInfo(currentDate);
             document.getElementById('sort-order').value = 'normal';
             currentSortOrder = 'normal';
