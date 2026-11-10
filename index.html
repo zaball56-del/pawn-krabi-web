@@ -8140,6 +8140,20 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   },true);
   apply();
 }catch(e){ try{console.error(e)}catch(_){} } })();
+
+/* ปุ่มประเภทตั๋ว ส พ ผ ถ ในหน้ากล้องสแกน */
+(function(){ try{
+  var ov=document.getElementById('cam-ov'), ty=document.getElementById('qs-type'); if(!ov||!ty||document.getElementById('cam-types')) return;
+  var st=document.createElement('style'); st.textContent='#cam-ov .cam-bot .cam-tp{display:flex;gap:8px;align-items:center}#cam-ov .cam-bot .cam-tp span{font:700 13px Sarabun,sans-serif;color:#94a3b8;white-space:nowrap}#cam-ov .cam-bot .cam-tp button{flex:1;height:44px;border-radius:12px;font:800 20px Sarabun,sans-serif;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.28);box-shadow:none;color:#fff;padding:0}#cam-ov .cam-bot .cam-tp button.on{background:linear-gradient(135deg,#fbbf24,#f97316);border-color:#fbbf24;color:#fff}'; document.head.appendChild(st);
+  var row=document.createElement('div'); row.id='cam-types'; row.className='cam-tp'; row.innerHTML='<span>ประเภท</span>';
+  ['ส','พ','ผ','ถ'].forEach(function(t){ var b=document.createElement('button'); b.type='button'; b.textContent=t; b.dataset.t=t;
+    b.addEventListener('click',function(){ ty.value=(ty.value===t)?'':t; try{qsPaintType()}catch(e){} paint(); try{navigator.vibrate&&navigator.vibrate(10)}catch(e){} });
+    row.appendChild(b); });
+  function paint(){ row.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on',ty.value===b.dataset.t); }); }
+  var bot=ov.querySelector('.cam-bot'); if(bot) bot.insertBefore(row,bot.firstChild);
+  new MutationObserver(paint).observe(ov,{attributes:true,attributeFilter:['class']});
+  ty.addEventListener('change',paint); paint();
+}catch(e){ try{console.error(e)}catch(_){} } })();
 </script>
 
 <script id="sw-reg-js">
