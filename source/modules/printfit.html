@@ -1,0 +1,30 @@
+<style id="pf-css">
+#pf-opt{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:12px;background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;font:700 12px Sarabun,sans-serif;cursor:pointer;user-select:none}
+#pf-opt input{width:16px;height:16px;accent-color:#047857}
+#pf-opt small{font:600 11px Sarabun,sans-serif;color:#047857}
+</style>
+<script>
+(function(){
+  var KEY='pawn_print_trim', SPARE=2;
+  function on(){ try{ return localStorage.getItem(KEY)!=='0'; }catch(e){ return true; } }
+  function trim(){
+    var box=document.getElementById('print-preview-table-container'); if(!box) return 0;
+    var rows=[].slice.call(box.querySelectorAll('tbody > tr')).filter(function(tr){ var f=tr.firstElementChild; return f&&/^\d+$/.test(f.textContent.trim()); });
+    if(!rows.length) return 0;
+    var last=-1; rows.forEach(function(tr,i){ var tds=[].slice.call(tr.children).slice(1); if(tds.some(function(td){ return td.textContent.trim()!==''; })) last=i; });
+    var keep=Math.min(rows.length,Math.max(last+1+SPARE,6)), n=0;
+    for(var i=keep;i<rows.length;i++){ rows[i].parentNode.removeChild(rows[i]); n++; }
+    return n;
+  }
+  function note(n){ var e=document.getElementById('pf-note'); if(e) e.textContent=on()?(n?('ตัดแถวว่าง '+n+' แถว'):'ไม่มีแถวว่างท้าย'):''; }
+  function mount(){
+    if(document.getElementById('pf-opt')) return;
+    var btn=document.querySelector('#print-preview-modal button[onclick="printCurrentPreview()"]'); if(!btn) return;
+    var l=document.createElement('label'); l.id='pf-opt'; l.innerHTML='<input type="checkbox" id="pf-ck"> ตัดแถวว่างท้ายตาราง <small id="pf-note"></small>';
+    btn.parentNode.insertBefore(l,btn); var ck=l.querySelector('input'); ck.checked=on();
+    ck.onchange=function(){ try{ localStorage.setItem(KEY,ck.checked?'1':'0'); }catch(e){} try{ openPrintPreview(); }catch(e){} };
+  }
+  var op=window.openPrintPreview; if(typeof op==='function'){ window.openPrintPreview=function(){ var r=op.apply(this,arguments); try{ mount(); var n=on()?trim():0; note(n); }catch(e){ console.error(e); } return r; }; try{ openPrintPreview=window.openPrintPreview; }catch(e){} }
+  setTimeout(function(){ try{ mount(); }catch(e){} },1500);
+})();
+</script>
