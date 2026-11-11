@@ -7,7 +7,7 @@
   function norm(v){ try{return normalizeCompareTicket(v)}catch(e){return String(v||'').trim().toLowerCase()} }
   function dth(k){var p=k.split('-');return p[2]+'/'+p[1]+'/'+(parseInt(p[0],10)+543)}
   function hasVal(v){return v!==undefined&&v!==null&&String(v).replace(/,/g,'').trim()!==''&&Number(String(v).replace(/,/g,''))!==0}
-  // สำรอง: ถ้าไม่พบในข้อมูลที่เคยคีย์ ให้ดูจากฐานข้อมูลตั๋วตั้งต้น (นำเข้าจากรายงานทะเบียนทรัพย์สิน)
+  // สำรอง: ถ้าไม่พบในข้อมูลที่เคยคีย์ ให้ดูจากฐานข้อมูลกลาง (นำเข้าจากรายงานทะเบียนทรัพย์สิน)
   function baselineLookup(ticket,book){
     try{
       if(!window.__assetFindAll) return {status:'none'};
@@ -18,7 +18,7 @@
       if(!all.length) return {status:'none'};
       if(b){ var f=all.filter(function(x){return norm(x.book)===b}); if(!f.length) return {status:'bookmismatch',books:all.map(function(x){return x.book}).join(', ')}; all=f; }
       if(all.length>1) return {status:'multibook'};
-      var x=all[0]; return {status:'ok',amount:String(x.amount),date:null,month:'เดือน '+x.month+'/'+(x.year+543),src:'ฐานข้อมูลตั้งต้น',base:x};
+      var x=all[0]; return {status:'ok',amount:String(x.amount),date:null,month:'เดือน '+x.month+'/'+(x.year+543),src:'ฐานข้อมูลกลาง',base:x};
     }catch(e){ return {status:'none'}; }
   }
   // อ่านอย่างเดียว: หาตั๋ว (เลขตั๋ว + เล่มที่ถ้ามี) จากทุกวันที่เก็บไว้ในเครื่อง
@@ -27,6 +27,7 @@
     if(!t) return {status:'none'};
     var TM=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
     var mn=qmon(), mName=(mn>=1&&mn<=12)?TM[mn-1]:'';
+    try{ if(typeof window.centralFind==='function'){ var cr=window.centralFind(ticket,book,mn); if(cr) return cr; } }catch(e){}   // ดึงจากทะเบียนทรัพย์รับจำนำก่อน ไม่พบค่อยค้นบัญชีเดิม
     var cutKey=''; try{ var cp=String(currentDate).split('-'); if(cp.length===3){ var cd=new Date(Number(cp[0]),Number(cp[1])-1,Number(cp[2]),12); cd.setDate(cd.getDate()-365); cutKey=cd.getFullYear()+'-'+String(cd.getMonth()+1).padStart(2,'0')+'-'+String(cd.getDate()).padStart(2,'0'); } }catch(e){}
     for(var k in db){
       if(k.indexOf('-')<0||k.length!==10) continue;
@@ -55,13 +56,13 @@
         if(r.base){ if(!B.value.trim()){ B.value=r.base.book; }
           var ME=document.getElementById('qs-month'); if(ME&&!ME.value){ ME.value=String(r.base.month); try{qsMonthHint()}catch(e){} } }
         if(editable){ A.value=formatNumber(r.amount); A.classList.add('qs-auto');
-          if(r.base){ hint.className='qs-amt-hint'; hint.textContent='ดึงยอดจากฐานข้อมูลตั๋วตั้งต้น ('+r.month+' · เล่ม '+r.base.book+') แก้ไขได้'; }
+          if(r.base){ hint.className='qs-amt-hint'; hint.textContent='ดึงยอดจากทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+') แก้ไขได้'; }
           else {
           hint.className='qs-amt-hint'+(r.differs?' warn':''); hint.textContent='ดึงยอดจากข้อมูลเดิม ('+dth(r.date)+' · '+r.month+(r.src==='ตั๋วใหม่'?' · เป็นตั๋วใหม่':'')+')'+(r.differs?' — มีหลายยอด ตรวจสอบก่อนบันทึก':'')+' แก้ไขได้'; } }
-        else { hint.className='qs-amt-hint'; hint.textContent=r.base?('พบในฐานข้อมูลตั๋วตั้งต้น ยอด '+formatNumber(r.amount)+' (เล่ม '+r.base.book+')'):('พบในข้อมูลเดิม ยอด '+formatNumber(r.amount)+' ('+dth(r.date)+')'); }
+        else { hint.className='qs-amt-hint'; hint.textContent=r.base?('พบในทะเบียนทรัพย์รับจำนำ ยอด '+formatNumber(r.amount)+' (เล่ม '+r.base.book+')'):('พบในข้อมูลเดิม ยอด '+formatNumber(r.amount)+' ('+dth(r.date)+')'); }
       } else {
         if(A.classList.contains('qs-auto')){A.value='';A.classList.remove('qs-auto')}
-        hint.className='qs-amt-hint warn'; hint.textContent=r.status==='multibook'?'พบเลขตั๋วนี้หลายเล่ม ใส่เล่มที่เพื่อดึงยอด':(r.status==='bookmismatch'?'เล่มที่ไม่ตรงกับฐานข้อมูลตั๋วตั้งต้น · ตั๋วนี้อยู่เล่ม '+r.books:'ไม่พบตั๋วนี้ในข้อมูลเดิม กรอกยอดเอง');
+        hint.className='qs-amt-hint warn'; hint.textContent=r.status==='multibook'?'พบเลขตั๋วนี้หลายเล่ม ใส่เล่มที่เพื่อดึงยอด':(r.status==='bookmismatch'?'เล่มที่ไม่ตรงกับฐานข้อมูลกลาง · ตั๋วนี้อยู่เล่ม '+r.books:'ไม่พบตั๋วนี้ในข้อมูลเดิม กรอกยอดเอง');
       }
     }catch(e){console.error('qs-amount-lookup',e)}
   }

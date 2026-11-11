@@ -133,8 +133,8 @@
       var conflict=false;
       try{ var bs=window.__assetFind&&window.__assetFind(r.oldM,r.oldT,window.__assetYearFor(r.oldM,dateKey));
         if(bs){ o.base=bs;
-          if(String(found.amount||'').trim()!==''&&Math.abs(num(found.amount)-bs.amount)>0.009){conflict=true;o.msgs.push('ยอดตั๋วเดิมในบัญชี '+fmt(num(found.amount))+' แต่ฐานข้อมูลตั้งต้น = '+fmt(bs.amount));}
-          if(String(found.book||'').trim()&&nt(found.book)!==nt(bs.book)){conflict=true;o.msgs.push('เล่มตั๋วเดิมในบัญชี '+found.book+' แต่ฐานข้อมูลตั้งต้น = '+bs.book);} }
+          if(String(found.amount||'').trim()!==''&&Math.abs(num(found.amount)-bs.amount)>0.009){conflict=true;o.msgs.push('ยอดตั๋วเดิมในบัญชี '+fmt(num(found.amount))+' แต่ฐานข้อมูลกลาง = '+fmt(bs.amount));}
+          if(String(found.book||'').trim()&&nt(found.book)!==nt(bs.book)){conflict=true;o.msgs.push('เล่มตั๋วเดิมในบัญชี '+found.book+' แต่ฐานข้อมูลกลาง = '+bs.book);} }
       }catch(e){}
       if(found.type&&found.type!==r.type){conflict=true;o.msgs.push('บัญชีลงประเภท '+found.type+' แต่ สธ.2 = '+r.type);} else if(!found.type) o.fill.push('ประเภท '+r.type);
       var ln=String(found.newTicket||'').trim();

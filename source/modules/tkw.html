@@ -201,7 +201,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var mo=0; if(r.base) mo=+r.base.month; else { var ix=MN.indexOf(String(r.month||'').trim()); if(ix>0) mo=ix; }
     if(!SM.value&&mo>=1&&mo<=12){ SM.value=String(mo); mhint(); }
     if(SA.value.trim()===''||autoAmt){ SA.value=fmt(num(r.amount)); SA.classList.add('auto'); autoAmt=true;
-      hint('ดึงยอดจาก'+(r.base?'ฐานข้อมูลตั๋วตั้งต้น ('+r.month+' · เล่ม '+r.base.book+')':'ข้อมูลเดิม ('+dth(r.date)+' · '+r.month+')')+' แก้ไขได้',!!r.differs); }
+      hint('ดึงยอดจาก'+(r.base?'ทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+')':'ข้อมูลเดิม ('+dth(r.date)+' · '+r.month+')')+' แก้ไขได้',!!r.differs); }
     else hint('พบในข้อมูลเดิม ยอด '+fmt(num(r.amount))+' (ยอดที่ใส่ไว้ไม่ถูกเปลี่ยน)',false);
   }
   function schedL(){ clearTimeout(tmL); tmL=setTimeout(lookup,120); }

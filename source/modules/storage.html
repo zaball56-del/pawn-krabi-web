@@ -47,12 +47,12 @@
   function wk(k){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(k); return m?Math.floor(Date.UTC(+m[1],+m[2]-1,+m[3])/864e5/7):null; }
   function wkLabel(w){ var d=new Date(w*7*864e5), e=new Date((w*7+6)*864e5); function f(x){return x.toISOString().slice(0,10)} return f(d)+' ถึง '+f(e); }
   function compute(){
-    var days=[],parts={'ตารางบัญชีรายวัน':0,'ประวัติ สธ.2':0,'ฐานข้อมูลตั๋วตั้งต้น':0,'อื่น ๆ':0},byW={},total=0,other=0;
+    var days=[],parts={'ตารางบัญชีรายวัน':0,'ประวัติ สธ.2':0,'ฐานข้อมูลกลาง':0,'อื่น ๆ':0},byW={},total=0,other=0;
     Object.keys(db||{}).forEach(function(k){
       var d=db[k], w=wk(k);
       if(w===null||!d||typeof d!=='object'){ other+=bytes(d); return; }
       var s2=d.sor2?bytes(d.sor2):0, ab=d.assetBase?bytes(d.assetBase):0, dt=d.data?bytes(d.data):0, all=bytes(d);
-      parts['ประวัติ สธ.2']+=s2; parts['ฐานข้อมูลตั๋วตั้งต้น']+=ab; parts['ตารางบัญชีรายวัน']+=dt; parts['อื่น ๆ']+=Math.max(0,all-s2-ab-dt);
+      parts['ประวัติ สธ.2']+=s2; parts['ฐานข้อมูลกลาง']+=ab; parts['ตารางบัญชีรายวัน']+=dt; parts['อื่น ๆ']+=Math.max(0,all-s2-ab-dt);
       days.push({k:k,b:all}); total+=all; byW[w]=(byW[w]||0)+all;
     });
     parts['อื่น ๆ']+=other; total+=other;

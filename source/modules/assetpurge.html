@@ -1,0 +1,24 @@
+<script id="assetpurge-js">
+(function(){
+  // ล้างข้อมูล "ฐานข้อมูลตั้งต้น" (ทะเบียนทรัพย์สิน) ที่เลิกใช้แล้ว: สำรองเป็นไฟล์ก่อน แล้วลบเมื่อผู้ใช้ยืนยัน
+  function scan(){ var days=[],rows=0; if(typeof db==='undefined') return {days:days,rows:rows};
+    Object.keys(db).forEach(function(k){ var b=db[k]&&db[k].assetBase; if(!b) return; days.push(k); Object.keys(b).forEach(function(mk){ rows+=((b[mk]&&b[mk].rows)||[]).length; }); });
+    return {days:days,rows:rows}; }
+  window.assetPurge=function(force){
+    var s=scan(); if(!s.days.length) return 0;
+    if(!force){ try{ if(sessionStorage.getItem('pawn_ap_skip')==='1') return 0; }catch(e){} }
+    if(!confirm('พบข้อมูลฐานข้อมูลตั้งต้น (ทะเบียนทรัพย์สิน) ที่เลิกใช้แล้ว\n'+s.days.length+' วัน · '+s.rows.toLocaleString('th-TH')+' ใบ\n\nกด ตกลง เพื่อ: 1) ดาวน์โหลดไฟล์สำรองก่อน 2) ลบข้อมูลนี้ออกจากเครื่องและคลาวด์\n(ลบแล้วกู้คืนในแอปไม่ได้ ต้องใช้ไฟล์สำรอง)\n\nกด ยกเลิก เพื่อไม่ลบ แล้วจะถามใหม่ตอนเปิดครั้งหน้า')){
+      try{ sessionStorage.setItem('pawn_ap_skip','1'); }catch(e){} return 0; }
+    var bk={v:1,at:new Date().toISOString(),assetBase:{}}; s.days.forEach(function(k){ bk.assetBase[k]=db[k].assetBase; });
+    try{
+      var blob=new Blob([JSON.stringify(bk)],{type:'application/json'}), a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download='สำรองฐานข้อมูลตั้งต้น-'+bk.at.slice(0,10)+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ try{URL.revokeObjectURL(a.href); a.remove();}catch(e){} },2000);
+    }catch(e){ alert('สำรองไฟล์ไม่สำเร็จ จึงยังไม่ลบ'); return 0; }
+    s.days.forEach(function(k){ delete db[k].assetBase; });
+    try{ saveDB(); }catch(e){ console.error(e); }
+    try{ showToast('ลบฐานข้อมูลตั้งต้นแล้ว '+s.rows.toLocaleString('th-TH')+' ใบ (มีไฟล์สำรองในเครื่อง)'); }catch(e){}
+    return s.rows;
+  };
+  window.addEventListener('load',function(){ setTimeout(function(){ try{ if(typeof db!=='undefined'&&typeof saveDB==='function') window.assetPurge(false); }catch(e){} },6000); });
+})();
+</script>

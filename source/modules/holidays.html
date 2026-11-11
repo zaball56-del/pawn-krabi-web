@@ -1,0 +1,135 @@
+<style id="hd-css">
+#hd-modal{position:fixed;inset:0;z-index:77;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(15,23,42,.55)}
+#hd-modal.on{display:flex}
+#hd-modal .h-box{width:100%;max-width:520px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;background:#fff;color:#1e293b;box-shadow:0 24px 70px rgba(15,23,42,.3)}
+#hd-modal .h-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:linear-gradient(90deg,#f97316,#ef4444 60%,#ec4899);color:#fff}
+#hd-modal .h-head h3{margin:0;font-size:17px;font-weight:700}#hd-modal .h-head p{margin:2px 0 0;font-size:12px;opacity:.92}
+#hd-modal .h-x{width:34px;height:34px;border-radius:10px;border:0;background:rgba(255,255,255,.25);color:#fff;font-size:20px;cursor:pointer}
+#hd-modal .h-body{padding:14px 18px;overflow:auto;background:#f8fafc;display:flex;flex-direction:column;gap:12px}
+#hd-modal .h-nav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#hd-modal .h-nav b{font-size:16px}
+#hd-modal .h-nav button{border:1px solid #cbd5e1;background:#fff;border-radius:10px;width:38px;height:36px;font-size:16px;cursor:pointer;color:#334155}
+#hd-modal .h-nav button.t{width:auto;padding:0 12px;font-size:13px}
+#hd-modal .h-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+#hd-modal .h-w{text-align:center;font-size:12px;font-weight:700;color:#64748b;padding:4px 0}
+#hd-modal .h-w.we{color:#dc2626}
+#hd-modal .h-d{position:relative;aspect-ratio:1/1;border:1px solid #e2e8f0;background:#fff;border-radius:10px;cursor:pointer;font:inherit;font-size:15px;color:#0f172a;padding:0}
+#hd-modal .h-d.we{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+#hd-modal .h-d.ho{background:#ffedd5;color:#9a3412;border-color:#fdba74;font-weight:700}
+#hd-modal .h-d.td{outline:2px solid #4f46e5}
+#hd-modal .h-d.sel{box-shadow:0 0 0 3px rgba(79,70,229,.35)}
+#hd-modal .h-d.em{visibility:hidden}
+#hd-modal .h-d i{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%}
+#hd-modal .h-d i.ok{background:#10b981}#hd-modal .h-d i.miss{background:#f59e0b}
+#hd-modal .h-lg{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:#64748b}
+#hd-modal .h-lg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c);border:1px solid rgba(0,0,0,.08)}
+#hd-modal .h-ed{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:11px 12px;display:none;flex-direction:column;gap:8px}
+#hd-modal .h-ed.on{display:flex}
+#hd-modal .h-ed input{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;background:#fff;color:#0f172a}
+#hd-modal .h-ed .rw{display:flex;gap:8px}
+#hd-modal .h-ed button{border:0;border-radius:10px;padding:9px 14px;font:inherit;font-size:13.5px;cursor:pointer}
+#hd-modal .h-ed .sv{background:#ea580c;color:#fff;flex:1}#hd-modal .h-ed .rm{background:#fee2e2;color:#b91c1c}#hd-modal .h-ed .ca{background:#e2e8f0;color:#334155}
+#hd-modal .h-ls{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:8px 12px;font-size:13px}
+#hd-modal .h-ls h4{margin:2px 0 6px;font-size:13px;color:#475569}
+#hd-modal .h-ls div{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid #f1f5f9}
+#hd-modal .h-ls div:first-of-type{border-top:0}
+#hd-modal .h-ls em{font-style:normal;color:#94a3b8}
+#hd-modal .h-cl{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;background:rgba(255,255,255,.25);border-radius:999px;padding:2px 8px;vertical-align:2px}#hd-modal .h-cl.er{background:#7f1d1d}#hd-modal .h-cl.ok{background:rgba(16,185,129,.55)}
+</style>
+<div id="hd-modal" class="no-print" role="dialog" aria-modal="true" aria-label="ปฏิทินวันหยุด">
+ <div class="h-box">
+  <div class="h-head"><div><h3>ปฏิทินวันหยุด <small id="hd-cloud" class="h-cl"></small></h3><p>เสาร์–อาทิตย์หยุดอยู่แล้ว · แตะวันที่เพื่อเพิ่มวันหยุดราชการ</p></div><button class="h-x" type="button" onclick="holidayClose()" aria-label="ปิด">×</button></div>
+  <div class="h-body">
+   <div class="h-nav"><button type="button" id="hd-prev" aria-label="เดือนก่อน">‹</button><b id="hd-title"></b><button type="button" class="t" id="hd-today">วันนี้</button><button type="button" id="hd-next" aria-label="เดือนถัดไป">›</button></div>
+   <div id="hd-grid" class="h-g"></div>
+   <div class="h-lg"><span style="--c:#fef2f2">เสาร์–อาทิตย์</span><span style="--c:#ffedd5">วันหยุดราชการ</span><span style="--c:#10b981">มี สธ.2 แล้ว</span><span style="--c:#f59e0b">วันทำการที่ยังไม่มี สธ.2</span></div>
+   <div id="hd-ed" class="h-ed"><b id="hd-edt"></b><input id="hd-name" type="text" placeholder="ชื่อวันหยุด เช่น วันฉัตรมงคล (ไม่ใส่ก็ได้)"><div class="rw"><button type="button" class="sv" id="hd-sv">บันทึกเป็นวันหยุด</button><button type="button" class="rm" id="hd-rm">ยกเลิกวันหยุด</button><button type="button" class="ca" id="hd-ca">ปิด</button></div></div>
+   <div id="hd-ls" class="h-ls"></div>
+  </div>
+ </div>
+</div>
+<script id="hd-js">
+(function(){
+  var KEY='pawn_holidays_v1';
+  var TH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  var WD=['อา','จ','อ','พ','พฤ','ศ','ส'];
+  var H={}, Y=0, M=0, SEL='';
+  function $(i){return document.getElementById(i)}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function p2(n){return String(n).padStart(2,'0')}
+  function key(y,m,d){return y+'-'+p2(m+1)+'-'+p2(d)}
+  function load(){ try{ H=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ H={}; } }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(H)); }catch(e){} }
+  // ซิงก์คลาวด์: เอกสารเดียว tkw/holidays ฟิลด์ละวัน h20261105 = JSON {n,u,x}; ใหม่กว่าชนะ; x=ยกเลิก
+  var CL={on:false,started:false,denied:false,dirty:{},timer:null,tries:0,doc:null};
+  function chip(t,k){ var e=$('hd-cloud'); if(e){ e.textContent=t; e.className='h-cl '+(k||''); } }
+  function fbExists(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0; }catch(e){ return false; } }
+  function fbReady(){ try{ return fbExists()&&!!firebase.auth().currentUser; }catch(e){ return false; } }
+  function fld(k){ return 'h'+k.replace(/-/g,''); }
+  function unf(f){ var m=/^h(\d{4})(\d{2})(\d{2})$/.exec(f); return m?m[1]+'-'+m[2]+'-'+m[3]:null; }
+  function dirty(k){ CL.dirty[k]=1; if(CL.on) sched(1000); }
+  function sched(ms){ clearTimeout(CL.timer); CL.timer=setTimeout(push,ms); }
+  function push(){
+    if(!CL.on||!CL.doc||CL.denied) return; var o={}, ks=Object.keys(CL.dirty); if(!ks.length) return;
+    ks.forEach(function(k){ if(H[k]) o[fld(k)]=JSON.stringify(H[k]); });
+    chip('☁ กำลังซิงก์…');
+    CL.doc.set(o,{merge:true}).then(function(){ ks.forEach(function(k){ delete CL.dirty[k]; }); chip('☁ ซิงก์แล้ว','ok'); if(Object.keys(CL.dirty).length) sched(1000); })
+      .catch(function(err){ var c=err&&err.code; if(c==='permission-denied'){ CL.denied=true; chip('☁ ซิงก์ไม่ได้: ยังไม่มีสิทธิ์ (เก็บในเครื่องนี้)','er'); } else { chip('☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา','er'); sched(30000); } });
+  }
+  function startSync(){
+    if(CL.started||CL.denied) return;
+    if(!fbExists()){ chip('☁ เก็บในเครื่องนี้เท่านั้น','er'); return; }
+    if(!fbReady()){ if(CL.tries++<20){ chip('☁ รอเชื่อมต่อ…'); setTimeout(startSync,1500); } else chip('☁ ยังไม่ได้เข้าสู่ระบบ','er'); return; }
+    CL.started=true; chip('☁ กำลังเชื่อมต่อ…');
+    try{
+      CL.doc=firebase.firestore().collection('tkw').doc('holidays');
+      CL.doc.onSnapshot(function(snap){
+        var x=(snap.exists&&snap.data())||{}, seen={}, ch=false;
+        Object.keys(x).forEach(function(f){ var k=unf(f); if(!k) return; var c; try{ c=JSON.parse(x[f]); }catch(e){ return; } seen[k]=c.u||0;
+          if(!H[k]||(c.u||0)>(H[k].u||0)){ H[k]=c; ch=true; } });
+        if(!CL.on){ CL.on=true; Object.keys(H).forEach(function(k){ if(seen[k]===undefined||(H[k].u||0)>seen[k]) CL.dirty[k]=1; }); }
+        if(ch){ save(); if($('hd-modal').classList.contains('on')) render(); }
+        chip(snap.metadata&&snap.metadata.fromCache?'☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา':'☁ ซิงก์แล้ว',snap.metadata&&snap.metadata.fromCache?'er':'ok');
+        if(Object.keys(CL.dirty).length) sched(500);
+      },function(err){ var c=err&&err.code; if(c==='permission-denied'){ CL.denied=true; chip('☁ ซิงก์ไม่ได้: ยังไม่มีสิทธิ์ (เก็บในเครื่องนี้)','er'); } else chip('☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา','er'); });
+    }catch(e){ chip('☁ ซิงก์ไม่ได้','er'); }
+  }
+  function act(k){ return !!(H[k]&&!H[k].x); }
+  function today(){ var n=new Date(); return key(n.getFullYear(),n.getMonth(),n.getDate()); }
+  // ใช้ต่อได้จากที่อื่น: เป็นวันหยุด (เสาร์-อาทิตย์ หรือวันหยุดราชการที่ใส่ไว้) หรือไม่
+  window.isHolidayDate=function(k){ if(!H||!Object.keys(H).length) load(); var a=String(k).split('-'); if(a.length<3) return false; var w=new Date(+a[0],+a[1]-1,+a[2]).getDay(); return w===0||w===6||act(k); };
+  window.holidayName=function(k){ if(!Object.keys(H).length) load(); return act(k)?(H[k].n||'วันหยุดราชการ'):''; };
+  function hasS2(k){ try{ return !!(typeof db!=='undefined'&&db[k]&&db[k].sor2); }catch(e){ return false; } }
+  function render(){
+    $('hd-title').textContent=TH[M]+' '+(Y+543);
+    var g='',first=new Date(Y,M,1).getDay(), n=new Date(Y,M+1,0).getDate(), t=today();
+    WD.forEach(function(w,i){ g+='<div class="h-w'+(i===0||i===6?' we':'')+'">'+w+'</div>'; });
+    for(var i=0;i<first;i++) g+='<button class="h-d em" type="button" tabindex="-1"></button>';
+    for(var d=1;d<=n;d++){
+      var k=key(Y,M,d), wd=new Date(Y,M,d).getDay(), we=(wd===0||wd===6), ho=act(k);
+      var dot=''; if(!we&&!ho&&k<=t){ dot=hasS2(k)?'<i class="ok"></i>':(k<t?'<i class="miss"></i>':''); } else if(hasS2(k)) dot='<i class="ok"></i>';
+      g+='<button type="button" data-k="'+k+'" class="h-d'+(ho?' ho':(we?' we':''))+(k===t?' td':'')+(k===SEL?' sel':'')+'" title="'+esc(ho?(H[k].n||'วันหยุดราชการ'):'')+'">'+d+dot+'</button>';
+    }
+    $('hd-grid').innerHTML=g;
+    var ks=Object.keys(H).filter(function(k){return act(k)&&+k.slice(0,4)===Y}).sort();
+    $('hd-ls').innerHTML='<h4>วันหยุดราชการปี '+(Y+543)+' ('+ks.length+' วัน)</h4>'+(ks.length?ks.map(function(k){ var a=k.split('-'); return '<div><span>'+(+a[2])+' '+TH[+a[1]-1]+'</span><em>'+esc(H[k].n||'')+'</em></div>'; }).join(''):'<div><em>ยังไม่ได้ใส่วันหยุด</em></div>');
+  }
+  function edit(k){
+    SEL=k; var a=k.split('-'), w=new Date(+a[0],+a[1]-1,+a[2]).getDay();
+    $('hd-ed').classList.add('on'); $('hd-edt').textContent=(+a[2])+' '+TH[+a[1]-1]+' '+(+a[0]+543)+((w===0||w===6)?' · วันเสาร์/อาทิตย์ หยุดอยู่แล้ว':'');
+    $('hd-name').value=act(k)?(H[k].n||''):''; $('hd-sv').textContent=act(k)?'บันทึกชื่อ':'บันทึกเป็นวันหยุด'; $('hd-rm').style.display=act(k)?'':'none'; render();
+  }
+  function close(){ SEL=''; $('hd-ed').classList.remove('on'); render(); }
+  $('hd-grid').addEventListener('click',function(e){ var b=e.target.closest('[data-k]'); if(b) edit(b.getAttribute('data-k')); });
+  $('hd-sv').onclick=function(){ if(!SEL) return; H[SEL]={n:$('hd-name').value.trim(),u:Date.now()}; save(); dirty(SEL); close(); };
+  $('hd-rm').onclick=function(){ if(!SEL) return; H[SEL]={x:1,u:Date.now()}; save(); dirty(SEL); close(); };
+  $('hd-ca').onclick=close;
+  $('hd-name').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('hd-sv').click(); } });
+  $('hd-prev').onclick=function(){ M--; if(M<0){M=11;Y--;} close(); };
+  $('hd-next').onclick=function(){ M++; if(M>11){M=0;Y++;} close(); };
+  $('hd-today').onclick=function(){ var n=new Date(); Y=n.getFullYear(); M=n.getMonth(); close(); };
+  window.holidayOpen=function(){ load(); startSync(); var n=new Date(); Y=n.getFullYear(); M=n.getMonth(); SEL=''; $('hd-ed').classList.remove('on'); $('hd-modal').classList.add('on'); render(); };
+  window.addEventListener('load',function(){ setTimeout(function(){ load(); startSync(); },5000); });
+  window.holidayClose=function(){ $('hd-modal').classList.remove('on'); };
+})();
+</script>
