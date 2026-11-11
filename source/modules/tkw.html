@@ -43,11 +43,12 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 #tkw-page tr.tot th,#tkw-page tr.tot td{position:sticky;bottom:0;z-index:2;background:#dff3e6;height:58px;font:800 16px Sarabun,sans-serif;color:#14532d}
 #tkw-page tr.tot th.no{z-index:3;background:#bfe6cd;font-size:14px}
 #tkw-page tr.tot td{text-align:right;padding:0 14px;white-space:nowrap}
-#tkw-page .bar{flex:none;height:78px;background:#0d1637;display:flex;justify-content:space-around;align-items:center;padding:0 6px calc(10px + env(safe-area-inset-bottom))}
-#tkw-page .bar button{border:0;background:none;text-align:center;font:700 13px Sarabun,sans-serif;color:#cfd8ff;min-width:64px}
-#tkw-page .bar button span{display:block;font-size:24px;line-height:1.1}
-#tkw-page .bar button:disabled{opacity:.4}
-#tkw-page .bar button.scan{background:linear-gradient(135deg,#fbbf24,#f97316);color:#fff;border-radius:18px;height:54px;min-width:96px;box-shadow:0 8px 18px -8px rgba(249,115,22,.9)}#tkw-page .bar button.scan span{display:inline;font-size:20px;margin-right:4px}
+#tkw-page .bar{flex:none;height:calc(68px + env(safe-area-inset-bottom));background:#0f172a;border-top:1px solid rgba(255,255,255,.14);display:flex;justify-content:space-around;align-items:center;gap:2px;padding:0 2px env(safe-area-inset-bottom);touch-action:manipulation}
+#tkw-page .bar button{flex:1 1 0;min-width:0;height:68px;padding:0;border:0;background:none;color:#cbd5e1;font:600 10.5px Sarabun,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;-webkit-tap-highlight-color:rgba(245,158,11,.35);user-select:none;-webkit-user-select:none}
+#tkw-page .bar button b{font-size:19px;line-height:1;font-weight:400}
+#tkw-page .bar button:active{transform:scale(.95)}
+#tkw-page .bar button:disabled{opacity:.35}
+#tkw-page .bar button.scan{flex:1.7 1 0;height:52px;margin:0 4px;padding:0 6px;background:#f59e0b;color:#1c1917;border-radius:16px;flex-direction:row;gap:6px;font-size:14px;font-weight:700;box-shadow:none}#tkw-page .bar button.scan b{font-size:16px}
 #tkw-page .col-empty{display:none}
 
 #cam-ov.tkw-cam #cam-types{display:none !important}
@@ -100,7 +101,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       <div class="msg" id="tkw-sq-msg">เลือกเดือน → สแกนตั๋ว → ใส่ยอดเงิน → Enter</div>
     </div>
   </div>
-  <div class="bar"><button type="button" id="tkw-undo"><span>↶</span>เลิกทำ</button><button type="button" id="tkw-scan-btn" class="scan"><span>📷</span>สแกน</button><button type="button" id="tkw-find"><span>🔍</span>ค้นหา</button><button type="button" id="tkw-add"><span>＋</span>เพิ่มแถว</button><button type="button" id="tkw-print"><span>🖨</span>พิมพ์</button></div>
+  <div class="bar"><button type="button" id="tkw-undo"><b>↶</b>เลิกทำ</button><button type="button" id="tkw-find"><b>🔍</b>ค้นหา</button><button type="button" id="tkw-scan-btn" class="scan"><b>📷</b>สแกน</button><button type="button" id="tkw-add"><b>＋</b>เพิ่มแถว</button><button type="button" id="tkw-print"><b>🖨</b>พิมพ์</button></div>
 </div>
 <script id="tkw-js">
 (function(){ try{
