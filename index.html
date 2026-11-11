@@ -8366,6 +8366,30 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 #tkw-sq .msg.er{background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5}
 @media (max-width:899px){#tkw-page.one [data-g]:not(.cur):not(input){display:none}#tkw-page td{height:54px;padding:3px 4px}#tkw-page td input{height:44px;font-size:19px}#tkw-page tr.tot th,#tkw-page tr.tot td{height:50px}#tkw-page .dt{margin:8px 10px 2px;padding:6px}#tkw-page .dt button,#tkw-page .dt input{height:44px}#tkw-page .dt button{width:44px}#tkw-page .tabs{padding:6px 10px 4px}#tkw-cmp{font-size:12px !important}}
 #tkw-page .bk-tag{z-index:1;top:-2px}
+#tkw-ph{display:none}
+#tkw-pv{display:none;position:absolute;inset:0;z-index:30;background:#1e293b;flex-direction:column}
+#tkw-page.pv-on #tkw-pv{display:flex}
+#tkw-pv .pvh{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px;background:#0f172a;color:#fff;border-bottom:1px solid rgba(255,255,255,.15)}
+#tkw-pv .pvh b{font:800 16px Sarabun,sans-serif}#tkw-pv .pvh span{font:600 12px Sarabun,sans-serif;color:#a7f3d0}#tkw-pv .pvh .sp{flex:1}
+#tkw-pv .pvh button{border:0;border-radius:12px;padding:10px 16px;font:800 14px Sarabun,sans-serif;background:#e2e8f0;color:#334155}#tkw-pv .pvh #tkw-pv-go{background:#10b981;color:#fff}#tkw-pv #tkw-pv-trim{display:inline-flex;align-items:center;gap:6px;background:#ecfdf5;color:#065f46;border-radius:12px;padding:8px 10px;font:700 12px Sarabun,sans-serif;cursor:pointer}#tkw-pv #tkw-pv-trim input{width:16px;height:16px;accent-color:#047857}
+#tkw-pv .pvs{flex:1;min-height:0;overflow:auto;padding:12px}
+#tkw-pv-paper{background:#fff;color:#000;width:1123px;padding:30px;margin:0 auto;box-shadow:0 8px 30px rgba(0,0,0,.5);transform-origin:top left;font-family:Sarabun,sans-serif}
+#tkw-pv-paper .t1{text-align:center;font:800 15pt Sarabun,sans-serif}#tkw-pv-paper .t2{text-align:center;font:700 11pt Sarabun,sans-serif;margin-bottom:6px}
+#tkw-pv-paper table{width:100%;border-collapse:collapse;table-layout:fixed}
+#tkw-pv-paper th,#tkw-pv-paper td{border:1px solid #9ca3af;text-align:center;padding:0;line-height:1;overflow:hidden;white-space:nowrap;color:#000;background:#fff}
+#tkw-pv-paper th.no{width:26px}#tkw-pv-paper td.ca{text-align:right;padding-right:3px}#tkw-pv-paper thead th{font-size:8pt;font-weight:700;padding:2px 1px;height:20px}
+#tkw-pv-paper thead tr:first-child th{font-size:10pt}#tkw-pv-paper tr.tot td,#tkw-pv-paper tr.tot th{font-weight:800}
+#tkw-pv-paper .pb{border-top:2px dashed #ef4444;margin:6px -30px;position:relative;height:0}#tkw-pv-paper .pb::after{content:"ขึ้นหน้าใหม่";position:absolute;right:30px;top:-9px;background:#fff;color:#ef4444;font:700 10px Sarabun,sans-serif;padding:0 4px}
+#tkw-page #tkw-pv-paper th,#tkw-page #tkw-pv-paper td{position:static !important;background:#fff !important;border:1px solid #9ca3af !important;padding:0 1px !important;color:#000 !important;box-shadow:none !important;text-align:center}
+#tkw-page #tkw-pv-paper td.ca{text-align:right !important;padding-right:3px !important}
+#tkw-page #tkw-pv-paper thead th{background:#f3f4f6 !important;height:20px;font-size:8pt !important;font-weight:700}#tkw-page #tkw-pv-paper thead tr:first-child th{font-size:10pt !important}
+#tkw-page #tkw-pv-paper tr.tot td,#tkw-page #tkw-pv-paper tr.tot th{background:#f3f4f6 !important;font-weight:800;text-align:center !important}
+#tkw-page #tkw-pv-paper th.no{font-size:8pt !important;font-weight:700;width:26px}
+#tkw-page #tkw-pv-paper .pb{border:0 !important;border-top:2px dashed #ef4444 !important}
+#tkw-pv .pvh{padding-left:68px}
+#tkw-page #tkw-pv-paper table{min-width:0 !important;width:100%}
+@media print{#tkw-pv{display:none !important}#tkw-page tr.pt-hide{display:none !important}}
+
 #tkw-thd{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}#tkw-thd .dn{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#3b2400;border-radius:999px;padding:3px 12px;font:800 14px Sarabun,sans-serif}#tkw-thd .dd{color:#a7f3d0;font:700 16px Sarabun,sans-serif}#tkw-thd .dd b{color:#fff;font-size:20px;font-weight:800}#tkw-thd .ic{font-size:16px}
 @media (min-width:900px){#tkw-page .mobonly{display:none}#tkw-page .tabs{display:none}
 #tkw-page table{table-layout:fixed;min-width:calc(58px + var(--g,7) * 150px)}
@@ -8378,17 +8402,19 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 #tkw-page .bar{padding-left:max(2px,calc(50% - 380px));padding-right:max(2px,calc(50% - 380px))}
 #tkw-page .tw small{font-size:9px}}
 @media (min-width:1500px){#tkw-page td input{font-size:19px;height:44px}#tkw-page td{height:54px}}
-@media print{body.tkw-open>*:not(#tkw-page){display:none !important}#tkw-page{position:static;display:block;background:#fff;color:#000}#tkw-page .top,#tkw-page .dt,#tkw-page .srch,#tkw-page .tabs,#tkw-page .bar,#tkw-page th.no button{display:none !important}#tkw-page.one [data-g]:not(.cur):not(input){display:table-cell !important}#tkw-page .card{overflow:visible;margin:0}#tkw-page td input{border:1px solid #999;height:34px;font-size:13px}#tkw-page td{height:40px}#tkw-page thead th,#tkw-page tr.tot th,#tkw-page tr.tot td{position:static}}
+@media print{@page{size:A4 landscape;margin:8mm}body.tkw-open>*:not(#tkw-page){display:none !important}#tkw-page.no-print,body.tkw-open #tkw-page.no-print{display:block !important;position:static !important;height:auto !important;overflow:visible !important;background:#fff !important}#tkw-page #tkw-cmp,#tkw-page .thd .mb,#tkw-page #tkw-sq,#tkw-page .cloud{display:none !important}#tkw-page .thd{display:none !important}#tkw-ph{display:block !important;text-align:center;color:#000;margin:0 0 6px}#tkw-ph .t1{font:800 15pt Sarabun,sans-serif}#tkw-ph .t2{font:700 11pt Sarabun,sans-serif}#tkw-page table{min-width:0 !important;width:calc(100% - 2px)}#tkw-page .card{background:#fff !important}#tkw-page td,#tkw-page th{background:#fff !important}#tkw-page .bk-tag{display:none !important}body.tkw-open,html:has(body.tkw-open){background:#fff !important}#tkw-page th,#tkw-page td{border-color:#9ca3af !important}#tkw-page th.no{position:static !important;border-bottom:1px solid #9ca3af !important;border-right:1px solid #9ca3af !important}#tkw-page td{height:20px !important;padding:0 2px !important}#tkw-page td input{height:18px !important;font-size:10pt !important;padding:0 3px !important;border:0 !important;border-radius:0 !important;background:none !important}#tkw-page th.no{height:20px;font-size:8.5pt}#tkw-page tr.tot th,#tkw-page tr.tot td{height:24px !important;font-size:10pt !important;position:static !important}#tkw-page .pill{margin:2px 4px;padding:2px 6px;font-size:10pt;border:0 !important;border-radius:0;background:none !important;box-shadow:none;color:#000 !important;font-weight:800}#tkw-page .pill .rm,#tkw-page .pill select{display:none !important}#tkw-page thead th{position:static !important;font-size:9pt}#tkw-page thead tr.sub th{height:22px}#tkw-page tr{page-break-inside:avoid}#tkw-page{background:#fff;color:#000}#tkw-page .top,#tkw-page .dt,#tkw-page .srch,#tkw-page .tabs,#tkw-page .bar,#tkw-page th.no button{display:none !important}#tkw-page.one [data-g]:not(.cur):not(input){display:table-cell !important}#tkw-page .card{overflow:visible;margin:0}#tkw-page td input{border:1px solid #999;height:34px;font-size:13px}#tkw-page td{height:40px}#tkw-page thead th,#tkw-page tr.tot th,#tkw-page tr.tot td{position:static}}
 #tkw-cmp{margin:10px 12px 0;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;font-size:13px;overflow:hidden}#tkw-cmp:empty{display:none}#tkw-cmp .cmphd{padding:9px 12px;background:rgba(255,255,255,.06)}#tkw-cmp .cmphd .bad{color:#fbbf24;font-weight:800}#tkw-cmp .cmpr{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-top:1px solid rgba(255,255,255,.08)}#tkw-cmp .cmpr em{font-style:normal;color:#fcd34d;text-align:right}#tkw-page input.cmpbad{box-shadow:0 0 0 2px #f59e0b inset !important;border-radius:6px}
 </style>
 <div id="tkw-page" class="no-print one" aria-label="บัญชีรายวันเขียนตั๋ว">
   <div class="top"><h1>บัญชีรายวันเขียนตั๋ว<small id="tkw-cloud" class="cloud"></small></h1><button type="button" class="x" id="tkw-x" aria-label="ปิด">✕</button></div>
   <div class="dt"><button type="button" id="tkw-prev">‹</button><input type="date" id="tkw-date"><button type="button" id="tkw-next">›</button><button type="button" class="td" id="tkw-today">วันนี้</button></div>
+  <div id="tkw-ph"><div class="t1"></div><div class="t2"></div></div>
   <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
   <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
   <div class="tabs" id="tkw-tabs"></div>
   <div class="card" id="tkw-card"><table id="tkw-table"></table></div>
   <div id="tkw-cmp"></div>
+  <div id="tkw-pv" role="dialog" aria-label="ตัวอย่างก่อนพิมพ์"><div class="pvh"><b>ตัวอย่างก่อนพิมพ์</b><span id="tkw-pv-n"></span><span class="sp"></span><label id="tkw-pv-trim"><input type="checkbox" id="tkw-pv-tck"> ตัดแถวว่างท้ายตาราง</label><button type="button" id="tkw-pv-go">🖨 พิมพ์จริง</button><button type="button" id="tkw-pv-x">ปิด</button></div><div class="pvs"><div id="tkw-pv-paper"></div></div></div>
   <div id="tkw-sq" role="dialog" aria-label="สแกนตั๋วเดิม">
     <div class="h"><b>สแกนตั๋วเดิม</b><button type="button" id="tkw-sq-x">ปิด ✕</button></div>
     <div class="b">
@@ -8475,7 +8501,17 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   function tot(){ schedCmp(); for(var g=0;g<NG();g++){ var t=totals(g), a=$('tkw-tc'+g), b=$('tkw-ts'+g); if(a) a.textContent=t.c+' รายการ'; if(b) b.textContent=fmt(t.s); } }
   function setCur(g){ cur=g; P.classList.add('one'); if(!wide.matches) render(); else { mark2(); tabs(); } }
-  function open(k){ key=k||key||todayKey(); day=get(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:Math.min(cur,NG()-1); undo=[]; $('tkw-undo').disabled=true; var p=key.split('-'); $('tkw-date').value=key; $('tkw-thd').innerHTML='<span class="ic">📅</span><span class="dn">วัน'+dayName(key)+'</span><span class="dd">ที่ <b>'+(+p[2])+'</b> '+MN[+p[1]]+' '+(+p[0]+543)+'</span>'; render(); }
+  function phead(){ var org='สถานธนานุบาลเทศบาลเมืองกระบี่'; try{ var st=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); if(st&&st.org) org=st.org; }catch(e){} var p=(key||'').split('-'); var a=document.querySelector('#tkw-ph .t1'), b=document.querySelector('#tkw-ph .t2'); if(a) a.textContent='บัญชีแยกประเภท '+org; if(b&&p.length===3) b.textContent='ประจำวันที่ '+p[2]+'/'+p[1]+'/'+(+p[0]+543); }
+  function pfit(){ var old=document.getElementById('tkw-pfit'); if(old) old.remove(); if(!document.body.classList.contains('tkw-open')) return;
+    ptrim(); var R=document.querySelectorAll('#tkw-table tbody tr:not(.tot):not(.pt-hide)').length; if(!R) return;
+    var por=false, avail=733-58-46-24-6, n=(R*13.4<=avail)?R:Math.ceil(R/2), h=Math.floor(((avail+(n<R?24:0))/n-2.4)*10)/10; if(h>30) h=30; if(h<8) h=8;
+    var fs=Math.min(10.5,Math.max(5.5,h*0.72*0.75)), st=document.createElement('style'); st.id='tkw-pfit';
+    st.textContent='@media print{@page{size:A4 '+(por?'portrait':'landscape')+';margin:8mm}#tkw-page tbody td,#tkw-page tbody th{padding:0 !important;line-height:1 !important;height:'+h+'px !important;max-height:'+h+'px;overflow:hidden}#tkw-page td .tw{height:'+h+'px;display:flex;align-items:center}#tkw-page td{height:'+h+'px !important}#tkw-page td input{height:'+Math.max(6,h-1)+'px !important;min-height:0 !important;font-size:'+fs+'pt !important;line-height:1 !important}#tkw-page th.no{height:'+h+'px !important;font-size:'+Math.min(8.5,fs)+'pt !important;line-height:1 !important}#tkw-page tbody th.no button{display:none}#tkw-page th.no{width:26px !important;min-width:26px !important;max-width:26px}#tkw-page thead th{font-size:8pt !important;padding:2px 1px !important;white-space:nowrap}#tkw-page thead tr.sub th{height:18px !important}#tkw-page .card{overflow:hidden !important}#tkw-page tr.tot th,#tkw-page tr.tot td{font-size:7.5pt !important;padding:0 2px !important;white-space:nowrap}#tkw-page table{table-layout:fixed}#tkw-page tr{page-break-inside:avoid}}';
+    document.body.appendChild(st); }
+  window.addEventListener('beforeprint',function(){ try{ phead(); pfit(); }catch(e){} });
+  window.addEventListener('afterprint',function(){ var o=document.getElementById('tkw-pfit'); if(o) o.remove(); [].forEach.call(document.querySelectorAll('#tkw-table tr.pt-hide'),function(r){ r.classList.remove('pt-hide'); }); });
+  window.__tkwPfit=pfit;
+  function open(k){ key=k||key||todayKey(); day=get(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:Math.min(cur,NG()-1); undo=[]; $('tkw-undo').disabled=true; var p=key.split('-'); $('tkw-date').value=key; $('tkw-thd').innerHTML='<span class="ic">📅</span><span class="dn">วัน'+dayName(key)+'</span><span class="dd">ที่ <b>'+(+p[2])+'</b> '+MN[+p[1]]+' '+(+p[0]+543)+'</span>'; phead(); render(); }
   function show(){ load(); var k=(typeof currentDate!=='undefined'&&currentDate)?currentDate:todayKey(); document.body.classList.add('tkw-open'); try{sbClose()}catch(e){} open(k); try{ startSync(); }catch(e){} try{ [].forEach.call(document.querySelectorAll('#app-sidebar .sb-item'),function(b){ b.classList.toggle('on',b.dataset.page==='tkw'); }); }catch(e){} }
   function hide(){ document.body.classList.remove('tkw-open'); try{ var on=document.querySelector('#app-sidebar .sb-item[data-page="tkw"]'); if(on) on.classList.remove('on'); }catch(e){} }
   window.tkwOpen=show; window.tkwClose=hide;
@@ -8506,7 +8542,29 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   $('tkw-find').onclick=function(){ P.classList.toggle('s-on'); if(P.classList.contains('s-on')) $('tkw-q').focus(); else { $('tkw-q').value=''; mark(''); } };
   function mark(q){ var first=null; [].forEach.call(T.querySelectorAll('input[data-f="0"]'),function(el){ var hit=q&&el.value.indexOf(q)>=0; el.classList.toggle('hit',!!hit); if(hit&&!first) first=el; }); return first; }
   $('tkw-q').oninput=function(){ var q=this.value.trim(), f=mark(q); if(!f&&q&&!wide.matches){ for(var g=0;g<NG();g++){ if(day.r[g].some(function(x){return x[0].indexOf(q)>=0})){ setCur(g); f=mark(q); break; } } } if(f){ if(wide.matches) setCur(+f.dataset.g); f.scrollIntoView({block:'center'}); } };
-  $('tkw-print').onclick=function(){ try{ window.print(); }catch(e){} };
+  function trimOn(){ try{ return localStorage.getItem('pawn_print_trim')!=='0'; }catch(e){ return true; } }
+  function ptrim(){ var rows=[].slice.call(document.querySelectorAll('#tkw-table tbody tr:not(.tot)')); rows.forEach(function(r){ r.classList.remove('pt-hide'); }); if(!trimOn()) return 0;
+    var last=-1; rows.forEach(function(r,i){ if([].some.call(r.querySelectorAll('input'),function(x){ return String(x.value||'').trim()!==''; })) last=i; });
+    var keep=Math.min(rows.length,Math.max(last+3,6)), n=0; for(var i=keep;i<rows.length;i++){ rows[i].classList.add('pt-hide'); n++; } return n; }
+  function pvSize(){ ptrim(); var R=document.querySelectorAll('#tkw-table tbody tr:not(.tot):not(.pt-hide)').length||1, avail=733-58-46-24-6, n=(R*13.4<=avail)?R:Math.ceil(R/2), h=Math.floor(((avail+(n<R?24:0))/n-2.4)*10)/10; if(h>30) h=30; if(h<8) h=8; return {R:R,n:n,h:h,fs:Math.min(10.5,Math.max(5.5,h*0.72*0.75))}; }
+  function pvOpen(){ if(!day) return; phead(); var z=pvSize(), T0=$('tkw-table'), tb=T0.cloneNode(true); tb.removeAttribute('id'); tb.removeAttribute('style'); [].forEach.call(tb.querySelectorAll('[data-g]'),function(e){ e.removeAttribute('data-g'); });
+    var oi=[].slice.call(T0.querySelectorAll('input')), ci=[].slice.call(tb.querySelectorAll('input'));
+    ci.forEach(function(c,i){ var v=oi[i]?oi[i].value:''; c.parentNode.replaceChild(document.createTextNode(v),c); });
+    [].forEach.call(tb.querySelectorAll('.bk-tag,th.no button,.pill .rm,.pill select,small'),function(e){ e.remove(); }); [].forEach.call(tb.querySelectorAll('tr.pt-hide'),function(e){ e.remove(); });
+    [].forEach.call(tb.querySelectorAll('.pill'),function(e){ var t=document.createElement('span'); t.textContent=(e.textContent||'').replace('✕','').trim(); e.parentNode.replaceChild(t,e); });
+    [].forEach.call(tb.querySelectorAll('.tw'),function(e){ e.style.cssText='display:block'; });
+    [].forEach.call(tb.querySelectorAll('tbody tr:not(.tot) td, tbody tr:not(.tot) th'),function(e){ e.style.height=z.h+'px'; e.style.fontSize=z.fs+'pt'; });
+    [].forEach.call(tb.querySelectorAll('tr.tot td, tr.tot th'),function(e){ e.style.height='24px'; e.style.fontSize='7.5pt'; e.style.textAlign='center'; });
+    var rows=[].slice.call(tb.querySelectorAll('tbody tr:not(.tot)')); if(z.n<z.R&&rows[z.n]){ var sep=document.createElement('tr'); sep.innerHTML='<td colspan="'+(rows[0].children.length)+'" style="border:0;height:0;padding:0"><div class="pb"></div></td>'; rows[z.n].parentNode.insertBefore(sep,rows[z.n]); }
+    var P=$('tkw-pv-paper'); P.innerHTML='<div class="t1">'+$('tkw-ph').querySelector('.t1').textContent+'</div><div class="t2">'+$('tkw-ph').querySelector('.t2').textContent+'</div>'; P.appendChild(tb);
+    $('tkw-pv-n').textContent=(z.n<z.R?'2 หน้า':'1 หน้า')+' · A4 แนวนอน · '+z.R+' แถว';
+    $('tkw-pv-tck').checked=trimOn(); $('tkw-page').classList.add('pv-on'); pvFit(); }
+  function pvFit(){ var P=$('tkw-pv-paper'), box=P.parentNode, k=Math.max(0.5,Math.min(1,(box.clientWidth-24)/1123)); P.style.zoom=k; }
+  function pvClose(){ $('tkw-page').classList.remove('pv-on'); }
+  window.addEventListener('resize',function(){ if($('tkw-page').classList.contains('pv-on')) pvFit(); });
+  $('tkw-pv-tck').onchange=function(){ try{ localStorage.setItem('pawn_print_trim',this.checked?'1':'0'); }catch(e){} pvOpen(); };
+  $('tkw-pv-x').onclick=pvClose; $('tkw-pv-go').onclick=function(){ pvClose(); setTimeout(function(){ try{ window.print(); }catch(e){} },150); };
+  $('tkw-print').onclick=pvOpen;
 
   // ----- หน้าสแกนตั๋วเดิม (เหมือนโหมด "สแกนตั๋วเดิม" ของคีย์ด่วน) -----
   T.addEventListener('focusin',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.g!==undefined&&+el.dataset.g!==cur){ cur=+el.dataset.g; mark2(); tabs(); } });
