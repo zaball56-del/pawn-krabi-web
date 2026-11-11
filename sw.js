@@ -77,6 +77,7 @@ self.addEventListener('fetch', function(e){
   var u = new URL(req.url);
   if (u.origin === self.location.origin) {
     if (u.pathname.slice(-6) === '/sw.js') return;                // ไม่แตะตัวมันเอง
+    if (/\.(mp4|webm|mov)$/i.test(u.pathname)) return;           // วิดีโอพื้นหลัง: ให้เบราว์เซอร์โหลดเอง ไม่ผ่าน SW (ไฟล์ใหญ่ ไม่ต้องเก็บซ้ำ)
     e.respondWith(networkFirst(req));
   } else if (isLib(u)) {
     e.respondWith(staleWhileRevalidate(req));
