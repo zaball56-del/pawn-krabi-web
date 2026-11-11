@@ -26,7 +26,7 @@
 (function(){ try{
   var m=document.getElementById('login-modal'); if(!m) return;
   if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches) return;
-  var cn=navigator.connection; if(cn&&(cn.saveData||/^(slow-2g|2g|3g)$/.test(cn.effectiveType||''))) return;   /* เน็ตช้า/ประหยัดข้อมูล: ไม่โหลดวิดีโอใหญ่ */
+  var cn=navigator.connection; if(cn&&(cn.saveData||/^(slow-2g|2g)$/.test(cn.effectiveType||''))) return;   /* เน็ตช้ามาก/ประหยัดข้อมูล: ไม่โหลดวิดีโอใหญ่ (ไม่ใช้ 3g เป็นเกณฑ์ เพราะมือถือมักรายงานผิดแม้ใช้ไวไฟ) */
   var wrap=document.createElement('div'); wrap.id='lfx-vid'; wrap.style.cssText='position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:#020617';
   var v=document.createElement('video'); v.muted=true; v.loop=false; v.autoplay=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.preload='auto'; v.disablePictureInPicture=true;
   v.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:35% 50%;opacity:0;transition:opacity .9s ease';
@@ -40,6 +40,10 @@
   v.src='earth-4k.mp4';
   function visible(){ var cs=getComputedStyle(m); return cs.display!=='none'&&cs.visibility!=='hidden'; }
   function sync(){ try{ if(document.hidden||!visible()){ v.pause(); } else { var pr=v.play(); if(pr&&pr.catch) pr.catch(function(){}); } }catch(e){} }
+  /* โหมดประหยัดแบต/นโยบายเบราว์เซอร์อาจบล็อกเล่นอัตโนมัติ: แตะครั้งแรกบนหน้าจอแล้วสั่งเล่นอีกครั้ง */
+  function kick(){ try{ if(v.paused&&visible()&&!document.hidden){ var pr=v.play(); if(pr&&pr.catch) pr.catch(function(){}); } }catch(e){} }
+  m.addEventListener('touchstart',kick,{passive:true,once:true}); m.addEventListener('pointerdown',kick,{passive:true,once:true});
+  v.addEventListener('stalled',function(){ ok=ok; });
   document.addEventListener('visibilitychange',sync);
   new MutationObserver(sync).observe(m,{attributes:true,attributeFilter:['class','style']});
   sync();
