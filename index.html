@@ -8373,5 +8373,84 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 }catch(e){} })();
 </script>
 
+<style id="mfx-css">
+/* ลูกเล่นเคลื่อนไหวเบา ๆ หน้าแรก: ออโรร่าพื้นหลัง · การ์ดกระจก · ไล่ขึ้นทีละใบ · เส้นแสงวิ่ง */
+@media (prefers-reduced-motion:no-preference){
+  html body.page-home{position:relative}
+  html body.page-home::before,html body.page-home::after{content:"";position:fixed;z-index:0;pointer-events:none;border-radius:50%;filter:blur(70px);opacity:.55;will-change:transform}
+  html body.page-home::before{width:62vmax;height:62vmax;left:-22vmax;top:-18vmax;background:radial-gradient(circle,#7c3aed 0%,rgba(124,58,237,0) 68%);animation:mfxA 22s ease-in-out infinite alternate}
+  html body.page-home::after{width:58vmax;height:58vmax;right:-24vmax;bottom:-16vmax;background:radial-gradient(circle,#06b6d4 0%,rgba(6,182,212,0) 68%);animation:mfxB 26s ease-in-out infinite alternate}
+  @keyframes mfxA{to{transform:translate3d(14vmax,10vmax,0) scale(1.15)}}
+  @keyframes mfxB{to{transform:translate3d(-12vmax,-9vmax,0) scale(1.2)}}
+  html body.page-home #home-page{position:relative;z-index:1}
+  /* ไล่ขึ้นทีละใบ */
+  html body.page-home #home-page .hp-grid4>*{opacity:0;transform:translateY(18px) scale(.97);animation:mfxIn .7s cubic-bezier(.2,.8,.2,1) forwards}
+  html body.page-home #home-page .hp-grid4>*:nth-child(1){animation-delay:.05s}
+  html body.page-home #home-page .hp-grid4>*:nth-child(2){animation-delay:.15s}
+  html body.page-home #home-page .hp-grid4>*:nth-child(3){animation-delay:.25s}
+  html body.page-home #home-page .hp-grid4>*:nth-child(4){animation-delay:.35s}
+  @keyframes mfxIn{to{opacity:1;transform:none}}
+  /* แสงกวาดผ่านการ์ดสรุป */
+  html body.page-home #home-page .hp-grid4>*{position:relative;overflow:hidden}
+  html body.page-home #home-page .hp-grid4>*::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-18deg);animation:mfxSweep 7s ease-in-out infinite;pointer-events:none}
+  html body.page-home #home-page .hp-grid4>*:nth-child(2)::after{animation-delay:1.2s}
+  html body.page-home #home-page .hp-grid4>*:nth-child(3)::after{animation-delay:2.4s}
+  html body.page-home #home-page .hp-grid4>*:nth-child(4)::after{animation-delay:3.6s}
+  @keyframes mfxSweep{0%,62%{left:-60%}100%{left:130%}}
+  /* การ์ดล่างลอยขึ้นตอนเปิด */
+  html body.page-home #home-page>section,html body.page-home #home-page>div:not(.hp-grid4){animation:mfxIn .8s .45s cubic-bezier(.2,.8,.2,1) both}
+}
+/* การ์ดกระจก (ไม่ใช้แอนิเมชัน เปิดเสมอ) */
+html body.page-home #home-page .hp-grid4>*{box-shadow:0 10px 30px rgba(15,23,42,.28),inset 0 1px 0 rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.22)}
+</style>
+
+<style id="lfx-css">
+/* เมื่อมีวิดีโอพื้นหลัง ทำการ์ดโปร่งขึ้นให้เห็นโลกด้านหลัง (ข้อความยังอ่านชัด) */
+#login-modal.lfx-on .cyber-box{background:rgba(8,16,36,.5)!important;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+/* ลูกเล่นหน้าล็อกอิน — CSS ล้วน ไม่แตะช่องกรอก PIN/ปุ่ม/ตรรกะ */
+#login-modal .cyber-box{box-shadow:0 0 50px rgba(0,0,0,.8),0 0 0 1px rgba(16,185,129,.25),0 0 40px rgba(16,185,129,.18)}
+@media (prefers-reduced-motion:no-preference){
+  /* การ์ดลอยขึ้นตอนเปิด + ขอบเรืองแสงหายใจ */
+  #login-modal .cyber-box{animation:lfxIn .8s cubic-bezier(.2,.8,.2,1) both,lfxGlow 4.5s ease-in-out 1s infinite}
+  @keyframes lfxIn{from{opacity:0;transform:translateY(22px) scale(.97)}to{opacity:1;transform:none}}
+  @keyframes lfxGlow{50%{box-shadow:0 0 50px rgba(0,0,0,.8),0 0 0 1px rgba(16,185,129,.55),0 0 70px rgba(16,185,129,.38)}}
+  /* เส้นสแกนวิ่งผ่านการ์ด */
+  #login-modal .cyber-box{overflow:visible}
+  #login-modal .cyber-box::after{content:"";position:absolute;left:12px;right:12px;top:0;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(110,231,183,.9),transparent);box-shadow:0 0 14px rgba(52,211,153,.8);opacity:0;animation:lfxScan 6s ease-in-out 1.2s infinite;pointer-events:none}
+  @keyframes lfxScan{0%{top:6%;opacity:0}8%{opacity:.9}50%{top:94%;opacity:.9}58%,100%{top:94%;opacity:0}}
+  /* ปุ่มเลขกดแล้วเรืองแสงวูบ */
+  #login-keypad button{transition:transform .12s,box-shadow .2s,background .2s}
+  #login-keypad button:active{transform:scale(.92);box-shadow:0 0 22px rgba(52,211,153,.65)}
+  /* ป้าย SECURE VAULT ลอยเบา ๆ */
+  #login-modal .cyber-box>div:first-child{animation:lfxFloat 4s ease-in-out infinite}
+  @keyframes lfxFloat{50%{transform:translate(-50%,-58%)}}
+}
+</style>
+<script id="lfx-js">
+/* พื้นหลังหน้าล็อกอินเป็นวิดีโอโลก (earth-4k.mp4 4K ~19MB เล่นไปโหลดไป) เล่นวนเงียบ ๆ ด้านหลังการ์ด
+   ไม่รับการคลิก · ถ้าโหลดวิดีโอไม่ได้/ประหยัดข้อมูล/ลดการเคลื่อนไหว จะเป็นพื้นหลังมืดตามเดิม · หยุดเล่นเมื่อล็อกอินแล้วหรือสลับแท็บ */
+(function(){ try{
+  var m=document.getElementById('login-modal'); if(!m) return;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  var cn=navigator.connection; if(cn&&(cn.saveData||/^(slow-2g|2g|3g)$/.test(cn.effectiveType||''))) return;   /* เน็ตช้า/ประหยัดข้อมูล: ไม่โหลดวิดีโอใหญ่ */
+  var wrap=document.createElement('div'); wrap.id='lfx-vid'; wrap.style.cssText='position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:#020617';
+  var v=document.createElement('video'); v.muted=true; v.loop=false; v.autoplay=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.preload='auto'; v.disablePictureInPicture=true;
+  v.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:35% 50%;opacity:0;transition:opacity .9s ease';
+  var shade=document.createElement('div'); shade.style.cssText='position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.55),rgba(2,6,23,.25) 40%,rgba(2,6,23,.6))';
+  wrap.style.setProperty('display','block','important'); wrap.appendChild(v); wrap.appendChild(shade); m.insertBefore(wrap,m.firstChild);
+  var ok=false, FADE=.9;
+  v.addEventListener('error',function(){ wrap.remove(); m.classList.remove('lfx-on'); });
+  v.addEventListener('canplay',function(){ ok=true; v.style.opacity='1'; m.classList.add('lfx-on'); });
+  v.addEventListener('timeupdate',function(){ if(!v.duration) return; var left=v.duration-v.currentTime; v.style.opacity=(left<FADE?Math.max(0,left/FADE):1)*(ok?1:0); });   /* จางลงตรงรอยต่อก่อนวนใหม่ */
+  v.addEventListener('ended',function(){ v.style.opacity='0'; setTimeout(function(){ try{ v.currentTime=0; v.play(); v.style.opacity='1'; }catch(e){} },150); });
+  v.src='earth-4k.mp4';
+  function visible(){ var cs=getComputedStyle(m); return cs.display!=='none'&&cs.visibility!=='hidden'; }
+  function sync(){ try{ if(document.hidden||!visible()){ v.pause(); } else { var pr=v.play(); if(pr&&pr.catch) pr.catch(function(){}); } }catch(e){} }
+  document.addEventListener('visibilitychange',sync);
+  new MutationObserver(sync).observe(m,{attributes:true,attributeFilter:['class','style']});
+  sync();
+}catch(e){ console.error('lfx',e); } })();
+</script>
+
 </body>
 </html>
