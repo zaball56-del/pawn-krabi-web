@@ -377,7 +377,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     CL.started=true; chip('☁ กำลังเชื่อมต่อ…');
     try{
       CL.col=firebase.firestore().collection(COLN);
-      CL.col.onSnapshot(function(snap){
+      CL.col.onSnapshot({includeMetadataChanges:true},function(snap){
         var seen={}; snap.docs.forEach(function(d){ var x=d.data()||{}; Object.keys(x).forEach(function(f){ var k=parseField(f); if(!k) return; var c; try{ c=JSON.parse(x[f]); }catch(e){ return; } seen[k]=1; CL.cu[k]=c.u||0; applyRemote(k,c); }); });
         if(!CL.on){ CL.on=true; Object.keys(store).forEach(function(k){ var l=store[k]; if(!hasData(l)) return; if(!seen[k]){ if(!l.u) l.u=Date.now(); CL.dirty[k]=1; } else if((l.u||0)>(CL.cu[k]||0)) CL.dirty[k]=1; }); save(); }
         chip(snap.metadata&&snap.metadata.fromCache?'☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา':'☁ ซิงก์แล้ว',snap.metadata&&snap.metadata.fromCache?'er':'ok');
