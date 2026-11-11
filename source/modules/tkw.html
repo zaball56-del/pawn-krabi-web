@@ -136,7 +136,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     h+='</tr><tr class="sub">'; for(g=0;g<G;g++){ h+='<th data-g="'+g+'">เลขตั๋ว</th><th data-g="'+g+'">จำนวนเงิน</th>'; }
     h+='</tr></thead><tbody>';
     for(var i=0;i<n;i++){ h+='<tr><th class="no">'+(i+1)+'<button type="button" data-del="'+i+'">ลบ</button></th>';
-      for(g=0;g<G;g++){ var x=day.r[g][i]||['','']; h+='<td data-g="'+g+'" class="ct"><div class="tw"><input inputmode="numeric" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="0" value="'+esc(x[0])+'"></div></td><td data-g="'+g+'" class="ca"><input inputmode="decimal" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="1" value="'+esc(x[1]===''?'':fmt(num(x[1])))+'"></td>'; }
+      for(g=0;g<G;g++){ var x=day.r[g][i]||['','']; h+='<td data-g="'+g+'" class="ct"><div class="tw">'+(x[0]&&x[2]?'<span class="bk-tag" aria-hidden="true">เล่ม '+esc(x[2])+'</span>':'')+'<input inputmode="numeric" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="0" value="'+esc(x[0])+'"></div></td><td data-g="'+g+'" class="ca"><input inputmode="decimal" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="1" value="'+esc(x[1]===''?'':fmt(num(x[1])))+'"></td>'; }
       h+='</tr>'; }
     h+='<tr class="tot"><th class="no">รวม</th>'; for(g=0;g<G;g++){ h+='<td data-g="'+g+'" id="tkw-tc'+g+'"></td><td data-g="'+g+'" id="tkw-ts'+g+'"></td>'; }
     h+='</tr></tbody>';
@@ -185,7 +185,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   $('tkw-today').onclick=function(){ open(todayKey()); };
   $('tkw-tabs').onclick=function(e){ var b=e.target.closest('[data-tab]'); if(b) setCur(+b.dataset.tab); };
   var T=$('tkw-table');
-  T.addEventListener('input',function(e){ var el=e.target; if(el.tagName!=='INPUT') return; var g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var k=g+'/'+i+'/'+f; if(undo._k!==k){ snap(); undo._k=k; } ensure(g,i); day.r[g][i][f]=el.value; if(f===0&&(day.r[g][i][2]||day.r[g][i][3])){ day.r[g][i][2]=''; day.r[g][i][3]=''; var sm=el.parentNode.querySelector('small'); if(sm) sm.remove(); el.classList.remove('hb'); } commit(); tot(); tabs(); });
+  T.addEventListener('input',function(e){ var el=e.target; if(el.tagName!=='INPUT') return; var g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var k=g+'/'+i+'/'+f; if(undo._k!==k){ snap(); undo._k=k; } ensure(g,i); day.r[g][i][f]=el.value; if(f===0&&(day.r[g][i][2]||day.r[g][i][3])){ day.r[g][i][2]=''; day.r[g][i][3]=''; var sm=el.parentNode.querySelector('small,.bk-tag'); if(sm) sm.remove(); el.classList.remove('hb'); } commit(); tot(); tabs(); });
   T.addEventListener('focusin',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value.replace(/,/g,''); } });
   T.addEventListener('focusout',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value===''?'':fmt(num(el.value)); } undo._k=''; });
   T.addEventListener('change',function(e){ var s=e.target; if(s.tagName==='SELECT'){ snap(); var g=+s.dataset.m; day.m[g]=+s.value; commit(); render(); } });

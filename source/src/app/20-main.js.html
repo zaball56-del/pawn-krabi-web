@@ -2944,7 +2944,8 @@
                                 <option value="ถ" ${currentData.type === 'ถ' ? 'selected' : ''}>ถ</option>
                             </select>
                         </td>
-                        <td class="border border-slate-300 p-0.5">
+                        <td class="border border-slate-300 p-0.5" style="position:relative">
+                            ${(currentData.ticket && (currentData.book || currentData.importBook)) ? `<span class="bk-tag no-print" aria-hidden="true">เล่ม ${escapeHtml(String(currentData.book || currentData.importBook))}</span>` : ''}
                             <input type="text" value="${currentData.ticket || ''}" 
                                 ${linkTitle} ${offAttr} oninput="updateCellData(${cIdx}, ${r}, 'ticket', this.value, this)" 
                                 onkeydown="handleEnterKey(event, 'ticket', ${cIdx}, ${r})"

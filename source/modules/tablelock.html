@@ -1,0 +1,34 @@
+<style id="tl-css">
+.tl-btn.on b{color:#fbbf24}.tl-btn.on{color:#fde68a !important}
+body.tbl-lock #ledger-tbody input,body.tbl-lock #ledger-tbody select,body.tbl-lock #tkw-table input{pointer-events:none;caret-color:transparent}
+body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
+@media print{.tl-btn{display:none !important}}
+</style>
+<script>
+(function(){
+  var KEY='pawn_tbl_lock', on=false;
+  try{ on=localStorage.getItem(KEY)==='1'; }catch(e){}
+  function toast(m){ try{ if(typeof showToast==='function') showToast(m); }catch(e){} }
+  function paint(){
+    document.body.classList.toggle('tbl-lock',on);
+    [].forEach.call(document.querySelectorAll('.tl-btn'),function(b){
+      b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
+      b.innerHTML='<b>'+(on?'🔒':'🔓')+'</b>'+(on?'ล็อกอยู่':'ล็อก');
+      b.title=on?'ตารางล็อกอยู่ — กดเพื่อปลดล็อก':'กดเพื่อล็อกตาราง (ให้คีย์ผ่านคีย์ด่วน/สแกน)';
+    });
+  }
+  function set(v){ on=v; try{ localStorage.setItem(KEY,on?'1':'0'); }catch(e){}
+    paint(); if(on){ try{ if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }catch(e){} toast('🔒 ล็อกตารางแล้ว — คีย์ที่ "คีย์ด่วน/สแกน" แทน'); } else toast('🔓 ปลดล็อกตารางแล้ว'); }
+  function mk(after){
+    if(!after||after.parentNode.querySelector('.tl-btn')) return;
+    var b=document.createElement('button'); b.type='button'; b.className='tl-btn'; b.onclick=function(){ set(!on); };
+    after.parentNode.insertBefore(b,after.nextSibling);
+  }
+  function init(){ mk(document.getElementById('m-addrow')); mk(document.getElementById('tkw-add')); paint(); }
+  function hit(e){ if(!on) return; var t=e.target; if(t&&t.closest&&t.closest('#ledger-tbody td,#tkw-table td')){ var now=Date.now(); if(now-(hit.t||0)>2500){ hit.t=now; toast('🔒 ตารางล็อกอยู่ — คีย์ที่ "คีย์ด่วน/สแกน" หรือกดกุญแจปลดล็อก'); } } }
+  document.addEventListener('click',hit,true);
+  document.addEventListener('focusin',function(e){ if(!on) return; var t=e.target; if(t&&t.closest&&t.closest('#ledger-tbody,#tkw-table')&&/INPUT|SELECT|TEXTAREA/.test(t.tagName)){ t.blur(); hit(e); } },true);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  setTimeout(init,1500);
+})();
+</script>

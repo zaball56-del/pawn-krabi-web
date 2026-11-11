@@ -16,3 +16,4 @@ tkw.html
 central.html
 assetpurge.html
 holidays.html
+tablelock.html

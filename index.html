@@ -4630,7 +4630,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                                 <option value="ถ" ${currentData.type === 'ถ' ? 'selected' : ''}>ถ</option>
                             </select>
                         </td>
-                        <td class="border border-slate-300 p-0.5">
+                        <td class="border border-slate-300 p-0.5" style="position:relative">
+                            ${(currentData.ticket && (currentData.book || currentData.importBook)) ? `<span class="bk-tag no-print" aria-hidden="true">เล่ม ${escapeHtml(String(currentData.book || currentData.importBook))}</span>` : ''}
                             <input type="text" value="${currentData.ticket || ''}" 
                                 ${linkTitle} ${offAttr} oninput="updateCellData(${cIdx}, ${r}, 'ticket', this.value, this)" 
                                 onkeydown="handleEnterKey(event, 'ticket', ${cIdx}, ${r})"
@@ -8040,6 +8041,7 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 </script>
 
 <style id="tw-css">
+.bk-tag{position:absolute;top:-5px;right:3px;z-index:3;font:700 8px/1.35 Sarabun,sans-serif;letter-spacing:.2px;color:#fff;background:linear-gradient(135deg,#14b8a6,#0ea5e9);border:1px solid #fff;border-radius:999px;padding:0 6px;box-shadow:0 2px 4px rgba(14,116,144,.38);pointer-events:none;white-space:nowrap}.bk-tag::before{content:'';display:inline-block;width:5px;height:6px;margin-right:3px;vertical-align:-0.5px;border-radius:1px;background:rgba(255,255,255,.92);box-shadow:inset -1.5px 0 0 rgba(14,116,144,.35)}@media print{.bk-tag{display:none !important}}
 .s3tabs{display:flex;gap:4px;padding:5px;margin:10px 14px 12px;background:#e2e8f0;border-radius:14px}.s3tab{flex:1;border:0;background:transparent;color:#475569;border-radius:10px;padding:9px 8px;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}.s3tab.on{background:#4f46e5;color:#fff;box-shadow:0 2px 8px rgba(79,70,229,.35)}
 /* ช่องกรอกในหน้าตั้งค่า: สีตัวอักษรเข้ม/พื้นขาวชัดเจน (ธีมมืดกลับสีให้เองทั้งหน้า) */
 #ds-modal input[type="text"],#ds-modal input[type="number"],#ds-modal input[type="password"],#ds-modal input:not([type]),#ds-modal textarea{background:#fff !important;color:#14213D !important;-webkit-text-fill-color:#14213D !important;border:1.5px solid #94a3b8 !important}
@@ -8420,7 +8422,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     h+='</tr><tr class="sub">'; for(g=0;g<G;g++){ h+='<th data-g="'+g+'">เลขตั๋ว</th><th data-g="'+g+'">จำนวนเงิน</th>'; }
     h+='</tr></thead><tbody>';
     for(var i=0;i<n;i++){ h+='<tr><th class="no">'+(i+1)+'<button type="button" data-del="'+i+'">ลบ</button></th>';
-      for(g=0;g<G;g++){ var x=day.r[g][i]||['','']; h+='<td data-g="'+g+'" class="ct"><div class="tw"><input inputmode="numeric" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="0" value="'+esc(x[0])+'"></div></td><td data-g="'+g+'" class="ca"><input inputmode="decimal" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="1" value="'+esc(x[1]===''?'':fmt(num(x[1])))+'"></td>'; }
+      for(g=0;g<G;g++){ var x=day.r[g][i]||['','']; h+='<td data-g="'+g+'" class="ct"><div class="tw">'+(x[0]&&x[2]?'<span class="bk-tag" aria-hidden="true">เล่ม '+esc(x[2])+'</span>':'')+'<input inputmode="numeric" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="0" value="'+esc(x[0])+'"></div></td><td data-g="'+g+'" class="ca"><input inputmode="decimal" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="1" value="'+esc(x[1]===''?'':fmt(num(x[1])))+'"></td>'; }
       h+='</tr>'; }
     h+='<tr class="tot"><th class="no">รวม</th>'; for(g=0;g<G;g++){ h+='<td data-g="'+g+'" id="tkw-tc'+g+'"></td><td data-g="'+g+'" id="tkw-ts'+g+'"></td>'; }
     h+='</tr></tbody>';
@@ -8469,7 +8471,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   $('tkw-today').onclick=function(){ open(todayKey()); };
   $('tkw-tabs').onclick=function(e){ var b=e.target.closest('[data-tab]'); if(b) setCur(+b.dataset.tab); };
   var T=$('tkw-table');
-  T.addEventListener('input',function(e){ var el=e.target; if(el.tagName!=='INPUT') return; var g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var k=g+'/'+i+'/'+f; if(undo._k!==k){ snap(); undo._k=k; } ensure(g,i); day.r[g][i][f]=el.value; if(f===0&&(day.r[g][i][2]||day.r[g][i][3])){ day.r[g][i][2]=''; day.r[g][i][3]=''; var sm=el.parentNode.querySelector('small'); if(sm) sm.remove(); el.classList.remove('hb'); } commit(); tot(); tabs(); });
+  T.addEventListener('input',function(e){ var el=e.target; if(el.tagName!=='INPUT') return; var g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var k=g+'/'+i+'/'+f; if(undo._k!==k){ snap(); undo._k=k; } ensure(g,i); day.r[g][i][f]=el.value; if(f===0&&(day.r[g][i][2]||day.r[g][i][3])){ day.r[g][i][2]=''; day.r[g][i][3]=''; var sm=el.parentNode.querySelector('small,.bk-tag'); if(sm) sm.remove(); el.classList.remove('hb'); } commit(); tot(); tabs(); });
   T.addEventListener('focusin',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value.replace(/,/g,''); } });
   T.addEventListener('focusout',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value===''?'':fmt(num(el.value)); } undo._k=''; });
   T.addEventListener('change',function(e){ var s=e.target; if(s.tagName==='SELECT'){ snap(); var g=+s.dataset.m; day.m[g]=+s.value; commit(); render(); } });
@@ -8905,6 +8907,41 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   window.holidayOpen=function(){ load(); startSync(); var n=new Date(); Y=n.getFullYear(); M=n.getMonth(); SEL=''; $('hd-ed').classList.remove('on'); $('hd-modal').classList.add('on'); render(); };
   window.addEventListener('load',function(){ setTimeout(function(){ load(); startSync(); },5000); });
   window.holidayClose=function(){ $('hd-modal').classList.remove('on'); };
+})();
+</script>
+
+<style id="tl-css">
+.tl-btn.on b{color:#fbbf24}.tl-btn.on{color:#fde68a !important}
+body.tbl-lock #ledger-tbody input,body.tbl-lock #ledger-tbody select,body.tbl-lock #tkw-table input{pointer-events:none;caret-color:transparent}
+body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
+@media print{.tl-btn{display:none !important}}
+</style>
+<script>
+(function(){
+  var KEY='pawn_tbl_lock', on=false;
+  try{ on=localStorage.getItem(KEY)==='1'; }catch(e){}
+  function toast(m){ try{ if(typeof showToast==='function') showToast(m); }catch(e){} }
+  function paint(){
+    document.body.classList.toggle('tbl-lock',on);
+    [].forEach.call(document.querySelectorAll('.tl-btn'),function(b){
+      b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
+      b.innerHTML='<b>'+(on?'🔒':'🔓')+'</b>'+(on?'ล็อกอยู่':'ล็อก');
+      b.title=on?'ตารางล็อกอยู่ — กดเพื่อปลดล็อก':'กดเพื่อล็อกตาราง (ให้คีย์ผ่านคีย์ด่วน/สแกน)';
+    });
+  }
+  function set(v){ on=v; try{ localStorage.setItem(KEY,on?'1':'0'); }catch(e){}
+    paint(); if(on){ try{ if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }catch(e){} toast('🔒 ล็อกตารางแล้ว — คีย์ที่ "คีย์ด่วน/สแกน" แทน'); } else toast('🔓 ปลดล็อกตารางแล้ว'); }
+  function mk(after){
+    if(!after||after.parentNode.querySelector('.tl-btn')) return;
+    var b=document.createElement('button'); b.type='button'; b.className='tl-btn'; b.onclick=function(){ set(!on); };
+    after.parentNode.insertBefore(b,after.nextSibling);
+  }
+  function init(){ mk(document.getElementById('m-addrow')); mk(document.getElementById('tkw-add')); paint(); }
+  function hit(e){ if(!on) return; var t=e.target; if(t&&t.closest&&t.closest('#ledger-tbody td,#tkw-table td')){ var now=Date.now(); if(now-(hit.t||0)>2500){ hit.t=now; toast('🔒 ตารางล็อกอยู่ — คีย์ที่ "คีย์ด่วน/สแกน" หรือกดกุญแจปลดล็อก'); } } }
+  document.addEventListener('click',hit,true);
+  document.addEventListener('focusin',function(e){ if(!on) return; var t=e.target; if(t&&t.closest&&t.closest('#ledger-tbody,#tkw-table')&&/INPUT|SELECT|TEXTAREA/.test(t.tagName)){ t.blur(); hit(e); } },true);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  setTimeout(init,1500);
 })();
 </script>
 
