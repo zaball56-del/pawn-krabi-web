@@ -8,10 +8,16 @@
 #qs-count label{display:flex;align-items:center;gap:6px;font:600 12.5px Sarabun,sans-serif;color:#166534}
 #qs-bigscan{order:2;flex:none;display:none;width:100%;margin:0 0 10px;border:0;border-radius:20px;padding:18px 14px;font:800 20px Sarabun,sans-serif;color:#fff;background:linear-gradient(135deg,#fbbf24,#f97316);box-shadow:0 10px 22px -10px rgba(249,115,22,.85),inset 0 1px 0 rgba(255,255,255,.45)}
 #qs-bigscan:active{transform:scale(.98)}
+#qs-bigscan svg{width:22px;height:22px;flex:none}
 #quick-scan-modal.qs-single #qs-count{display:flex}
 #quick-scan-modal.qs-single .qs-sec.new,#quick-scan-modal.qs-single #qs-pv-new,#quick-scan-modal.qs-single .qs-pv-arrow,#quick-scan-modal.qs-single .qs-pv-h{display:none !important}
-@media (max-width:640px){#quick-scan-modal.qs-single #qs-bigscan{display:block}
-#quick-scan-modal.qs-single .qs-sec:not(.new) .cam-btn{display:none !important}
+@media (max-width:640px){#quick-scan-modal #qs-bigscan{display:block}
+#quick-scan-modal #qs-month-name{position:absolute !important;left:0;top:0;height:auto !important;font-size:12px !important;line-height:19px;color:#047857}
+#quick-scan-modal .qs-grid>div:has(>#qs-month-name){position:relative}
+#quick-scan-modal .qs-grid #qs-bigscan{display:flex;align-items:center;justify-content:center;gap:6px;margin:7px 0 0 !important;width:100% !important;height:48px;padding:0 6px !important;border-radius:14px;font:800 16px Sarabun,sans-serif;white-space:nowrap}
+#quick-scan-modal .qs-grid>div{min-width:0}
+#quick-scan-modal .qs-grid .qs-in{min-width:0;width:100%;box-sizing:border-box}
+#quick-scan-modal .qs-sec:not(.new) .cam-btn{display:none !important}
 #quick-scan-modal.qs-single h2{order:-1 !important}
 #quick-scan-modal.qs-single .qs-types{order:0 !important;margin-bottom:8px;position:sticky;top:0;z-index:20;padding:6px 0;background:#f8fafc;box-shadow:0 6px 10px -8px rgba(15,23,42,.4)}
 #quick-scan-modal.qs-single .qs-types .qs-type-btn{padding-top:8px;padding-bottom:8px;min-height:0;height:52px}
@@ -25,12 +31,12 @@
   var KEY='pawn_qs_mode', KC='pawn_qs_cont';
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
   var bar=document.createElement('div'); bar.id='qs-mode';
-  bar.innerHTML='<button type="button" data-m="full">คีย์เต็ม<small>ตั๋วเดิม + ตั๋วใหม่</small></button><button type="button" data-m="single">สแกนตั๋วเดิม<small>ตั๋วเดิมอย่างเดียว</small></button>';
+  bar.innerHTML='<button type="button" data-m="full">สแกน<small>ตั๋วเดิม + ตั๋วใหม่</small></button><button type="button" data-m="single">สแกน<small>ตั๋วเดิมอย่างเดียว</small></button>';
   var cnt=document.createElement('div'); cnt.id='qs-count'; cnt.innerHTML='<span>วันนี้บันทึกแล้ว <b id="qs-count-n">0</b> ใบ</span><label><input type="checkbox" id="qs-cont"> สแกนต่อเนื่อง</label>';
   var anchor=M.querySelector('.qs-types')||h2.nextElementSibling; (anchor?anchor.parentNode:h2.parentNode).insertBefore(bar,anchor||null);
   anchor.parentNode.insertBefore(cnt,anchor);
-  var big=document.createElement('button'); big.type='button'; big.id='qs-bigscan'; big.textContent='📷  สแกนตั๋วเดิม';
-  anchor.parentNode.insertBefore(big,anchor);
+  var big=document.createElement('button'); big.type='button'; big.id='qs-bigscan'; big.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกน</span>';
+  var mc=document.getElementById('qs-month-name'); if(mc&&mc.parentElement) mc.parentElement.appendChild(big); else anchor.parentNode.insertBefore(big,anchor);
   big.addEventListener('click',function(){ var b=document.querySelector('#qs-ticket').parentElement.querySelector('.cam-btn'); if(b) b.click(); });
   function mode(){ return ls(KEY)==='single'?'single':'full'; }
   function count(){ var n=0, k=(typeof currentDate!=='undefined')?currentDate:''; try{ var d=db[k]; if(d&&d.months) d.months.forEach(function(m){ (d.data[m]||[]).forEach(function(r){ if(r&&r.ticket&&r.type) n++; }); }); }catch(e){} var e=document.getElementById('qs-count-n'); if(e) e.textContent=n; }
