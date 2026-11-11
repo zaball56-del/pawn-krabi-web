@@ -25,6 +25,12 @@
     ck.onchange=function(){ try{ localStorage.setItem(KEY,ck.checked?'1':'0'); }catch(e){} try{ openPrintPreview(); }catch(e){} };
   }
   var op=window.openPrintPreview; if(typeof op==='function'){ window.openPrintPreview=function(){ var r=op.apply(this,arguments); try{ mount(); var n=on()?trim():0; note(n); }catch(e){ console.error(e); } return r; }; try{ openPrintPreview=window.openPrintPreview; }catch(e){} }
+  var zs=null;
+  function wfit(){ wreset(); var m=document.getElementById('print-preview-modal'); if(!m||m.classList.contains('hidden')) return;
+    var t=document.querySelector('#print-preview-table-container table'); if(!t) return; var old=t.style.width; t.style.width='0px'; var w=t.offsetWidth; t.style.width=old;
+    var avail=1123-2*5*3.78-24; if(w>avail){ var z=Math.floor(avail/w*100)/100; zs=document.createElement('style'); zs.id='pf-wzoom'; zs.textContent='@media print{#print-preview-paper{zoom:'+z+'}}'; document.body.appendChild(zs); } }
+  function wreset(){ if(zs&&zs.parentNode) zs.parentNode.removeChild(zs); zs=null; }
+  window.addEventListener('beforeprint',wfit); window.addEventListener('afterprint',wreset); window.__pfWfit=wfit;
   setTimeout(function(){ try{ mount(); }catch(e){} },1500);
 })();
 </script>

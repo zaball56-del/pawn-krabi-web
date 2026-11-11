@@ -3808,11 +3808,12 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 let monthTitle = m ? m : 'ไม่ระบุ';
                 let bfValFormatted = (dayData.bf && dayData.bf[idx] !== undefined && dayData.bf[idx] !== 0) ? formatNumber(dayData.bf[idx]) : '';
                 tr1 += `<th colspan="3" class="border border-slate-400 p-1 bg-slate-200 text-slate-900">${monthTitle}</th>`;
-                tr2 += `<th colspan="3" class="border border-slate-400 p-1 text-left font-bold text-emerald-950">ยกมา: ${(dayData.bfCount && cleanNumberString(dayData.bfCount[idx])) ? formatNumber(dayData.bfCount[idx]) + ' ราย · ' : ''}${bfValFormatted}</th>`;
+                { const _bc = (dayData.bfCount && cleanNumberString(dayData.bfCount[idx])) ? formatNumber(dayData.bfCount[idx]) : '';
+                tr2 += `<th class="border border-slate-400 p-1 text-center font-bold text-emerald-950" style="white-space:nowrap">ยกมา</th><th class="border border-slate-400 p-1 text-center font-bold text-emerald-950">${_bc}</th><th class="border border-slate-400 p-1 text-right font-bold text-emerald-950" style="white-space:nowrap;min-width:4.2rem">${bfValFormatted}</th>`; }
                 tr3 += `
                     <th class="border border-slate-400 p-1 w-8 text-slate-900">ประเภท</th>
                     <th class="border border-slate-400 p-1 w-14 text-slate-900" style="white-space:nowrap">เลขตั๋ว</th>
-                    <th class="border border-slate-400 p-1 w-16 text-slate-900">จำนวนเงิน</th>
+                    <th class="border border-slate-400 p-1 text-slate-900" style="white-space:nowrap;min-width:4.2rem">จำนวนเงิน</th>
                 `;
             });
 
@@ -3845,7 +3846,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     previewHTML += `
                         <td class="border border-slate-400 p-1 text-center ${printRedClass}" style="${colorStyle}">${d.type || ''}</td>
                         <td class="border border-slate-400 p-1 text-center ${printRedClass}" style="${colorStyle}">${d.ticket || ''}</td>
-                        <td class="border border-slate-400 p-1 text-right ${printRedClass}" style="${colorStyle}">${amtStr}</td>
+                        <td class="border border-slate-400 p-1 text-right ${printRedClass}" style="${colorStyle}white-space:nowrap;min-width:4.2rem">${amtStr}</td>
                     `;
                 });
 
@@ -8043,7 +8044,7 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 </script>
 
 <style id="tw-css">
-.bk-tag{position:absolute;top:-5px;right:3px;z-index:3;font:700 8px/1.35 Sarabun,sans-serif;letter-spacing:.2px;color:#fff;background:linear-gradient(135deg,#14b8a6,#0ea5e9);border:1px solid #fff;border-radius:999px;padding:0 6px;box-shadow:0 2px 4px rgba(14,116,144,.38);pointer-events:none;white-space:nowrap}.bk-tag::before{content:'';display:inline-block;width:5px;height:6px;margin-right:3px;vertical-align:-0.5px;border-radius:1px;background:rgba(255,255,255,.92);box-shadow:inset -1.5px 0 0 rgba(14,116,144,.35)}@media print{.bk-tag{display:none !important}}
+.bk-tag{position:absolute;top:-5px;right:3px;z-index:3;font:700 8px/1.35 Sarabun,sans-serif;letter-spacing:.2px;color:#fff;background:linear-gradient(135deg,#14b8a6,#0ea5e9);border:1px solid #fff;border-radius:999px;padding:0 6px;box-shadow:0 2px 4px rgba(14,116,144,.38);pointer-events:none;white-space:nowrap}.bk-tag::before{content:'';display:inline-block;width:5px;height:6px;margin-right:3px;vertical-align:-0.5px;border-radius:1px;background:rgba(255,255,255,.92);box-shadow:inset -1.5px 0 0 rgba(14,116,144,.35)}@media print{.bk-tag{display:none !important}}@media print{#print-preview-paper table th,#print-preview-paper table td{padding-left:2px !important;padding-right:2px !important}}
 .s3tabs{display:flex;gap:4px;padding:5px;margin:10px 14px 12px;background:#e2e8f0;border-radius:14px}.s3tab{flex:1;border:0;background:transparent;color:#475569;border-radius:10px;padding:9px 8px;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}.s3tab.on{background:#4f46e5;color:#fff;box-shadow:0 2px 8px rgba(79,70,229,.35)}
 /* ช่องกรอกในหน้าตั้งค่า: สีตัวอักษรเข้ม/พื้นขาวชัดเจน (ธีมมืดกลับสีให้เองทั้งหน้า) */
 #ds-modal input[type="text"],#ds-modal input[type="number"],#ds-modal input[type="password"],#ds-modal input:not([type]),#ds-modal textarea{background:#fff !important;color:#14213D !important;-webkit-text-fill-color:#14213D !important;border:1.5px solid #94a3b8 !important}
@@ -8316,7 +8317,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 #tkw-page th,#tkw-page td{border-right:1px solid #d2d6ea;border-bottom:1px solid #d2d6ea;text-align:center}
 #tkw-page thead th{position:sticky;top:0;z-index:3;background:#b6b6f2}
 #tkw-page thead tr.sub th{top:62px;background:#f4f6fc;height:42px;font-size:15px;font-weight:700;color:#2b3150}
-#tkw-page .pill{position:relative;display:block;margin:8px;padding:10px;border-radius:999px;background:#a9a9ef;border:1px solid #8585e0;color:#2b2f6a;font-weight:800;font-size:16px;overflow:hidden}
+#tkw-page .pill{position:relative;display:block;margin:4px 8px;padding:8px 10px;border-radius:10px;background:none;border:0;color:#2b2f6a;font-weight:800;font-size:17px;overflow:hidden}#tkw-page .pill::after{content:' ▾';font-size:11px;opacity:.55}
 #tkw-page .pill select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px}
 #tkw-page th.no{width:58px;min-width:58px;background:#dcdcf7;color:#2b2f6a;font-size:13px;font-weight:700}
 #tkw-page thead th.no{z-index:4;position:sticky;left:0}
@@ -8459,7 +8460,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   function render(){
     if(cur>=NG()) cur=NG()-1; if(cur<0) cur=0;
     var n=rowsShown(), G=NG(), h='<thead><tr><th class="no" rowspan="2">ที่</th>';
-    for(var g=0;g<G;g++){ var opts=''; for(var m=1;m<=12;m++) opts+='<option value="'+m+'"'+(day.m[g]===m?' selected':'')+'>'+MN[m]+'</option>'; h+='<th colspan="2" data-g="'+g+'"><span class="pill">'+MN[day.m[g]]+'<select data-m="'+g+'">'+opts+'</select>'+(wide.matches&&G>1?'<button type="button" class="rm" data-rmcol="'+g+'" aria-label="ลบเดือนนี้">✕</button>':'')+'</span></th>'; }
+    for(var g=0;g<G;g++){ var opts=''; for(var m=1;m<=12;m++) opts+='<option value="'+m+'"'+(day.m[g]===m?' selected':'')+'>'+MN[m]+'</option>'; h+='<th colspan="2" data-g="'+g+'"><span class="pill">'+MN[day.m[g]]+'<select data-m="'+g+'">'+opts+(wide.matches&&G>1?'<option value="del">🗑 ลบเดือนนี้…</option>':'')+'</select></span></th>'; }
     h+='</tr><tr class="sub">'; for(g=0;g<G;g++){ h+='<th data-g="'+g+'">เลขตั๋ว</th><th data-g="'+g+'">จำนวนเงิน</th>'; }
     h+='</tr></thead><tbody>';
     for(var i=0;i<n;i++){ h+='<tr><th class="no">'+(i+1)+'<button type="button" data-del="'+i+'">ลบ</button></th>';
@@ -8525,7 +8526,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   T.addEventListener('input',function(e){ var el=e.target; if(el.tagName!=='INPUT') return; var g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var k=g+'/'+i+'/'+f; if(undo._k!==k){ snap(); undo._k=k; } ensure(g,i); day.r[g][i][f]=el.value; if(f===0&&(day.r[g][i][2]||day.r[g][i][3])){ day.r[g][i][2]=''; day.r[g][i][3]=''; var sm=el.parentNode.querySelector('small,.bk-tag'); if(sm) sm.remove(); el.classList.remove('hb'); } commit(); tot(); tabs(); });
   T.addEventListener('focusin',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value.replace(/,/g,''); } });
   T.addEventListener('focusout',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value===''?'':fmt(num(el.value)); } undo._k=''; });
-  T.addEventListener('change',function(e){ var s=e.target; if(s.tagName==='SELECT'){ snap(); var g=+s.dataset.m; day.m[g]=+s.value; commit(); render(); } });
+  T.addEventListener('change',function(e){ var s=e.target; if(s.tagName==='SELECT'){ snap(); var g=+s.dataset.m; if(s.value==='del'){ delCol(g); render(); return; } day.m[g]=+s.value; commit(); render(); } });
   function delCol(g){ if(NG()<=1) return; var has=totals(g).c>0; if(has && !window.confirm('ลบคอลัมน์เดือน '+MN[day.m[g]]+' และข้อมูลในคอลัมน์นี้ใช่ไหม? (กดเลิกทำเพื่อเอากลับได้)')) return; snap(); day.m.splice(g,1); day.r.splice(g,1); if(cur>=g&&cur>0) cur--; commit(); render(); }
   T.addEventListener('click',function(e){
     var d=e.target.closest('[data-del]'); if(d){ var i=+d.dataset.del; snap(); if(wide.matches){ for(var g=0;g<NG();g++) if(i<day.r[g].length) day.r[g].splice(i,1); } else if(i<day.r[cur].length) day.r[cur].splice(i,1); commit(); render(); return; }
@@ -9107,6 +9108,12 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
     ck.onchange=function(){ try{ localStorage.setItem(KEY,ck.checked?'1':'0'); }catch(e){} try{ openPrintPreview(); }catch(e){} };
   }
   var op=window.openPrintPreview; if(typeof op==='function'){ window.openPrintPreview=function(){ var r=op.apply(this,arguments); try{ mount(); var n=on()?trim():0; note(n); }catch(e){ console.error(e); } return r; }; try{ openPrintPreview=window.openPrintPreview; }catch(e){} }
+  var zs=null;
+  function wfit(){ wreset(); var m=document.getElementById('print-preview-modal'); if(!m||m.classList.contains('hidden')) return;
+    var t=document.querySelector('#print-preview-table-container table'); if(!t) return; var old=t.style.width; t.style.width='0px'; var w=t.offsetWidth; t.style.width=old;
+    var avail=1123-2*5*3.78-24; if(w>avail){ var z=Math.floor(avail/w*100)/100; zs=document.createElement('style'); zs.id='pf-wzoom'; zs.textContent='@media print{#print-preview-paper{zoom:'+z+'}}'; document.body.appendChild(zs); } }
+  function wreset(){ if(zs&&zs.parentNode) zs.parentNode.removeChild(zs); zs=null; }
+  window.addEventListener('beforeprint',wfit); window.addEventListener('afterprint',wreset); window.__pfWfit=wfit;
   setTimeout(function(){ try{ mount(); }catch(e){} },1500);
 })();
 </script>
