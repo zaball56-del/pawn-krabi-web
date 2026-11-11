@@ -8945,5 +8945,67 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
 })();
 </script>
 
+<style id="tp-css">
+#tp-pop{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.55);backdrop-filter:blur(2px)}
+#tp-pop.on{display:flex}
+#tp-pop .c{width:100%;max-width:340px;background:#fff;color:#0f172a;border-radius:20px;padding:16px 16px 14px;box-shadow:0 18px 50px rgba(0,0,0,.45);border:2px solid #14b8a6;font-family:Sarabun,sans-serif}
+#tp-pop h3{margin:0 0 2px;font:800 16px Sarabun,sans-serif;display:flex;justify-content:space-between;align-items:center}
+#tp-pop h3 span{font:700 11px Sarabun,sans-serif;color:#fff;background:linear-gradient(135deg,#14b8a6,#0ea5e9);border-radius:999px;padding:2px 10px}
+#tp-pop .s{font:600 11px Sarabun,sans-serif;color:#64748b;margin-bottom:10px}
+#tp-pop .g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#tp-pop label{display:block;font:700 12px Sarabun,sans-serif;color:#334155;margin-bottom:3px}
+#tp-pop input{width:100%;height:52px;border:2px solid #cbd5e1;border-radius:14px;text-align:center;font:800 24px Sarabun,sans-serif;color:#0f172a;background:#f8fafc;outline:0}
+#tp-pop input:focus{border-color:#14b8a6;background:#fff;box-shadow:0 0 0 3px rgba(20,184,166,.25)}
+#tp-pop .b{display:flex;gap:8px;margin-top:12px}
+#tp-pop .b button{flex:1;height:46px;border:0;border-radius:14px;font:800 15px Sarabun,sans-serif;cursor:pointer}
+#tp-pop .b .x{background:#e2e8f0;color:#334155;flex:0 0 38%}
+#tp-pop .b .o{background:linear-gradient(135deg,#14b8a6,#0ea5e9);color:#fff}
+#tp-pop .h{font:600 10.5px Sarabun,sans-serif;color:#94a3b8;margin-top:8px;text-align:center}
+@media print{#tp-pop{display:none !important}}
+</style>
+<div id="tp-pop" class="no-print" role="dialog" aria-label="คีย์ตั๋ว"><div class="c">
+  <h3><b id="tp-ttl">คีย์ตั๋ว</b><span id="tp-mon"></span></h3>
+  <div class="s" id="tp-sub"></div>
+  <div class="g"><div><label for="tp-t">เลขที่ตั๋ว</label><input id="tp-t" type="text" inputmode="numeric" autocomplete="off"></div><div><label for="tp-b">เล่มที่</label><input id="tp-b" type="text" inputmode="numeric" autocomplete="off"></div></div>
+  <div class="b"><button type="button" class="x" id="tp-x">ยกเลิก</button><button type="button" class="o" id="tp-o">ตกลง (Enter)</button></div>
+  <div class="h">กด Enter ที่ช่องเลขที่ → ไปช่องเล่มที่ → Enter เพื่อบันทึก</div>
+</div></div>
+<script>
+(function(){
+  var P=document.getElementById('tp-pop'), T=document.getElementById('tp-t'), B=document.getElementById('tp-b'), cur=null;
+  function dig(s){ return String(s||'').replace(/[^0-9]/g,''); }
+  function row(c,r){ var d=getCurrentDayData(), m=d.months[c]; return {d:d,m:m,row:(d.data[m]||[])[r]||{}}; }
+  function open(c,r){
+    var x=row(c,r); if(!x.m) return; cur={c:c,r:r};
+    document.getElementById('tp-ttl').textContent='คีย์ตั๋ว · แถว '+(r+1); document.getElementById('tp-mon').textContent=x.m;
+    document.getElementById('tp-sub').textContent=x.row.ticket?'แก้ไขตั๋วที่มีอยู่':'ตั๋วใหม่ในแถวนี้';
+    T.value=x.row.ticket||''; B.value=x.row.book||x.row.importBook||'';
+    P.classList.add('on'); fit(); setTimeout(function(){ T.focus(); T.select(); },30);
+  }
+  function fit(){ var v=window.visualViewport; if(!v||!P.classList.contains('on')){ P.style.top=P.style.height=P.style.bottom=''; return; } P.style.bottom='auto'; P.style.top=v.offsetTop+'px'; P.style.height=v.height+'px'; }
+  if(window.visualViewport){ visualViewport.addEventListener('resize',fit); visualViewport.addEventListener('scroll',fit); }
+  function close(){ P.classList.remove('on'); fit(); cur=null; }
+  function ok(){
+    if(!cur) return; var c=cur.c, r=cur.r, t=dig(T.value), b=dig(B.value);
+    if(!t){ T.focus(); return; }
+    var x=row(c,r); if(x.row.ticket!==t) updateCellData(c,r,'ticket',t,document.querySelector('.ticket-input-'+c+'-'+r));
+    var d=getCurrentDayData(), rec=(d.data[x.m]||[])[r]; if(rec){ rec.book=b; }
+    try{ saveDB(); }catch(e){} close();
+    try{ renderTable(); }catch(e){}
+    setTimeout(function(){ var a=document.querySelector('.amount-input-'+c+'-'+r); if(a) a.focus(); },80);
+  }
+  document.getElementById('tp-x').onclick=close; document.getElementById('tp-o').onclick=ok;
+  P.addEventListener('click',function(e){ if(e.target===P) close(); });
+  T.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); if(dig(T.value)) B.focus(),B.select(); } });
+  B.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ok(); } });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&cur) close(); });
+  document.addEventListener('focusin',function(e){
+    var t=e.target; if(!t||!t.closest||!t.closest('#ledger-tbody')||document.body.classList.contains('tbl-lock')) return;
+    var m=/(?:^|\s)ticket-input-(\d+)-(\d+)(?:\s|$)/.exec(t.className||''); if(!m) return;
+    t.blur(); open(+m[1],+m[2]);
+  },true);
+})();
+</script>
+
 </body>
 </html>
