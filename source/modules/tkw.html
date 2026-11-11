@@ -185,7 +185,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
   function sqCount(){ var n=0; for(var g=0;g<NG();g++) n+=totals(g).c; $('tkw-sq-n').textContent=n; }
   function mhint(){ var m=+SM.value, el=$('tkw-sq-mn'); if(m>=1&&m<=12){ var has=day.m.indexOf(m)>=0; el.textContent=MN[m]+(has?' ✓':' (จะเพิ่มคอลัมน์ใหม่)'); el.className='mn '+(has?'ok':'new'); } else { el.textContent=''; el.className='mn'; } }
-  function sqOpen(){ if(!day) return; P.classList.add('sq-on'); SM.value=day.m[cur]||''; ST.value=''; SA.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); $('tkw-sq-cont').checked=ls(KC)==='1'; msg('เลือกเดือน → สแกนตั๋ว → ใส่ยอดเงิน → Enter'); mhint(); sqCount(); setTimeout(function(){ (SM.value?ST:SM).focus(); },50); }
+  function sqOpen(){ if(!day) return; P.classList.add('sq-on'); SM.value=''; ST.value=''; SA.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); $('tkw-sq-cont').checked=ls(KC)==='1'; msg('สแกนตั๋ว → เดือนกับยอดมาเอง (ถ้าเจอในข้อมูลเดิม) → Enter'); mhint(); sqCount(); setTimeout(function(){ ST.focus(); },50); }
   function sqClose(){ P.classList.remove('sq-on'); render(); }
   function camOpen(){ if(typeof window.__camOpen==='function'){ var ov=document.getElementById('cam-ov'); if(ov){ ov.classList.add('tkw-cam'); if(!ov.__tkwObs){ ov.__tkwObs=new MutationObserver(function(){ if(!ov.classList.contains('on')) ov.classList.remove('tkw-cam'); }); ov.__tkwObs.observe(ov,{attributes:true,attributeFilter:['class']}); } } window.__camOpen('tkw-sq-t','สแกนตั๋วเดิม'); } else msg('ยังเปิดกล้องไม่ได้ ลองโหลดหน้าใหม่','er'); }
   var lastBook='', lastYY='', autoAmt=false, tmL=null;
@@ -197,6 +197,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var r; window.__qsMonthOverride=(+SM.value>=1&&+SM.value<=12)?+SM.value:0;
     try{ r=window.qsLookupKnownAmount(t,lastBook); }catch(e){ r={status:'none'}; } finally{ window.__qsMonthOverride=null; }
     if(!r||r.status!=='ok'){ if(autoAmt){ SA.value=''; SA.classList.remove('auto'); autoAmt=false; } hint(r&&r.status==='multibook'?'พบเลขตั๋วนี้หลายเล่ม สแกนบาร์โค้ดเพื่อระบุเล่ม':(r&&r.status==='bookmismatch'?'เลขตั๋วนี้มีในฐานข้อมูล แต่เล่มไม่ตรง ('+r.books+')':'ไม่พบตั๋วนี้ในข้อมูลเดิม ใส่ยอดเอง'),true); return; }
+    if(!lastBook){ var kb=(r.base&&r.base.book)||r.book||''; if(kb) lastBook=String(kb); }
     var mo=0; if(r.base) mo=+r.base.month; else { var ix=MN.indexOf(String(r.month||'').trim()); if(ix>0) mo=ix; }
     if(!SM.value&&mo>=1&&mo<=12){ SM.value=String(mo); mhint(); }
     if(SA.value.trim()===''||autoAmt){ SA.value=fmt(num(r.amount)); SA.classList.add('auto'); autoAmt=true;
@@ -208,7 +209,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   SM.addEventListener('input',schedL);
   SA.addEventListener('input',function(){ autoAmt=false; SA.classList.remove('auto'); });
   var busy=false;
-  function onTk(){ if(busy) return; var v=ST.value.trim(); if(!/^\d{12,13}$/.test(v)) return; var Pf=window.__parseTicketBarcode, r=(typeof Pf==='function')?Pf(v):null; if(!r){ msg('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว ลองสแกนใหม่','er'); return; } busy=true; ST.value=String(r.ticket); lastBook=String(r.book); lastYY=String(r.yy); busy=false; schedL(); msg('อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket,'ok'); setTimeout(function(){ SA.focus(); },30); }
+  function onTk(){ if(busy) return; var v=ST.value.trim(); if(!/^\d{12,13}$/.test(v)) return; var Pf=window.__parseTicketBarcode, r=(typeof Pf==='function')?Pf(v):null; if(!r){ msg('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว ลองสแกนใหม่','er'); return; } busy=true; ST.value=String(r.ticket); lastBook=String(r.book); lastYY=String(r.yy); busy=false; schedL(); msg('อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket,'ok'); setTimeout(function(){ (SM.value?SA:SM).focus(); },300); }
   ST.addEventListener('input',onTk); ST.addEventListener('change',onTk);
   SM.addEventListener('input',mhint);
   function sqSave(){
@@ -222,7 +223,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var at=-1; for(i=0;i<col.length;i++){ if(col[i][0]===''&&col[i][1]===''){ at=i; break; } } if(at<0){ at=col.length; ensure(g,at); }
     day.r[g][at]=[t,String(num(a)),lastBook,lastYY]; cur=g; commit(); undoBtn(); tabs(); sqCount();
     msg('บันทึกแล้ว: เดือน'+MN[m]+' · แถว '+(at+1)+' · '+t+(lastBook?' · เล่ม '+lastBook:'')+(lastYY?' · ปีงบ '+lastYY:'')+' · '+fmt(num(a)),'ok');
-    ST.value=''; SA.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); mhint();
+    ST.value=''; SA.value=''; SM.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); mhint();
     try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){}
     if($('tkw-sq-cont').checked) setTimeout(camOpen,500); else ST.focus();
   }
