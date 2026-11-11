@@ -8934,7 +8934,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     CL.started=true; chip('☁ กำลังเชื่อมต่อ…');
     try{
       CL.doc=firebase.firestore().collection('tkw').doc('holidays');
-      CL.doc.onSnapshot(function(snap){
+      CL.doc.onSnapshot({includeMetadataChanges:true},function(snap){
         var x=(snap.exists&&snap.data())||{}, seen={}, ch=false;
         Object.keys(x).forEach(function(f){ var k=unf(f); if(!k) return; var c; try{ c=JSON.parse(x[f]); }catch(e){ return; } seen[k]=c.u||0;
           if(!H[k]||(c.u||0)>(H[k].u||0)){ H[k]=c; ch=true; } });
