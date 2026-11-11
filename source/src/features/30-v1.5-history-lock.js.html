@@ -59,6 +59,7 @@
      +'.mx-note{font-size:12px;color:#5B6678;margin:6px 0}.ck-i{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px 12px;border:1px solid #E1E7F0;border-radius:12px;margin-bottom:8px}.ck-i.bad{border-color:#FCA5A5;background:#FEF2F2}.ck-i.warn{border-color:#FDE68A;background:#FFFBEB}.ck-i small{display:block;color:#5B6678;font-size:12px}'
      +'.ck-tag{display:inline-block;font-size:11px;font-weight:700;border-radius:99px;padding:1px 8px;margin-right:6px}.ck-tag.bad{background:#FEE2E2;color:#B91C1C}.ck-tag.warn{background:#FEF3C7;color:#92400E}'
      +'.ck-go{border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:8px;padding:5px 10px;font:600 12px Sarabun,sans-serif;cursor:pointer;white-space:nowrap}'
+     +'.ck-bt{display:flex;flex-direction:column;align-items:stretch;flex-shrink:0}.ck-clr{border:1px solid #FCD34D;background:#FFFBEB;color:#78350F;border-radius:8px;padding:5px 10px;font:600 12px Sarabun,sans-serif;cursor:pointer;white-space:nowrap}'
      +'#lock-banner{display:none;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px;padding:10px 14px;border-radius:12px;background:#FEF3C7;border:1px solid #FCD34D;color:#78350F;font:600 14px Sarabun,sans-serif}#lock-banner button{border:0;background:#92400E;color:#fff;border-radius:8px;padding:7px 14px;font:700 13px Sarabun,sans-serif;cursor:pointer}'
      +'#ck-bar{display:none;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:10px 16px;border-radius:14px;background:#FFFBEB;border:1px solid #FDE68A;color:#78350F;font:600 14px Sarabun,sans-serif}#ck-bar.bad{background:#FEF2F2;border-color:#FCA5A5;color:#7F1D1D}#ck-bar button{border:0;background:#1D4ED8;color:#fff;border-radius:8px;padding:7px 14px;font:700 13px Sarabun,sans-serif;cursor:pointer}'
      +'.sb-badge{margin-left:auto;background:#F59E0B;color:#fff;border-radius:99px;font-size:11px;font-weight:700;padding:1px 8px;display:none}'
@@ -156,10 +157,10 @@
                     if(tk&&!String(r.book||'').trim()) nb.push('['+m+'] ตั๋ว '+tk+' ไม่มีเล่มที่');
                     if(nt){ if(!String(r.newBook||'').trim()) nb.push('['+m+'] ตั๋วใหม่ '+nt+' ไม่มีเล่มที่'); if(num(r.newAmount)===0) nn.push('['+m+'] ตั๋วใหม่ '+nt+' ไม่มียอดเงิน');
                         var nk=normT(r.newBook)+'|'+normT(nt); (nd[nk]=nd[nk]||[]).push(m); } }); });
-                if(nb.length) F.push({sev:'warn',date:k,t:'ไม่มีเล่มที่ ('+nb.length+' แถว)',x:nb.slice(0,4).join(' · ')+(nb.length>4?' …':'')});
+                if(nb.length) F.push({sev:'warn',date:k,t:'ไม่มีเล่มที่ ('+nb.length+' แถว)',x:nb.slice(0,4).join(' · ')+(nb.length>4?' …':''),clr:'bk'});
                 if(nn.length) F.push({sev:'warn',date:k,t:'ตั๋วใหม่ไม่มียอดเงิน ('+nn.length+' แถว)',x:nn.slice(0,4).join(' · ')+(nn.length>4?' …':'')});
                 Object.keys(nd).forEach(function(q){ if(nd[q].length>1){ var pr=q.split('|'); F.push({sev:'warn',date:k,t:'ตั๋วใหม่ซ้ำ: เล่ม '+(pr[0]||'-')+' เลข '+pr[1]+' ('+nd[q].length+' แถว)',x:'ตั๋วใหม่หมายเลขเดียวกันถูกบันทึกมากกว่า 1 แถวในวันนี้'}); } });
-                try{ var BL=JSON.parse(localStorage.getItem('pawn_bc_rej')||'[]').filter(function(z){ return z&&z.d===k; }); if(BL.length) F.push({sev:'warn',date:k,t:'บาร์โค้ดที่ระบบปฏิเสธ ('+BL.length+' ครั้ง)',x:'อ่านผิดและไม่ได้บันทึก เช่น '+BL.slice(-3).map(function(z){ return z.v; }).join(' · ')+' — ตรวจว่าคีย์ตั๋วใบนั้นครบหรือยัง'}); }catch(e){}
+                try{ var BL=JSON.parse(localStorage.getItem('pawn_bc_rej')||'[]').filter(function(z){ return z&&z.d===k; }); if(BL.length) F.push({sev:'warn',date:k,t:'บาร์โค้ดที่ระบบปฏิเสธ ('+BL.length+' ครั้ง)',x:'อ่านผิดและไม่ได้บันทึก เช่น '+BL.slice(-3).map(function(z){ return z.v; }).join(' · ')+' — ตรวจว่าคีย์ตั๋วใบนั้นครบหรือยัง',clr:'bc'}); }catch(e){}
             }
             (d.months||[]).forEach(function(m){ if(!m) return; try{ var cb=getMonthCarriedBalance(k,m); if(cb<0) F.push({sev:'warn',date:k,t:'ยอดยกไปของเดือน'+m+' ติดลบ',x:'ไถ่ถอนมากกว่ายอดยกมา: '+fmt(cb)+' บาท'}); }catch(e){} });
         });
@@ -177,15 +178,39 @@
     function ensureBar(){ if(document.getElementById('ck-bar')) return; var g=document.querySelector('#home-page .hp-grid4'); if(!g) return; var b=document.createElement('div'); b.id='ck-bar'; b.innerHTML='<span></span><button type="button" onclick="openChecks()">ดูรายละเอียด</button>'; g.parentNode.insertBefore(b,g); }
     if(typeof renderHome==='function'){ var oRH=renderHome; renderHome=function(){ var r=oRH.apply(this,arguments); try{ ensureBar(); setBadge(); }catch(e){} return r; }; }
     function goDate(k){ if(ckm) ckm.classList.remove('on'); var el=document.getElementById('doc-date'); if(el){ el.value=k; try{ changeDate(); }catch(e){} } try{ goPage('ledger'); }catch(e){} }
+    /* เติมเล่มที่ที่ว่างจากทะเบียนทรัพย์รับจำนำ (เฉพาะวันที่เปิดอยู่ · เติมเมื่อพบเล่มเดียวชัดเจน · ไม่ทับค่าที่มีอยู่) */
+    var TMN=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    function fillBooks(k){
+        if(k!==currentDate){ try{ showToast('เติมเล่มได้เฉพาะวันที่เปิดอยู่ กด "ไปที่วันนี้" ก่อน'); }catch(e){} return; }
+        if(typeof window.centralFind!=='function'){ try{ showToast('ยังไม่พร้อมใช้ทะเบียนทรัพย์รับจำนำ'); }catch(e){} return; }
+        if(isLocked(k)){ window.__askUnlock(); return; }
+        var d=db[k], plan=[], miss=0;
+        (d.months||[]).forEach(function(m){ if(!m||m==='สรุปประจำวัน') return; var mi=TMN.indexOf(m)+1;
+            (d.data[m]||[]).forEach(function(r){ if(!r) return; var tk=String(r.ticket||'').trim(), nt=String(r.newTicket||'').trim();
+                if(tk&&!String(r.book||'').trim()){ var f=window.centralFind(tk,'',mi); if(f&&f.status==='ok'&&f.book&&f.src!=='ตั๋วใหม่') plan.push({r:r,f:'book',v:String(f.book)}); else miss++; }
+                if(nt&&!String(r.newBook||'').trim()){ var g=window.centralFind(nt,'',0); if(g&&g.status==='ok'&&g.book&&g.src==='ตั๋วใหม่') plan.push({r:r,f:'newBook',v:String(g.book)}); else miss++; } }); });
+        if(!plan.length){ try{ showToast('ไม่พบเล่มในทะเบียนสำหรับรายการเหล่านี้ (ต้องใส่เอง)'); }catch(e){} return; }
+        if(!confirm('เติมเล่มให้ '+plan.length+' ช่อง จากทะเบียนทรัพย์รับจำนำ'+(miss?'\n(ยังเหลือ '+miss+' ช่องที่ไม่พบ ต้องใส่เอง)':'')+'\n\nระบบเติมเฉพาะช่องที่ว่าง ไม่ทับค่าที่มีอยู่')) return;
+        plan.forEach(function(p){ p.r[p.f]=p.v; });
+        try{ saveDB(); }catch(e){ console.error(e); }
+        try{ renderTable(); }catch(e){}
+        try{ showToast('เติมเล่มแล้ว '+plan.length+' ช่อง'+(miss?' · ไม่พบ '+miss:'')); }catch(e){}
+        ckm.classList.remove('on'); window.openChecks();
+    }
     window.openChecks=function(){
         try{ if(typeof sbClose==='function') sbClose(); }catch(e){} setBadge();
         if(!ckm) ckm=mkModal('ck-modal','ตรวจความสอดคล้องของข้อมูล');
         var F=lastF, nb=F.filter(function(x){return x.sev==='bad';}).length;
         ckm.innerHTML='<div class="mx-box"><div class="mx-head"><div><b>ตรวจความสอดคล้องของข้อมูล</b><small>'+(F.length?('พบ '+F.length+' รายการ (ร้ายแรง '+nb+' · ควรตรวจ '+(F.length-nb)+')'):'ไม่พบรายการผิดปกติ')+'</small></div><button type="button" id="ck-x">ปิด</button></div>'
-          +'<div class="mx-body">'+(F.length?F.slice(0,200).map(function(x,i){ return '<div class="ck-i '+x.sev+'"><div><span class="ck-tag '+x.sev+'">'+(x.sev==='bad'?'ร้ายแรง':'ควรตรวจ')+'</span><b>'+esc(x.t)+'</b><small>วันที่ '+esc(thDate(x.date))+' · '+esc(x.x)+'</small></div><button type="button" class="ck-go" data-d="'+esc(x.date)+'">ไปที่วันนี้</button></div>'; }).join(''):'<div style="text-align:center;color:#047857;padding:24px;font-weight:600">✔ ข้อมูลทุกวันที่ตรวจแล้วสอดคล้องกัน</div>')
+          +'<div class="mx-body">'+(F.length?F.slice(0,200).map(function(x,i){ return '<div class="ck-i '+x.sev+'"><div><span class="ck-tag '+x.sev+'">'+(x.sev==='bad'?'ร้ายแรง':'ควรตรวจ')+'</span><b>'+esc(x.t)+'</b><small>วันที่ '+esc(thDate(x.date))+' · '+esc(x.x)+'</small></div><span class="ck-bt"><button type="button" class="ck-go" data-d="'+esc(x.date)+'">ไปที่วันนี้</button>'+(x.clr==='bc'?'<button type="button" class="ck-clr" data-i="'+i+'" style="margin-top:6px">ตรวจแล้ว ปิดรายการ</button>':'')+(x.clr==='bk'?'<button type="button" class="ck-clr" data-i="'+i+'" style="margin-top:6px">เติมเล่มจากทะเบียน</button>':'')+'</span></div>'; }).join(''):'<div style="text-align:center;color:#047857;padding:24px;font-weight:600">✔ ข้อมูลทุกวันที่ตรวจแล้วสอดคล้องกัน</div>')
           +(F.length>200?'<div class="mx-note">แสดง 200 รายการแรก</div>':'')
           +'<div class="mx-note">การตรวจเป็นการอ่านข้อมูลอย่างเดียว ไม่แก้ไขตัวเลข: ยอดติดลบ · ย/ม ไม่ตรงคงเหลือวันก่อน · แถวไถ่ถอนข้อมูลไม่ครบ · ยอดยกไปรายเดือนติดลบ · ตั๋วถูกไถ่ซ้ำ · ไม่มีเล่มที่ · ตั๋วใหม่ไม่มียอด/ซ้ำ · บาร์โค้ดที่ถูกปฏิเสธ · ข้อมูลเปลี่ยนหลังปิดยอด รายการที่แจ้งอาจเป็นเรื่องปกติของหน่วยงานได้ โปรดใช้ดุลยพินิจ</div></div></div>';
         ckm.classList.add('on'); ckm.querySelector('#ck-x').onclick=function(){ ckm.classList.remove('on'); };
+        ckm.querySelectorAll('.ck-clr').forEach(function(b){ b.onclick=function(){ var it=F[+b.getAttribute('data-i')]; if(!it) return;
+            if(it.clr==='bk'){ fillBooks(it.date); return; }
+            if(it.clr!=='bc') return;
+            try{ var L=JSON.parse(localStorage.getItem('pawn_bc_rej')||'[]').filter(function(z){ return !(z&&z.d===it.date); }); localStorage.setItem('pawn_bc_rej',JSON.stringify(L)); }catch(e){}
+            ckm.classList.remove('on'); window.openChecks(); }; });
         ckm.querySelectorAll('.ck-go').forEach(function(b){ b.onclick=function(){ goDate(b.getAttribute('data-d')); }; });
     };
     setTimeout(function(){ try{ setBadge(); }catch(e){} },2500);
