@@ -3811,7 +3811,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 tr2 += `<th colspan="3" class="border border-slate-400 p-1 text-left font-bold text-emerald-950">ยกมา: ${(dayData.bfCount && cleanNumberString(dayData.bfCount[idx])) ? formatNumber(dayData.bfCount[idx]) + ' ราย · ' : ''}${bfValFormatted}</th>`;
                 tr3 += `
                     <th class="border border-slate-400 p-1 w-8 text-slate-900">ประเภท</th>
-                    <th class="border border-slate-400 p-1 w-14 text-slate-900">เลขตั๋ว</th>
+                    <th class="border border-slate-400 p-1 w-14 text-slate-900" style="white-space:nowrap">เลขตั๋ว</th>
                     <th class="border border-slate-400 p-1 w-16 text-slate-900">จำนวนเงิน</th>
                 `;
             });
@@ -3819,7 +3819,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             tr1 += `<th colspan="3" class="border border-slate-400 p-1 bg-amber-100 text-amber-950 font-bold">ยอดสรุปประจำวัน</th>`;
             tr2 += `<th colspan="3" class="border border-slate-400 p-1 text-center bg-amber-50 font-bold"></th>`;
             tr3 += `
-                <th class="border border-slate-400 p-1 w-12 bg-amber-50 text-slate-900">ประเภท</th>
+                <th class="border border-slate-400 p-1 bg-amber-50 text-slate-900" style="white-space:nowrap;width:3.2rem">ประเภท</th>
                 <th class="border border-slate-400 p-1 w-14 bg-amber-50 text-slate-900">จำนวนราย</th>
                 <th class="border border-slate-400 p-1 w-20 bg-amber-50 text-slate-900">เงิน</th>
             `;
@@ -3858,7 +3858,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 let sAmount = (sD.amount !== '' && cleanNumberString(sD.amount) !== 0) ? formatNumber(sD.amount) : '';
 
                 previewHTML += `
-                    <td class="border border-slate-400 p-1 text-center bg-amber-50/50 font-bold text-slate-900">${sType}</td>
+                    <td class="border border-slate-400 p-1 text-center bg-amber-50/50 font-bold text-slate-900" style="white-space:nowrap">${sType}</td>
                     <td class="border border-slate-400 p-1 text-center bg-amber-50/50 font-semibold text-slate-900">${sCount}</td>
                     <td class="border border-slate-400 p-1 text-right bg-amber-50/50 font-semibold text-slate-900">${sAmount}</td>
                 `;
