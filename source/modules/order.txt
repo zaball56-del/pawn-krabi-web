@@ -12,5 +12,5 @@ scanmode.html
 importguard.html
 cloudcmp.html
 swreg.html
-motionfx.html
 loginfx.html
+tkw.html

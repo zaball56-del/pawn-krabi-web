@@ -1,0 +1,291 @@
+<style id="tkw-css">
+#tkw-page{display:none;position:fixed;inset:0;z-index:40;background:radial-gradient(ellipse at 20% 0%,#2a2a6a,#13132b 55%,#0c0c1c);color:#e5e7eb;font-family:Sarabun,"Noto Sans Thai",Tahoma,sans-serif;flex-direction:column;overflow:hidden}
+body.tkw-open #tkw-page{display:flex}
+body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !important}
+#tkw-page *{box-sizing:border-box}
+#tkw-page .top{flex:none;height:64px;background:linear-gradient(90deg,#16b6e8,#7367f0 55%,#e8559a);display:flex;align-items:center;justify-content:center;padding:0 64px;position:relative}
+#tkw-page .top h1{margin:0;color:#fff;font-size:19px;font-weight:800;line-height:1.1;text-align:center}
+#tkw-page .cloud{display:block;font:700 11px Sarabun,sans-serif;color:#e0e7ff;margin-top:2px}#tkw-page .cloud.ok{color:#bbf7d0}#tkw-page .cloud.er{color:#fecaca}
+#tkw-page .top .x{position:absolute;right:10px;top:8px;width:48px;height:48px;border-radius:14px;border:0;background:#eef1fb;color:#1e2a5a;font-size:22px;font-weight:800}
+#tkw-page .dt{flex:none;margin:10px 10px 4px;padding:8px;border-radius:18px;border:1px solid #2a3560;background:#101a3d;display:flex;gap:8px;align-items:center}
+#tkw-page .dt button{width:48px;height:48px;border-radius:12px;border:0;background:#fff;color:#1e2a5a;font-size:22px;font-weight:800}
+#tkw-page .dt input{flex:1;min-width:0;height:48px;border-radius:12px;background:#2c3550;border:1px solid #4a5578;color:#e5e7eb;padding:0 10px;font:700 16px Sarabun,sans-serif;color-scheme:dark}
+#tkw-page .dt .td{width:auto;padding:0 14px;background:#0f7a55;color:#fff;font:800 15px Sarabun,sans-serif}
+#tkw-page .thd{flex:none;padding:2px 14px 4px;color:#6ee7b7;font-weight:800;font-size:15px}
+#tkw-page .thd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#tkw-page .thd .mb{border:0;border-radius:12px;padding:8px 12px;background:rgba(255,255,255,.14);color:#fff;font:700 13px Sarabun,sans-serif;white-space:nowrap}
+#tkw-page .pill .rm{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.55);color:#4b1d3f;font:800 14px Sarabun,sans-serif;z-index:2}
+#tkw-page .srch{flex:none;display:none;margin:0 10px 6px}
+#tkw-page.s-on .srch{display:block}
+#tkw-page .srch input{width:100%;height:44px;border-radius:12px;border:1px solid #4a5578;background:#1d2750;color:#fff;padding:0 12px;font:700 16px Sarabun,sans-serif}
+#tkw-page .tabs{flex:none;display:flex;gap:8px;padding:10px 10px 6px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+#tkw-page .tabs::-webkit-scrollbar{display:none}
+#tkw-page .t{position:relative;flex:none;padding:9px 14px;border-radius:999px;background:#18224a;color:#aab4e0;font:800 15px Sarabun,sans-serif;border:0}
+#tkw-page .t.on{background:#5b5bf0;color:#fff}
+#tkw-page .t em{position:absolute;right:-2px;top:-8px;background:#f59e0b;color:#111;font:800 11px Sarabun,sans-serif;border-radius:999px;padding:1px 6px;font-style:normal}
+#tkw-page .card{flex:1;min-height:0;margin:8px 10px 0;border-radius:18px 18px 0 0;background:#eceef8;overflow:auto;-webkit-overflow-scrolling:touch}
+#tkw-page table{border-collapse:separate;border-spacing:0;width:100%}
+#tkw-page th,#tkw-page td{border-right:1px solid #d2d6ea;border-bottom:1px solid #d2d6ea;text-align:center}
+#tkw-page thead th{position:sticky;top:0;z-index:3;background:#b6b6f2}
+#tkw-page thead tr.sub th{top:62px;background:#f4f6fc;height:42px;font-size:15px;font-weight:700;color:#2b3150}
+#tkw-page .pill{position:relative;display:block;margin:8px;padding:10px;border-radius:999px;background:#a9a9ef;border:1px solid #8585e0;color:#2b2f6a;font-weight:800;font-size:16px;overflow:hidden}
+#tkw-page .pill select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px}
+#tkw-page th.no{width:58px;min-width:58px;background:#dcdcf7;color:#2b2f6a;font-size:13px;font-weight:700}
+#tkw-page thead th.no{z-index:4;position:sticky;left:0}
+#tkw-page tbody th.no{position:sticky;left:0;z-index:1}
+#tkw-page th.no button{border:0;background:none;color:#b3173b;font:700 12px Sarabun,sans-serif;margin-left:4px;padding:6px 2px}
+#tkw-page td{padding:4px;height:61px;background:#eceef8}
+#tkw-page td input{display:block;width:100%;height:50px;border-radius:14px;background:#fff;border:1.5px solid #c9ccef;padding:0 10px;font:800 20px Sarabun,sans-serif;color:#1e2a5a;text-align:center;min-width:0}
+#tkw-page td.ca input{text-align:right}
+#tkw-page td .tw{position:relative}#tkw-page td .tw small{position:absolute;right:10px;bottom:4px;font:700 10px Sarabun,sans-serif;color:#6366f1;pointer-events:none;line-height:1}#tkw-page td .tw input.hb{padding-bottom:10px}
+#tkw-page td input:focus{outline:2px solid #5b5bf0;background:#fbfbff}
+#tkw-page td input.hit{background:#fef3c7;border-color:#f59e0b}
+#tkw-page tr.tot th,#tkw-page tr.tot td{position:sticky;bottom:0;z-index:2;background:#dff3e6;height:58px;font:800 16px Sarabun,sans-serif;color:#14532d}
+#tkw-page tr.tot th.no{z-index:3;background:#bfe6cd;font-size:14px}
+#tkw-page tr.tot td{text-align:right;padding:0 14px;white-space:nowrap}
+#tkw-page .bar{flex:none;height:78px;background:#0d1637;display:flex;justify-content:space-around;align-items:center;padding:0 6px calc(10px + env(safe-area-inset-bottom))}
+#tkw-page .bar button{border:0;background:none;text-align:center;font:700 13px Sarabun,sans-serif;color:#cfd8ff;min-width:64px}
+#tkw-page .bar button span{display:block;font-size:24px;line-height:1.1}
+#tkw-page .bar button:disabled{opacity:.4}
+#tkw-page .bar button.scan{background:linear-gradient(135deg,#fbbf24,#f97316);color:#fff;border-radius:18px;height:54px;min-width:96px;box-shadow:0 8px 18px -8px rgba(249,115,22,.9)}#tkw-page .bar button.scan span{display:inline;font-size:20px;margin-right:4px}
+#tkw-page .col-empty{display:none}
+
+#cam-ov.tkw-cam #cam-types{display:none !important}
+#tkw-sq{display:none;position:absolute;inset:0;z-index:20;background:#f1f5f9;color:#0f172a;flex-direction:column;overflow:auto}
+#tkw-page.sq-on #tkw-sq{display:flex}
+#tkw-sq .h{flex:none;display:flex;align-items:center;justify-content:space-between;padding:12px 16px 12px 66px;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.08)}
+#tkw-sq .h b{font-size:20px}
+#tkw-sq .h button{border:0;border-radius:12px;background:#e2e8f0;color:#334155;padding:10px 16px;font:800 15px Sarabun,sans-serif}
+#tkw-sq .b{padding:14px 16px;display:flex;flex-direction:column;gap:12px;max-width:560px;width:100%;margin:0 auto}
+#tkw-sq .cnt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:14px;background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1px solid #86efac;color:#14532d;font:700 14px Sarabun,sans-serif}
+#tkw-sq .cnt strong{font-size:24px;line-height:1}
+#tkw-sq .cnt label{display:flex;align-items:center;gap:6px;font:600 13px Sarabun,sans-serif;color:#166534}
+#tkw-sq .big{border:0;border-radius:20px;padding:18px 14px;font:800 20px Sarabun,sans-serif;color:#fff;background:linear-gradient(135deg,#fbbf24,#f97316);box-shadow:0 10px 22px -10px rgba(249,115,22,.85),inset 0 1px 0 rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;gap:10px}
+#tkw-sq .big svg{width:26px;height:26px}
+#tkw-sq .big:active{transform:scale(.98)}
+#tkw-sq label.l{display:block;font:700 13px Sarabun,sans-serif;color:#64748b;margin:0 0 4px}
+#tkw-sq input.i{width:100%;height:52px;border-radius:14px;border:1.5px solid #c7d2fe;background:#fff;padding:0 14px;font:800 20px Sarabun,sans-serif;color:#1e2a5a}
+#tkw-sq input.i:focus{outline:2px solid #6366f1}
+#tkw-sq .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+#tkw-sq .mn{font:800 15px Sarabun,sans-serif;height:52px;display:flex;align-items:center}
+#tkw-sq .mn.ok{color:#047857}#tkw-sq .mn.new{color:#b45309}
+#tkw-sq .hint{min-height:0;font:600 13px Sarabun,sans-serif;color:#047857;margin:-6px 2px 0}#tkw-sq .hint.warn{color:#b45309}#tkw-sq input.i.auto{background:#ecfdf5;border-color:#6ee7b7}
+#tkw-sq .save{border:0;border-radius:16px;height:56px;font:800 18px Sarabun,sans-serif;color:#fff;background:linear-gradient(135deg,#10b981,#0d9488)}
+#tkw-sq .msg{min-height:44px;border-radius:14px;padding:10px 14px;font:700 14px Sarabun,sans-serif;background:#e2e8f0;color:#475569}
+#tkw-sq .msg.ok{background:#dcfce7;color:#14532d;border:1px solid #86efac}
+#tkw-sq .msg.er{background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5}
+@media (max-width:899px){#tkw-page.one [data-g]:not(.cur):not(input){display:none}}
+@media (min-width:900px){#tkw-page .mobonly{display:none}#tkw-page .tabs{display:none}#tkw-page table{min-width:1620px}#tkw-page td input{font-size:18px}#tkw-page .card{margin:8px 14px 0}}
+@media print{body.tkw-open>*:not(#tkw-page){display:none !important}#tkw-page{position:static;display:block;background:#fff;color:#000}#tkw-page .top,#tkw-page .dt,#tkw-page .srch,#tkw-page .tabs,#tkw-page .bar,#tkw-page th.no button{display:none !important}#tkw-page.one [data-g]:not(.cur):not(input){display:table-cell !important}#tkw-page .card{overflow:visible;margin:0}#tkw-page td input{border:1px solid #999;height:34px;font-size:13px}#tkw-page td{height:40px}#tkw-page thead th,#tkw-page tr.tot th,#tkw-page tr.tot td{position:static}}
+</style>
+<div id="tkw-page" class="no-print one" aria-label="บัญชีรายวันเขียนตั๋ว">
+  <div class="top"><h1>บัญชีรายวันเขียนตั๋ว<small id="tkw-cloud" class="cloud"></small></h1><button type="button" class="x" id="tkw-x" aria-label="ปิด">✕</button></div>
+  <div class="dt"><button type="button" id="tkw-prev">‹</button><input type="date" id="tkw-date"><button type="button" id="tkw-next">›</button><button type="button" class="td" id="tkw-today">วันนี้</button></div>
+  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
+  <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
+  <div class="tabs" id="tkw-tabs"></div>
+  <div class="card" id="tkw-card"><table id="tkw-table"></table></div>
+  <div id="tkw-sq" role="dialog" aria-label="สแกนตั๋วเดิม">
+    <div class="h"><b>สแกนตั๋วเดิม</b><button type="button" id="tkw-sq-x">ปิด ✕</button></div>
+    <div class="b">
+      <div class="cnt"><span>วันนี้บันทึกแล้ว <strong id="tkw-sq-n">0</strong> ใบ</span><label><input type="checkbox" id="tkw-sq-cont"> สแกนต่อเนื่อง</label></div>
+      <button type="button" class="big" id="tkw-sq-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกนตั๋วเดิม</span></button>
+      <div class="row"><div><label class="l" for="tkw-sq-m">เดือน (รหัส 1–12)</label><input class="i" id="tkw-sq-m" type="number" inputmode="numeric" min="1" max="12"></div><div class="mn" id="tkw-sq-mn"></div></div>
+      <div><label class="l" for="tkw-sq-t">เลขตั๋วเดิม (ยิงบาร์โค้ดช่องนี้)</label><input class="i" id="tkw-sq-t" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div><label class="l" for="tkw-sq-a">ยอดเงิน</label><input class="i" id="tkw-sq-a" type="text" inputmode="decimal" autocomplete="off"></div>
+      <div class="hint" id="tkw-sq-hint"></div>
+      <button type="button" class="save" id="tkw-sq-save">บันทึก (Enter)</button>
+      <div class="msg" id="tkw-sq-msg">เลือกเดือน → สแกนตั๋ว → ใส่ยอดเงิน → Enter</div>
+    </div>
+  </div>
+  <div class="bar"><button type="button" id="tkw-undo"><span>↶</span>เลิกทำ</button><button type="button" id="tkw-scan-btn" class="scan"><span>📷</span>สแกน</button><button type="button" id="tkw-find"><span>🔍</span>ค้นหา</button><button type="button" id="tkw-add"><span>＋</span>เพิ่มแถว</button><button type="button" id="tkw-print"><span>🖨</span>พิมพ์</button></div>
+</div>
+<script id="tkw-js">
+(function(){ try{
+  var KEY='pawn_tkw_v1', DEF=7, MIN=60, MAXG=12;
+  var MN=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  var MS=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var P=document.getElementById('tkw-page'); if(!P) return;
+  var $=function(id){return document.getElementById(id)};
+  var store={}, key='', day=null, cur=0, undo=[], wide=window.matchMedia('(min-width:900px)');
+  function load(){ try{ store=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ store={}; } }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} }
+  function pad(n){return (n<10?'0':'')+n}
+  function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function shift(k,n){ var p=k.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]+n); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function dayName(k){ var p=k.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]); return ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][d.getDay()]; }
+  function emptyCol(){ var a=[]; for(var i=0;i<MIN;i++) a.push(['','']); return a; }
+  function blank(k){ var m=+k.split('-')[1], ms=[], r=[]; for(var g=0;g<DEF;g++){ ms.push(((m-6+g)%12+12)%12+1); r.push(emptyCol()); } return {m:ms,r:r}; }
+  function get(k){ var d=store[k]; if(!d||!d.r||!d.m||!d.m.length||d.r.length!==d.m.length) d=blank(k); return d; }
+  function NG(){ return day.m.length; }
+  function snap(){ undo.push(JSON.stringify(day)); if(undo.length>30) undo.shift(); $('tkw-undo').disabled=false; }
+  function commit(){ day.u=Date.now(); store[key]=day; save(); try{ markDirty(key); }catch(e){} }
+  function num(s){ var v=parseFloat(String(s||'').replace(/,/g,'')); return isNaN(v)?0:v; }
+  function fmt(v){ return v?v.toLocaleString('en-US'):'0'; }
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function totals(g){ var c=0,s=0; day.r[g].forEach(function(x){ if(x[0]!==''||x[1]!=='') c++; s+=num(x[1]); }); return {c:c,s:s}; }
+  function rowsShown(){ var n=0; if(wide.matches){ day.r.forEach(function(x){ n=Math.max(n,x.length); }); } else n=day.r[cur].length; return Math.max(n,1); }
+  function ensure(g,i){ while(day.r[g].length<=i) day.r[g].push(['','']); }
+  function render(){
+    if(cur>=NG()) cur=NG()-1; if(cur<0) cur=0;
+    var n=rowsShown(), G=NG(), h='<thead><tr><th class="no" rowspan="2">ที่</th>';
+    for(var g=0;g<G;g++){ var opts=''; for(var m=1;m<=12;m++) opts+='<option value="'+m+'"'+(day.m[g]===m?' selected':'')+'>'+MN[m]+'</option>'; h+='<th colspan="2" data-g="'+g+'"><span class="pill">'+MN[day.m[g]]+'<select data-m="'+g+'">'+opts+'</select>'+(wide.matches&&G>1?'<button type="button" class="rm" data-rmcol="'+g+'" aria-label="ลบเดือนนี้">✕</button>':'')+'</span></th>'; }
+    h+='</tr><tr class="sub">'; for(g=0;g<G;g++){ h+='<th data-g="'+g+'">เลขตั๋ว</th><th data-g="'+g+'">จำนวนเงิน</th>'; }
+    h+='</tr></thead><tbody>';
+    for(var i=0;i<n;i++){ h+='<tr><th class="no">'+(i+1)+'<button type="button" data-del="'+i+'">ลบ</button></th>';
+      for(g=0;g<G;g++){ var x=day.r[g][i]||['','']; h+='<td data-g="'+g+'" class="ct"><div class="tw"><input inputmode="numeric" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="0" value="'+esc(x[0])+'"></div></td><td data-g="'+g+'" class="ca"><input inputmode="decimal" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="1" value="'+esc(x[1]===''?'':fmt(num(x[1])))+'"></td>'; }
+      h+='</tr>'; }
+    h+='<tr class="tot"><th class="no">รวม</th>'; for(g=0;g<G;g++){ h+='<td data-g="'+g+'" id="tkw-tc'+g+'"></td><td data-g="'+g+'" id="tkw-ts'+g+'"></td>'; }
+    h+='</tr></tbody>';
+    $('tkw-table').innerHTML=h;
+    mark2(); tabs(); tot();
+    $('tkw-delcol').disabled=(G<=1); $('tkw-addcol').disabled=(G>=MAXG);
+  }
+  function mark2(){ [].forEach.call($('tkw-table').querySelectorAll('[data-g]'),function(e){ if(e.tagName!=='INPUT') e.classList.toggle('cur',+e.dataset.g===cur); }); }
+  function tabs(){ var h=''; for(var g=0;g<NG();g++){ var c=totals(g).c; h+='<button type="button" class="t'+(g===cur?' on':'')+'" data-tab="'+g+'">'+MS[day.m[g]]+(c?'<em>'+c+'</em>':'')+'</button>'; } $('tkw-tabs').innerHTML=h; }
+  function tot(){ for(var g=0;g<NG();g++){ var t=totals(g), a=$('tkw-tc'+g), b=$('tkw-ts'+g); if(a) a.textContent=t.c+' รายการ'; if(b) b.textContent=fmt(t.s); } }
+  function setCur(g){ cur=g; P.classList.add('one'); if(!wide.matches) render(); else { mark2(); tabs(); } }
+  function open(k){ key=k||key||todayKey(); day=get(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:Math.min(cur,NG()-1); undo=[]; $('tkw-undo').disabled=true; var p=key.split('-'); $('tkw-date').value=key; $('tkw-thd').textContent='📅 '+p[2]+'/'+p[1]+'/'+(+p[0]+543)+' (วัน'+dayName(key)+')'; render(); }
+  function show(){ load(); var k=(typeof currentDate!=='undefined'&&currentDate)?currentDate:todayKey(); document.body.classList.add('tkw-open'); try{sbClose()}catch(e){} open(k); try{ startSync(); }catch(e){} try{ [].forEach.call(document.querySelectorAll('#app-sidebar .sb-item'),function(b){ b.classList.toggle('on',b.dataset.page==='tkw'); }); }catch(e){} }
+  function hide(){ document.body.classList.remove('tkw-open'); try{ var on=document.querySelector('#app-sidebar .sb-item[data-page="tkw"]'); if(on) on.classList.remove('on'); }catch(e){} }
+  window.tkwOpen=show; window.tkwClose=hide;
+  $('tkw-x').onclick=hide;
+  $('tkw-date').onchange=function(){ if(this.value) open(this.value); };
+  $('tkw-prev').onclick=function(){ open(shift(key,-1)); };
+  $('tkw-next').onclick=function(){ open(shift(key,1)); };
+  $('tkw-today').onclick=function(){ open(todayKey()); };
+  $('tkw-tabs').onclick=function(e){ var b=e.target.closest('[data-tab]'); if(b) setCur(+b.dataset.tab); };
+  var T=$('tkw-table');
+  T.addEventListener('input',function(e){ var el=e.target; if(el.tagName!=='INPUT') return; var g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var k=g+'/'+i+'/'+f; if(undo._k!==k){ snap(); undo._k=k; } ensure(g,i); day.r[g][i][f]=el.value; if(f===0&&(day.r[g][i][2]||day.r[g][i][3])){ day.r[g][i][2]=''; day.r[g][i][3]=''; var sm=el.parentNode.querySelector('small'); if(sm) sm.remove(); el.classList.remove('hb'); } commit(); tot(); tabs(); });
+  T.addEventListener('focusin',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value.replace(/,/g,''); } });
+  T.addEventListener('focusout',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value===''?'':fmt(num(el.value)); } undo._k=''; });
+  T.addEventListener('change',function(e){ var s=e.target; if(s.tagName==='SELECT'){ snap(); var g=+s.dataset.m; day.m[g]=+s.value; commit(); render(); } });
+  function delCol(g){ if(NG()<=1) return; var has=totals(g).c>0; if(has && !window.confirm('ลบคอลัมน์เดือน '+MN[day.m[g]]+' และข้อมูลในคอลัมน์นี้ใช่ไหม? (กดเลิกทำเพื่อเอากลับได้)')) return; snap(); day.m.splice(g,1); day.r.splice(g,1); if(cur>=g&&cur>0) cur--; commit(); render(); }
+  T.addEventListener('click',function(e){
+    var d=e.target.closest('[data-del]'); if(d){ var i=+d.dataset.del; snap(); if(wide.matches){ for(var g=0;g<NG();g++) if(i<day.r[g].length) day.r[g].splice(i,1); } else if(i<day.r[cur].length) day.r[cur].splice(i,1); commit(); render(); return; }
+    var r=e.target.closest('[data-rmcol]'); if(r){ delCol(+r.dataset.rmcol); } });
+  T.addEventListener('keydown',function(e){ if(e.key!=='Enter'||e.target.tagName!=='INPUT') return; e.preventDefault(); var el=e.target,g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var nx;
+    if(f===0) nx=T.querySelector('input[data-g="'+g+'"][data-i="'+i+'"][data-f="1"]');
+    else { if(i+1>=rowsShown()){ addRow(true); } nx=T.querySelector('input[data-g="'+g+'"][data-i="'+(i+1)+'"][data-f="0"]'); }
+    if(nx){ nx.focus(); try{nx.select()}catch(_){} } });
+  function addRow(quiet){ var n=rowsShown()+1; snap(); for(var g=0;g<NG();g++){ if(wide.matches||g===cur) ensure(g,n-1); } commit(); render(); if(!quiet){ var c=$('tkw-card'); if(c) c.scrollTop=c.scrollHeight; } }
+  $('tkw-add').onclick=function(){ addRow(false); };
+  $('tkw-addcol').onclick=function(){ if(NG()>=MAXG) return; snap(); var last=day.m[NG()-1]; day.m.push(last%12+1); day.r.push(emptyCol()); cur=NG()-1; commit(); render(); };
+  $('tkw-delcol').onclick=function(){ delCol(cur); };
+  $('tkw-undo').onclick=function(){ if(!undo.length) return; day=JSON.parse(undo.pop()); commit(); if(!undo.length) this.disabled=true; render(); };
+  $('tkw-find').onclick=function(){ P.classList.toggle('s-on'); if(P.classList.contains('s-on')) $('tkw-q').focus(); else { $('tkw-q').value=''; mark(''); } };
+  function mark(q){ var first=null; [].forEach.call(T.querySelectorAll('input[data-f="0"]'),function(el){ var hit=q&&el.value.indexOf(q)>=0; el.classList.toggle('hit',!!hit); if(hit&&!first) first=el; }); return first; }
+  $('tkw-q').oninput=function(){ var q=this.value.trim(), f=mark(q); if(!f&&q&&!wide.matches){ for(var g=0;g<NG();g++){ if(day.r[g].some(function(x){return x[0].indexOf(q)>=0})){ setCur(g); f=mark(q); break; } } } if(f){ if(wide.matches) setCur(+f.dataset.g); f.scrollIntoView({block:'center'}); } };
+  $('tkw-print').onclick=function(){ try{ window.print(); }catch(e){} };
+
+  // ----- หน้าสแกนตั๋วเดิม (เหมือนโหมด "สแกนตั๋วเดิม" ของคีย์ด่วน) -----
+  T.addEventListener('focusin',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.g!==undefined&&+el.dataset.g!==cur){ cur=+el.dataset.g; mark2(); tabs(); } });
+  var SM=$('tkw-sq-m'), ST=$('tkw-sq-t'), SA=$('tkw-sq-a'), SG=$('tkw-sq-msg'), KC='pawn_tkw_cont';
+  function msg(t,k){ SG.textContent=t; SG.className='msg'+(k?' '+k:''); }
+  function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
+  function sqCount(){ var n=0; for(var g=0;g<NG();g++) n+=totals(g).c; $('tkw-sq-n').textContent=n; }
+  function mhint(){ var m=+SM.value, el=$('tkw-sq-mn'); if(m>=1&&m<=12){ var has=day.m.indexOf(m)>=0; el.textContent=MN[m]+(has?' ✓':' (จะเพิ่มคอลัมน์ใหม่)'); el.className='mn '+(has?'ok':'new'); } else { el.textContent=''; el.className='mn'; } }
+  function sqOpen(){ if(!day) return; P.classList.add('sq-on'); SM.value=day.m[cur]||''; ST.value=''; SA.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); $('tkw-sq-cont').checked=ls(KC)==='1'; msg('เลือกเดือน → สแกนตั๋ว → ใส่ยอดเงิน → Enter'); mhint(); sqCount(); setTimeout(function(){ (SM.value?ST:SM).focus(); },50); }
+  function sqClose(){ P.classList.remove('sq-on'); render(); }
+  function camOpen(){ if(typeof window.__camOpen==='function'){ var ov=document.getElementById('cam-ov'); if(ov){ ov.classList.add('tkw-cam'); if(!ov.__tkwObs){ ov.__tkwObs=new MutationObserver(function(){ if(!ov.classList.contains('on')) ov.classList.remove('tkw-cam'); }); ov.__tkwObs.observe(ov,{attributes:true,attributeFilter:['class']}); } } window.__camOpen('tkw-sq-t','สแกนตั๋วเดิม'); } else msg('ยังเปิดกล้องไม่ได้ ลองโหลดหน้าใหม่','er'); }
+  var lastBook='', lastYY='', autoAmt=false, tmL=null;
+  function hint(t,w){ var h=$('tkw-sq-hint'); h.textContent=t||''; h.className='hint'+(w?' warn':''); }
+  function dth(k){ var p=String(k).split('-'); return p[2]+'/'+p[1]+'/'+(parseInt(p[0],10)+543); }
+  function lookup(){
+    var t=ST.value.trim(); if(!t){ if(autoAmt){ SA.value=''; SA.classList.remove('auto'); autoAmt=false; } hint(''); return; }
+    if(typeof window.qsLookupKnownAmount!=='function'){ hint(''); return; }
+    var r; window.__qsMonthOverride=(+SM.value>=1&&+SM.value<=12)?+SM.value:0;
+    try{ r=window.qsLookupKnownAmount(t,lastBook); }catch(e){ r={status:'none'}; } finally{ window.__qsMonthOverride=null; }
+    if(!r||r.status!=='ok'){ if(autoAmt){ SA.value=''; SA.classList.remove('auto'); autoAmt=false; } hint(r&&r.status==='multibook'?'พบเลขตั๋วนี้หลายเล่ม สแกนบาร์โค้ดเพื่อระบุเล่ม':(r&&r.status==='bookmismatch'?'เลขตั๋วนี้มีในฐานข้อมูล แต่เล่มไม่ตรง ('+r.books+')':'ไม่พบตั๋วนี้ในข้อมูลเดิม ใส่ยอดเอง'),true); return; }
+    var mo=0; if(r.base) mo=+r.base.month; else { var ix=MN.indexOf(String(r.month||'').trim()); if(ix>0) mo=ix; }
+    if(!SM.value&&mo>=1&&mo<=12){ SM.value=String(mo); mhint(); }
+    if(SA.value.trim()===''||autoAmt){ SA.value=fmt(num(r.amount)); SA.classList.add('auto'); autoAmt=true;
+      hint('ดึงยอดจาก'+(r.base?'ฐานข้อมูลตั๋วตั้งต้น ('+r.month+' · เล่ม '+r.base.book+')':'ข้อมูลเดิม ('+dth(r.date)+' · '+r.month+')')+' แก้ไขได้',!!r.differs); }
+    else hint('พบในข้อมูลเดิม ยอด '+fmt(num(r.amount))+' (ยอดที่ใส่ไว้ไม่ถูกเปลี่ยน)',false);
+  }
+  function schedL(){ clearTimeout(tmL); tmL=setTimeout(lookup,120); }
+  ST.addEventListener('input',function(){ if(!/^\d{12,13}$/.test(ST.value.trim())){ lastBook=''; lastYY=''; } schedL(); });
+  SM.addEventListener('input',schedL);
+  SA.addEventListener('input',function(){ autoAmt=false; SA.classList.remove('auto'); });
+  var busy=false;
+  function onTk(){ if(busy) return; var v=ST.value.trim(); if(!/^\d{12,13}$/.test(v)) return; var Pf=window.__parseTicketBarcode, r=(typeof Pf==='function')?Pf(v):null; if(!r){ msg('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว ลองสแกนใหม่','er'); return; } busy=true; ST.value=String(r.ticket); lastBook=String(r.book); lastYY=String(r.yy); busy=false; schedL(); msg('อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket,'ok'); setTimeout(function(){ SA.focus(); },30); }
+  ST.addEventListener('input',onTk); ST.addEventListener('change',onTk);
+  SM.addEventListener('input',mhint);
+  function sqSave(){
+    var m=+SM.value, t=ST.value.trim(), a=SA.value.replace(/,/g,'').trim();
+    if(!(m>=1&&m<=12)){ msg('ใส่เดือน 1–12 ก่อน','er'); SM.focus(); return; }
+    if(!t){ msg('ยังไม่มีเลขตั๋ว สแกนหรือพิมพ์ก่อน','er'); ST.focus(); return; }
+    if(!a||!(num(a)>0)){ msg('ใส่ยอดเงินก่อน','er'); SA.focus(); return; }
+    var g=day.m.indexOf(m); snap();
+    if(g<0){ if(NG()>=MAXG){ undo.pop(); msg('คอลัมน์เดือนเต็ม 12 คอลัมน์แล้ว','er'); return; } day.m.push(m); day.r.push(emptyCol()); g=NG()-1; }
+    var col=day.r[g]; for(var i=0;i<col.length;i++){ if(col[i][0]===t&&(!lastBook||!col[i][2]||col[i][2]===lastBook)){ undo.pop(); msg('ตั๋ว '+t+(lastBook?' เล่ม '+lastBook:'')+' มีอยู่แล้วในเดือน'+MN[m]+' (แถว '+(i+1)+') ไม่บันทึกซ้ำ','er'); ST.select(); return; } }
+    var at=-1; for(i=0;i<col.length;i++){ if(col[i][0]===''&&col[i][1]===''){ at=i; break; } } if(at<0){ at=col.length; ensure(g,at); }
+    day.r[g][at]=[t,String(num(a)),lastBook,lastYY]; cur=g; commit(); undoBtn(); tabs(); sqCount();
+    msg('บันทึกแล้ว: เดือน'+MN[m]+' · แถว '+(at+1)+' · '+t+(lastBook?' · เล่ม '+lastBook:'')+(lastYY?' · ปีงบ '+lastYY:'')+' · '+fmt(num(a)),'ok');
+    ST.value=''; SA.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); mhint();
+    try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){}
+    if($('tkw-sq-cont').checked) setTimeout(camOpen,500); else ST.focus();
+  }
+  function undoBtn(){ $('tkw-undo').disabled=!undo.length; }
+  SM.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ST.focus(); } });
+  ST.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); onTk(); if(ST.value.trim()) SA.focus(); } });
+  SA.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); sqSave(); } });
+  SA.addEventListener('focus',function(){ SA.value=SA.value.replace(/,/g,''); });
+  SA.addEventListener('blur',function(){ if(SA.value.trim()) SA.value=fmt(num(SA.value)); });
+  $('tkw-sq-save').onclick=sqSave; $('tkw-sq-cam').onclick=camOpen; $('tkw-sq-x').onclick=sqClose;
+  $('tkw-sq-cont').onchange=function(){ ls(KC,this.checked?'1':'0'); };
+  $('tkw-scan-btn').onclick=sqOpen;
+
+  // ----- ซิงก์คลาวด์ (คอลเลกชัน tkw แยกจากบัญชีหลัก 'ledger' ไม่แตะซิงก์ของเดิม) -----
+  var CL={on:false,started:false,denied:false,dirty:{},cu:{},timer:null,tries:0,pending:{},col:null};
+  var COLN='tkw';
+  function chip(t,k){ var e=$('tkw-cloud'); if(e){ e.textContent=t; e.className='cloud '+(k||''); } }
+  function fbReady(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0&&!!firebase.auth().currentUser; }catch(e){ return false; } }
+  function fbExists(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0; }catch(e){ return false; } }
+  function dayField(k){ return 'd'+k.replace(/-/g,''); }
+  function parseField(f){ var m=/^d(\d{4})(\d{2})(\d{2})$/.exec(f); return m?m[1]+'-'+m[2]+'-'+m[3]:null; }
+  function hasData(d){ return !!(d&&d.r&&d.r.some(function(col){ return col.some(function(x){ return x[0]!==''||x[1]!==''; }); })); }
+  function markDirty(k){ CL.dirty[k]=1; if(CL.on) schedPush(3000); }
+  function schedPush(ms){ clearTimeout(CL.timer); CL.timer=setTimeout(push,ms); }
+  function push(){
+    if(!CL.on||!CL.col||CL.denied) return;
+    var byM={}; Object.keys(CL.dirty).forEach(function(k){ var d=store[k]; if(!d) return; if(!hasData(d)&&!CL.cu[k]) { delete CL.dirty[k]; return; } (byM[k.slice(0,7)]=byM[k.slice(0,7)]||{})[dayField(k)]=JSON.stringify(d); });
+    var ms=Object.keys(byM); if(!ms.length) return;
+    chip('☁ กำลังซิงก์…');
+    Promise.all(ms.map(function(m){ var o=byM[m]; return CL.col.doc(m).set(o,{merge:true}).then(function(){ Object.keys(o).forEach(function(f){ var k=parseField(f); if(k){ try{ var u=JSON.parse(o[f]).u; if(CL.dirty[k]&&store[k]&&store[k].u===u) delete CL.dirty[k]; CL.cu[k]=u; }catch(e){} } }); }); }))
+      .then(function(){ chip('☁ ซิงก์แล้ว','ok'); if(Object.keys(CL.dirty).length) schedPush(3000); })
+      .catch(function(err){ onErr(err,true); });
+  }
+  function onErr(err,write){ var c=err&&err.code; console.warn('tkw sync',err);
+    if(c==='permission-denied'){ CL.denied=true; chip('☁ ซิงก์ไม่ได้: ยังไม่มีสิทธิ์ (บันทึกในเครื่องนี้)','er'); say('ซิงก์หน้าเขียนตั๋วไม่ได้: ต้องเพิ่มกฎ Firestore ให้คอลเลกชัน tkw'); return; }
+    if(c==='resource-exhausted'){ chip('☁ โควตาเต็ม (บันทึกในเครื่องนี้)','er'); return; }
+    chip('☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา','er'); if(write) schedPush(30000); }
+  function applyRemote(k,c){
+    var l=store[k]; if(l&&(c.u||0)<=(l.u||0)) return;
+    var busy=document.body.classList.contains('tkw-open')&&key===k&&(P.contains(document.activeElement)&&document.activeElement.tagName==='INPUT');
+    if(busy){ CL.pending[k]=c; return; }
+    store[k]=c; save(); if(key===k&&document.body.classList.contains('tkw-open')){ day=c; if(cur>=NG()) cur=NG()-1; render(); }
+  }
+  function applyPending(){ Object.keys(CL.pending).forEach(function(k){ var c=CL.pending[k]; delete CL.pending[k]; applyRemote(k,c); }); }
+  function startSync(){
+    if(CL.started||CL.denied) return;
+    if(!fbExists()){ chip('☁ บันทึกในเครื่องนี้เท่านั้น (ยังไม่ได้ตั้งค่า Firebase)','er'); return; }
+    if(!fbReady()){ if(CL.tries++<20){ chip('☁ รอเชื่อมต่อ…'); setTimeout(startSync,1500); } else chip('☁ ยังไม่ได้เข้าสู่ระบบ','er'); return; }
+    CL.started=true; chip('☁ กำลังเชื่อมต่อ…');
+    try{
+      CL.col=firebase.firestore().collection(COLN);
+      CL.col.onSnapshot(function(snap){
+        var seen={}; snap.docs.forEach(function(d){ var x=d.data()||{}; Object.keys(x).forEach(function(f){ var k=parseField(f); if(!k) return; var c; try{ c=JSON.parse(x[f]); }catch(e){ return; } seen[k]=1; CL.cu[k]=c.u||0; applyRemote(k,c); }); });
+        if(!CL.on){ CL.on=true; Object.keys(store).forEach(function(k){ var l=store[k]; if(!hasData(l)) return; if(!seen[k]){ if(!l.u) l.u=Date.now(); CL.dirty[k]=1; } else if((l.u||0)>(CL.cu[k]||0)) CL.dirty[k]=1; }); save(); }
+        chip(snap.metadata&&snap.metadata.fromCache?'☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา':'☁ ซิงก์แล้ว',snap.metadata&&snap.metadata.fromCache?'er':'ok');
+        if(Object.keys(CL.dirty).length) schedPush(500);
+      },function(err){ onErr(err,false); });
+    }catch(e){ onErr(e,false); }
+  }
+  document.addEventListener('focusout',function(){ setTimeout(function(){ if(!P.contains(document.activeElement)) applyPending(); },50); });
+  window.addEventListener('online',function(){ if(CL.on) schedPush(500); });
+  try{ wide.addEventListener('change',function(){ if(document.body.classList.contains('tkw-open')&&day) render(); }); }catch(e){}
+  var sb=document.getElementById('app-sidebar'); if(sb) sb.addEventListener('click',function(e){ var b=e.target.closest('.sb-item'); if(b&&b.dataset.page!=='tkw') hide(); },true);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&document.body.classList.contains('tkw-open')&&!document.querySelector('#quick-scan-modal.on')){ if(P.classList.contains('sq-on')) sqClose(); else hide(); } });
+}catch(e){ try{console.error('tkw',e)}catch(_){} } })();
+</script>

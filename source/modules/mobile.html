@@ -306,6 +306,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
       try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}); var v=$('cam-v'); v.srcObject=stream; await v.play(); raw('ส่องบาร์โค้ดให้อยู่ในกรอบสีส้ม'); await tune(); if(d) timer=setInterval(tick,160); }
       catch(e){ raw('เปิดกล้องไม่ได้: '+(e&&e.name||e)+' (ตรวจสอบว่ากดอนุญาตใช้กล้อง) · ใช้ปุ่มถ่ายรูปแทนได้'); } }
     $('cam-x').onclick=stop;
+    window.__camOpen=function(id,title){ try{ $('cam-t').textContent=title||'สแกนบาร์โค้ด'; }catch(e){} return open(id); };
     $('cam-torch').onclick=async function(){ try{ var t=stream&&stream.getVideoTracks()[0]; var cp=t&&t.getCapabilities&&t.getCapabilities(); if(!cp||!cp.torch){raw('เครื่องนี้เปิดไฟฉายผ่านเว็บไม่ได้');return;} var on=!this.classList.contains('on'); await t.applyConstraints({advanced:[{torch:on}]}); this.classList.toggle('on',on); }catch(e){raw('เปิดไฟฉายไม่ได้');} };
     $('cam-pic').onclick=function(){ $('cam-file').click() };
     $('cam-file').onchange=async function(){ var f=this.files&&this.files[0]; this.value=''; if(!f)return; var d=mk(); if(!d){raw('เบราว์เซอร์นี้อ่านบาร์โค้ดจากรูปไม่ได้');return;} raw('กำลังอ่านรูป...'); try{ var bm=await createImageBitmap(f); var r=await d.detect(bm); if(r&&r.length){accept(r[0].rawValue,false);} else raw('อ่านบาร์โค้ดจากรูปไม่ได้ ลองถ่ายใหม่ให้ใกล้และคมขึ้น'); }catch(e){ raw('อ่านรูปไม่ได้: '+(e&&e.message||e)); } };
