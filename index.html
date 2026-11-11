@@ -1242,7 +1242,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             <button class="sb-item" onclick="sbClose();centralOpen()"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ทะเบียนทรัพย์รับจำนำ </button>
             <button class="sb-item" onclick="sbClose();holidayOpen()"><span class="sb-ic" style="--c:#F97316"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ปฏิทินวันหยุด </button>
             <button class="sb-item" onclick="sbClose();openStorageModal()"><span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ตรวจขนาดข้อมูล </button>
-            <button class="sb-item" onclick="sbClose();openPDFCompareModal()"><span class="sb-ic" style="--c:#22D3EE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5zM9 14l2 2 4-4"/></svg></span> ตรวจ PDF เทียบข้อมูล</button>
+            
             <button class="sb-item" onclick="sbClose();openGlobalSearch()"><span class="sb-ic" style="--c:#F472B6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span> ค้นหาตั๋ว</button>
             <button class="sb-item" onclick="sbClose();openPrintPreview()"><span class="sb-ic" style="--c:#FB923C"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5v-6h14v6h-2M7 14h10v6H7z"/></svg></span> รายงาน / พิมพ์</button>
             <button class="sb-item" onclick="sbClose();openMonthlyReport()"><span class="sb-ic" style="--c:#22D3EE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span> สรุปรายเดือน / ปี</button>
@@ -1291,7 +1291,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                         </div></details>
                     <details class="hdr-menu"><summary><i class="fa-solid fa-file-pdf"></i> PDF</summary>
                         <div class="hdr-menu-panel">
-                            <button class="menu-item" onclick="openPDFCompareModal()"><i class="fa-solid fa-file-circle-check"></i> ตรวจ PDF เทียบข้อมูล</button>
+                            
                             <button class="menu-item" onclick="openPDFImportModal()"><i class="fa-solid fa-file-arrow-down"></i> นำเข้า สธ.3 (PDF)</button>
                             <button class="menu-item" disabled title="รอตัวอย่างไฟล์ สธ.2 เพื่อทำตัวอ่านให้ตรงรูปแบบ" style="opacity:.55;cursor:not-allowed"><i class="fa-solid fa-file-arrow-down"></i> นำเข้า สธ.2 (PDF) <span style="font-size:11px;margin-left:auto;color:#64748b">เร็วๆ นี้</span></button>
                             
@@ -1554,6 +1554,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 </div>
                 <button onclick="closePDFImportModal()" class="text-slate-500 text-xl" aria-label="ปิด"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
             </div>
+            <div class="s3tabs"><button type="button" onclick="s3Tab('import')" class="s3tab on">นำเข้า สธ.3</button><button type="button" onclick="s3Tab('compare')" class="s3tab">เทียบก่อนนำเข้า</button></div>
             <div class="p-4 space-y-3 overflow-y-auto">
                 <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-start">
                     <div><label class="block text-xs font-bold text-slate-700 mb-1" style="height:18px;line-height:18px;overflow:hidden;white-space:nowrap">เลือกไฟล์ PDF สธ.3 (ทะเบียนไถ่ถอน)</label><input id="pdf-import-file" type="file" accept="application/pdf,.pdf" onchange="handlePDFImportFile(event)" class="block w-full text-xs border border-slate-300 rounded-lg p-2 bg-slate-50" style="height:42px;box-sizing:border-box"><p class="text-[10px] mt-1" style="visibility:hidden">&nbsp;</p></div>
@@ -1581,6 +1582,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 </div>
                 <button onclick="closePDFCompareModal()" class="text-slate-500 hover:text-rose-600 text-xl" aria-label="ปิด"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
             </div>
+            <div class="s3tabs"><button type="button" onclick="s3Tab('import')" class="s3tab">นำเข้า สธ.3</button><button type="button" onclick="s3Tab('compare')" class="s3tab on">เทียบก่อนนำเข้า</button></div>
             <div class="p-4 space-y-3 overflow-y-auto">
                 <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-start">
                     <div>
@@ -4109,6 +4111,11 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             modal.style.display = 'flex';
         }
 
+        /* แท็บสลับระหว่าง นำเข้า สธ.3 กับ เทียบก่อนนำเข้า (เมนูเดียว) */
+        function s3Tab(t) {
+            if (t === 'compare') { closePDFImportModal(); openPDFCompareModal(); }
+            else { closePDFCompareModal(); openPDFImportModal(); }
+        }
         function closePDFCompareModal() {
             const modal = document.getElementById('pdf-compare-modal');
             modal.style.display = 'none';
@@ -8008,6 +8015,7 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 </script>
 
 <style id="tw-css">
+.s3tabs{display:flex;gap:4px;padding:5px;margin:10px 14px 12px;background:#e2e8f0;border-radius:14px}.s3tab{flex:1;border:0;background:transparent;color:#475569;border-radius:10px;padding:9px 8px;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}.s3tab.on{background:#4f46e5;color:#fff;box-shadow:0 2px 8px rgba(79,70,229,.35)}
 /* ช่องกรอกในหน้าตั้งค่า: สีตัวอักษรเข้ม/พื้นขาวชัดเจน (ธีมมืดกลับสีให้เองทั้งหน้า) */
 #ds-modal input[type="text"],#ds-modal input[type="number"],#ds-modal input[type="password"],#ds-modal input:not([type]),#ds-modal textarea{background:#fff !important;color:#14213D !important;-webkit-text-fill-color:#14213D !important;border:1.5px solid #94a3b8 !important}
 #ds-modal input::placeholder,#ds-modal textarea::placeholder{color:#64748b !important;-webkit-text-fill-color:#64748b !important;opacity:1}
@@ -8328,6 +8336,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 @media (max-width:899px){#tkw-page.one [data-g]:not(.cur):not(input){display:none}}
 @media (min-width:900px){#tkw-page .mobonly{display:none}#tkw-page .tabs{display:none}#tkw-page table{min-width:1620px}#tkw-page td input{font-size:18px}#tkw-page .card{margin:8px 14px 0}}
 @media print{body.tkw-open>*:not(#tkw-page){display:none !important}#tkw-page{position:static;display:block;background:#fff;color:#000}#tkw-page .top,#tkw-page .dt,#tkw-page .srch,#tkw-page .tabs,#tkw-page .bar,#tkw-page th.no button{display:none !important}#tkw-page.one [data-g]:not(.cur):not(input){display:table-cell !important}#tkw-page .card{overflow:visible;margin:0}#tkw-page td input{border:1px solid #999;height:34px;font-size:13px}#tkw-page td{height:40px}#tkw-page thead th,#tkw-page tr.tot th,#tkw-page tr.tot td{position:static}}
+#tkw-cmp{margin:10px 12px 0;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;font-size:13px;overflow:hidden}#tkw-cmp:empty{display:none}#tkw-cmp .cmphd{padding:9px 12px;background:rgba(255,255,255,.06)}#tkw-cmp .cmphd .bad{color:#fbbf24;font-weight:800}#tkw-cmp .cmpr{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-top:1px solid rgba(255,255,255,.08)}#tkw-cmp .cmpr em{font-style:normal;color:#fcd34d;text-align:right}#tkw-page input.cmpbad{box-shadow:0 0 0 2px #f59e0b inset !important;border-radius:6px}
 </style>
 <div id="tkw-page" class="no-print one" aria-label="บัญชีรายวันเขียนตั๋ว">
   <div class="top"><h1>บัญชีรายวันเขียนตั๋ว<small id="tkw-cloud" class="cloud"></small></h1><button type="button" class="x" id="tkw-x" aria-label="ปิด">✕</button></div>
@@ -8336,6 +8345,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
   <div class="tabs" id="tkw-tabs"></div>
   <div class="card" id="tkw-card"><table id="tkw-table"></table></div>
+  <div id="tkw-cmp"></div>
   <div id="tkw-sq" role="dialog" aria-label="สแกนตั๋วเดิม">
     <div class="h"><b>สแกนตั๋วเดิม</b><button type="button" id="tkw-sq-x">ปิด ✕</button></div>
     <div class="b">
@@ -8394,7 +8404,33 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   function mark2(){ [].forEach.call($('tkw-table').querySelectorAll('[data-g]'),function(e){ if(e.tagName!=='INPUT') e.classList.toggle('cur',+e.dataset.g===cur); }); }
   function tabs(){ var h=''; for(var g=0;g<NG();g++){ var c=totals(g).c; h+='<button type="button" class="t'+(g===cur?' on':'')+'" data-tab="'+g+'">'+MS[day.m[g]]+(c?'<em>'+c+'</em>':'')+'</button>'; } $('tkw-tabs').innerHTML=h; }
-  function tot(){ for(var g=0;g<NG();g++){ var t=totals(g), a=$('tkw-tc'+g), b=$('tkw-ts'+g); if(a) a.textContent=t.c+' รายการ'; if(b) b.textContent=fmt(t.s); } }
+  // เทียบกับ สธ.3 (อ่านอย่างเดียว ไม่แก้ตาราง): ยอด / เดือน / เล่ม / ไม่พบ
+  var cmpT=null; function schedCmp(){ clearTimeout(cmpT); cmpT=setTimeout(cmp,350); }
+  function cmp(){
+    var box=$('tkw-cmp'); if(!box) return; [].forEach.call($('tkw-table').querySelectorAll('input.cmpbad'),function(e){ e.classList.remove('cmpbad'); });
+    if(typeof window.centralS3!=='function'){ box.innerHTML=''; return; }
+    var S=window.centralS3(), iss=[], ok=0, wait=0, cut='';
+    try{ var a=key.split('-'), d0=new Date(+a[0],+a[1]-1,+a[2],12); d0.setDate(d0.getDate()-365); if(!isNaN(d0.getTime())) cut=d0.getFullYear()+'-'+('0'+(d0.getMonth()+1)).slice(-2)+'-'+('0'+d0.getDate()).slice(-2); }catch(e){}
+    var hasDay=!!S.days[key];
+    for(var g=0;g<NG();g++){ var mo=day.m[g]; for(var i=0;i<day.r[g].length;i++){ var x=day.r[g][i], t=String(x[0]||'').trim(); if(!t) continue;
+      var key0=/^\d+$/.test(t)?String(Number(t)):t.toLowerCase(), c=(S.by[key0]||[]).filter(function(e){ return (!cut||e.date>cut)&&e.date<=key+'\uffff'; }), why='', hit=null;
+      var inM=c.filter(function(e){return e.mi===mo});
+      if(x[2]){ var bk=inM.filter(function(e){return String(Number(e.book))===String(Number(x[2]))}); if(bk.length) inM=bk; }
+      if(inM.length){ inM.sort(function(p,q){ var sp=p.date===key?1:0, sq=q.date===key?1:0; return sq-sp||(p.date<q.date?1:-1); }); hit=inM[0];
+        var am=num(x[1]);
+        if(am>0&&Math.abs(am-hit.amount)>0.009) why='ยอด '+fmt(am)+' แต่ สธ.3 = '+fmt(hit.amount);
+        else if(x[2]&&hit.book&&String(Number(x[2]))!==String(Number(hit.book))) why='เล่ม '+x[2]+' แต่ สธ.3 = '+hit.book;
+      } else if(c.length){ why='เดือนไม่ตรง: สธ.3 อยู่เดือน '+c.map(function(e){return MN[e.mi]}).filter(function(v,j,arr){return arr.indexOf(v)===j}).join(', '); }
+      else if(hasDay) why='ไม่พบใน สธ.3 ของวันนี้';
+      else { wait++; continue; }
+      if(why){ iss.push({g:g,i:i,t:t,m:mo,why:why}); var el=$('tkw-table').querySelector('input[data-g="'+g+'"][data-i="'+i+'"][data-f="0"]'); if(el) el.classList.add('cmpbad'); } else ok++;
+    } }
+    var h='<div class="cmphd"><b>เทียบกับ สธ.3</b> · ตรงกัน '+ok+' · ไม่ตรง/ไม่พบ <span class="'+(iss.length?'bad':'')+'">'+iss.length+'</span>'+(wait?' · ยังไม่มี สธ.3 ของวันนี้ '+wait+' ราย':'')+'</div>';
+    if(iss.length) h+=iss.slice(0,40).map(function(v){ return '<div class="cmpr"><span>'+MN[v.m]+' · แถว '+(v.i+1)+' · ตั๋ว '+esc(v.t)+'</span><em>'+esc(v.why)+'</em></div>'; }).join('')+(iss.length>40?'<div class="cmpr"><em>และอีก '+(iss.length-40)+' รายการ</em></div>':'');
+    else if(ok) h+='<div class="cmpr"><em>✓ รายการที่เทียบได้ตรงกับ สธ.3 ทั้งหมด (ระบบไม่แก้ตารางให้เอง)</em></div>';
+    box.innerHTML=(ok||iss.length||wait)?h:'';
+  }
+  function tot(){ schedCmp(); for(var g=0;g<NG();g++){ var t=totals(g), a=$('tkw-tc'+g), b=$('tkw-ts'+g); if(a) a.textContent=t.c+' รายการ'; if(b) b.textContent=fmt(t.s); } }
   function setCur(g){ cur=g; P.classList.add('one'); if(!wide.matches) render(); else { mark2(); tabs(); } }
   function open(k){ key=k||key||todayKey(); day=get(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:Math.min(cur,NG()-1); undo=[]; $('tkw-undo').disabled=true; var p=key.split('-'); $('tkw-date').value=key; $('tkw-thd').textContent='📅 '+p[2]+'/'+p[1]+'/'+(+p[0]+543)+' (วัน'+dayName(key)+')'; render(); }
   function show(){ load(); var k=(typeof currentDate!=='undefined'&&currentDate)?currentDate:todayKey(); document.body.classList.add('tkw-open'); try{sbClose()}catch(e){} open(k); try{ startSync(); }catch(e){} try{ [].forEach.call(document.querySelectorAll('#app-sidebar .sb-item'),function(b){ b.classList.toggle('on',b.dataset.page==='tkw'); }); }catch(e){} }
@@ -8656,6 +8692,17 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       if(best.kind==='old') r.base={book:best.book,month:best.month,amount:best.amount};
       return r;
     }catch(e){ return null; }
+  };
+
+  // ===== รายการจาก สธ.3 อย่างเดียว (แถวที่นำเข้าจาก PDF) ใช้เทียบกับบัญชีรายวันเขียนตั๋ว =====
+  var S3={at:0,v:null};
+  window.centralS3=function(){
+    var now=Date.now(); if(S3.v&&now-S3.at<3000) return S3.v;
+    var m={}, days={}; if(typeof db!=='undefined') Object.keys(db).forEach(function(dk){ var d=db[dk]; if(!/^\d{4}-\d\d-\d\d$/.test(dk)||!d||!d.data) return;
+      Object.keys(d.data).forEach(function(mn){ var mi=TH.indexOf(mn)+1; if(mi<1||!Array.isArray(d.data[mn])) return;
+        d.data[mn].forEach(function(r){ if(!r||r.importSource!=='PDF'||!String(r.ticket||'').trim()) return; days[dk]=1;
+          (m[nt(r.ticket)]=m[nt(r.ticket)]||[]).push({date:dk,mi:mi,book:String(r.importBook||r.book||'').trim(),amount:num(r.amount)}); }); }); });
+    S3.v={by:m,days:days}; S3.at=now; return S3.v;
   };
   var LBL={renew:['renew','ต่อตั๋ว'],new:['new','จำนำใหม่'],out:['out','ไถ่ถอน'],chk:['chk','ตรวจ'],wait:['wait','รอ สธ.2']};
   window.centralRender=function(){

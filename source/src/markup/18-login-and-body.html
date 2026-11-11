@@ -79,7 +79,7 @@
             <button class="sb-item" onclick="sbClose();centralOpen()"><span class="sb-ic" style="--c:#A78BFA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ทะเบียนทรัพย์รับจำนำ </button>
             <button class="sb-item" onclick="sbClose();holidayOpen()"><span class="sb-ic" style="--c:#F97316"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ปฏิทินวันหยุด </button>
             <button class="sb-item" onclick="sbClose();openStorageModal()"><span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg></span> ตรวจขนาดข้อมูล </button>
-            <button class="sb-item" onclick="sbClose();openPDFCompareModal()"><span class="sb-ic" style="--c:#22D3EE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5zM9 14l2 2 4-4"/></svg></span> ตรวจ PDF เทียบข้อมูล</button>
+            
             <button class="sb-item" onclick="sbClose();openGlobalSearch()"><span class="sb-ic" style="--c:#F472B6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span> ค้นหาตั๋ว</button>
             <button class="sb-item" onclick="sbClose();openPrintPreview()"><span class="sb-ic" style="--c:#FB923C"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5v-6h14v6h-2M7 14h10v6H7z"/></svg></span> รายงาน / พิมพ์</button>
             <button class="sb-item" onclick="sbClose();openMonthlyReport()"><span class="sb-ic" style="--c:#22D3EE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span> สรุปรายเดือน / ปี</button>
@@ -128,7 +128,7 @@
                         </div></details>
                     <details class="hdr-menu"><summary><i class="fa-solid fa-file-pdf"></i> PDF</summary>
                         <div class="hdr-menu-panel">
-                            <button class="menu-item" onclick="openPDFCompareModal()"><i class="fa-solid fa-file-circle-check"></i> ตรวจ PDF เทียบข้อมูล</button>
+                            
                             <button class="menu-item" onclick="openPDFImportModal()"><i class="fa-solid fa-file-arrow-down"></i> นำเข้า สธ.3 (PDF)</button>
                             <button class="menu-item" disabled title="รอตัวอย่างไฟล์ สธ.2 เพื่อทำตัวอ่านให้ตรงรูปแบบ" style="opacity:.55;cursor:not-allowed"><i class="fa-solid fa-file-arrow-down"></i> นำเข้า สธ.2 (PDF) <span style="font-size:11px;margin-left:auto;color:#64748b">เร็วๆ นี้</span></button>
                             
@@ -391,6 +391,7 @@
                 </div>
                 <button onclick="closePDFImportModal()" class="text-slate-500 text-xl" aria-label="ปิด"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
             </div>
+            <div class="s3tabs"><button type="button" onclick="s3Tab('import')" class="s3tab on">นำเข้า สธ.3</button><button type="button" onclick="s3Tab('compare')" class="s3tab">เทียบก่อนนำเข้า</button></div>
             <div class="p-4 space-y-3 overflow-y-auto">
                 <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-start">
                     <div><label class="block text-xs font-bold text-slate-700 mb-1" style="height:18px;line-height:18px;overflow:hidden;white-space:nowrap">เลือกไฟล์ PDF สธ.3 (ทะเบียนไถ่ถอน)</label><input id="pdf-import-file" type="file" accept="application/pdf,.pdf" onchange="handlePDFImportFile(event)" class="block w-full text-xs border border-slate-300 rounded-lg p-2 bg-slate-50" style="height:42px;box-sizing:border-box"><p class="text-[10px] mt-1" style="visibility:hidden">&nbsp;</p></div>
@@ -418,6 +419,7 @@
                 </div>
                 <button onclick="closePDFCompareModal()" class="text-slate-500 hover:text-rose-600 text-xl" aria-label="ปิด"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
             </div>
+            <div class="s3tabs"><button type="button" onclick="s3Tab('import')" class="s3tab">นำเข้า สธ.3</button><button type="button" onclick="s3Tab('compare')" class="s3tab on">เทียบก่อนนำเข้า</button></div>
             <div class="p-4 space-y-3 overflow-y-auto">
                 <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-start">
                     <div>

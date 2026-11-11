@@ -2425,6 +2425,11 @@
             modal.style.display = 'flex';
         }
 
+        /* แท็บสลับระหว่าง นำเข้า สธ.3 กับ เทียบก่อนนำเข้า (เมนูเดียว) */
+        function s3Tab(t) {
+            if (t === 'compare') { closePDFImportModal(); openPDFCompareModal(); }
+            else { closePDFCompareModal(); openPDFImportModal(); }
+        }
         function closePDFCompareModal() {
             const modal = document.getElementById('pdf-compare-modal');
             modal.style.display = 'none';

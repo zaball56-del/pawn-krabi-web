@@ -113,6 +113,17 @@
       return r;
     }catch(e){ return null; }
   };
+
+  // ===== รายการจาก สธ.3 อย่างเดียว (แถวที่นำเข้าจาก PDF) ใช้เทียบกับบัญชีรายวันเขียนตั๋ว =====
+  var S3={at:0,v:null};
+  window.centralS3=function(){
+    var now=Date.now(); if(S3.v&&now-S3.at<3000) return S3.v;
+    var m={}, days={}; if(typeof db!=='undefined') Object.keys(db).forEach(function(dk){ var d=db[dk]; if(!/^\d{4}-\d\d-\d\d$/.test(dk)||!d||!d.data) return;
+      Object.keys(d.data).forEach(function(mn){ var mi=TH.indexOf(mn)+1; if(mi<1||!Array.isArray(d.data[mn])) return;
+        d.data[mn].forEach(function(r){ if(!r||r.importSource!=='PDF'||!String(r.ticket||'').trim()) return; days[dk]=1;
+          (m[nt(r.ticket)]=m[nt(r.ticket)]||[]).push({date:dk,mi:mi,book:String(r.importBook||r.book||'').trim(),amount:num(r.amount)}); }); }); });
+    S3.v={by:m,days:days}; S3.at=now; return S3.v;
+  };
   var LBL={renew:['renew','ต่อตั๋ว'],new:['new','จำนำใหม่'],out:['out','ไถ่ถอน'],chk:['chk','ตรวจ'],wait:['wait','รอ สธ.2']};
   window.centralRender=function(){
     var rows=ST.rows, cnt={renew:0,new:0,out:0,chk:0,wait:0}; rows.forEach(function(r){cnt[r.kind]++});

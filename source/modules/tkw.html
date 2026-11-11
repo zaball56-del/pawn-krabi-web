@@ -77,6 +77,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 @media (max-width:899px){#tkw-page.one [data-g]:not(.cur):not(input){display:none}}
 @media (min-width:900px){#tkw-page .mobonly{display:none}#tkw-page .tabs{display:none}#tkw-page table{min-width:1620px}#tkw-page td input{font-size:18px}#tkw-page .card{margin:8px 14px 0}}
 @media print{body.tkw-open>*:not(#tkw-page){display:none !important}#tkw-page{position:static;display:block;background:#fff;color:#000}#tkw-page .top,#tkw-page .dt,#tkw-page .srch,#tkw-page .tabs,#tkw-page .bar,#tkw-page th.no button{display:none !important}#tkw-page.one [data-g]:not(.cur):not(input){display:table-cell !important}#tkw-page .card{overflow:visible;margin:0}#tkw-page td input{border:1px solid #999;height:34px;font-size:13px}#tkw-page td{height:40px}#tkw-page thead th,#tkw-page tr.tot th,#tkw-page tr.tot td{position:static}}
+#tkw-cmp{margin:10px 12px 0;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;font-size:13px;overflow:hidden}#tkw-cmp:empty{display:none}#tkw-cmp .cmphd{padding:9px 12px;background:rgba(255,255,255,.06)}#tkw-cmp .cmphd .bad{color:#fbbf24;font-weight:800}#tkw-cmp .cmpr{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-top:1px solid rgba(255,255,255,.08)}#tkw-cmp .cmpr em{font-style:normal;color:#fcd34d;text-align:right}#tkw-page input.cmpbad{box-shadow:0 0 0 2px #f59e0b inset !important;border-radius:6px}
 </style>
 <div id="tkw-page" class="no-print one" aria-label="บัญชีรายวันเขียนตั๋ว">
   <div class="top"><h1>บัญชีรายวันเขียนตั๋ว<small id="tkw-cloud" class="cloud"></small></h1><button type="button" class="x" id="tkw-x" aria-label="ปิด">✕</button></div>
@@ -85,6 +86,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
   <div class="tabs" id="tkw-tabs"></div>
   <div class="card" id="tkw-card"><table id="tkw-table"></table></div>
+  <div id="tkw-cmp"></div>
   <div id="tkw-sq" role="dialog" aria-label="สแกนตั๋วเดิม">
     <div class="h"><b>สแกนตั๋วเดิม</b><button type="button" id="tkw-sq-x">ปิด ✕</button></div>
     <div class="b">
@@ -143,7 +145,33 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   function mark2(){ [].forEach.call($('tkw-table').querySelectorAll('[data-g]'),function(e){ if(e.tagName!=='INPUT') e.classList.toggle('cur',+e.dataset.g===cur); }); }
   function tabs(){ var h=''; for(var g=0;g<NG();g++){ var c=totals(g).c; h+='<button type="button" class="t'+(g===cur?' on':'')+'" data-tab="'+g+'">'+MS[day.m[g]]+(c?'<em>'+c+'</em>':'')+'</button>'; } $('tkw-tabs').innerHTML=h; }
-  function tot(){ for(var g=0;g<NG();g++){ var t=totals(g), a=$('tkw-tc'+g), b=$('tkw-ts'+g); if(a) a.textContent=t.c+' รายการ'; if(b) b.textContent=fmt(t.s); } }
+  // เทียบกับ สธ.3 (อ่านอย่างเดียว ไม่แก้ตาราง): ยอด / เดือน / เล่ม / ไม่พบ
+  var cmpT=null; function schedCmp(){ clearTimeout(cmpT); cmpT=setTimeout(cmp,350); }
+  function cmp(){
+    var box=$('tkw-cmp'); if(!box) return; [].forEach.call($('tkw-table').querySelectorAll('input.cmpbad'),function(e){ e.classList.remove('cmpbad'); });
+    if(typeof window.centralS3!=='function'){ box.innerHTML=''; return; }
+    var S=window.centralS3(), iss=[], ok=0, wait=0, cut='';
+    try{ var a=key.split('-'), d0=new Date(+a[0],+a[1]-1,+a[2],12); d0.setDate(d0.getDate()-365); if(!isNaN(d0.getTime())) cut=d0.getFullYear()+'-'+('0'+(d0.getMonth()+1)).slice(-2)+'-'+('0'+d0.getDate()).slice(-2); }catch(e){}
+    var hasDay=!!S.days[key];
+    for(var g=0;g<NG();g++){ var mo=day.m[g]; for(var i=0;i<day.r[g].length;i++){ var x=day.r[g][i], t=String(x[0]||'').trim(); if(!t) continue;
+      var key0=/^\d+$/.test(t)?String(Number(t)):t.toLowerCase(), c=(S.by[key0]||[]).filter(function(e){ return (!cut||e.date>cut)&&e.date<=key+'\uffff'; }), why='', hit=null;
+      var inM=c.filter(function(e){return e.mi===mo});
+      if(x[2]){ var bk=inM.filter(function(e){return String(Number(e.book))===String(Number(x[2]))}); if(bk.length) inM=bk; }
+      if(inM.length){ inM.sort(function(p,q){ var sp=p.date===key?1:0, sq=q.date===key?1:0; return sq-sp||(p.date<q.date?1:-1); }); hit=inM[0];
+        var am=num(x[1]);
+        if(am>0&&Math.abs(am-hit.amount)>0.009) why='ยอด '+fmt(am)+' แต่ สธ.3 = '+fmt(hit.amount);
+        else if(x[2]&&hit.book&&String(Number(x[2]))!==String(Number(hit.book))) why='เล่ม '+x[2]+' แต่ สธ.3 = '+hit.book;
+      } else if(c.length){ why='เดือนไม่ตรง: สธ.3 อยู่เดือน '+c.map(function(e){return MN[e.mi]}).filter(function(v,j,arr){return arr.indexOf(v)===j}).join(', '); }
+      else if(hasDay) why='ไม่พบใน สธ.3 ของวันนี้';
+      else { wait++; continue; }
+      if(why){ iss.push({g:g,i:i,t:t,m:mo,why:why}); var el=$('tkw-table').querySelector('input[data-g="'+g+'"][data-i="'+i+'"][data-f="0"]'); if(el) el.classList.add('cmpbad'); } else ok++;
+    } }
+    var h='<div class="cmphd"><b>เทียบกับ สธ.3</b> · ตรงกัน '+ok+' · ไม่ตรง/ไม่พบ <span class="'+(iss.length?'bad':'')+'">'+iss.length+'</span>'+(wait?' · ยังไม่มี สธ.3 ของวันนี้ '+wait+' ราย':'')+'</div>';
+    if(iss.length) h+=iss.slice(0,40).map(function(v){ return '<div class="cmpr"><span>'+MN[v.m]+' · แถว '+(v.i+1)+' · ตั๋ว '+esc(v.t)+'</span><em>'+esc(v.why)+'</em></div>'; }).join('')+(iss.length>40?'<div class="cmpr"><em>และอีก '+(iss.length-40)+' รายการ</em></div>':'');
+    else if(ok) h+='<div class="cmpr"><em>✓ รายการที่เทียบได้ตรงกับ สธ.3 ทั้งหมด (ระบบไม่แก้ตารางให้เอง)</em></div>';
+    box.innerHTML=(ok||iss.length||wait)?h:'';
+  }
+  function tot(){ schedCmp(); for(var g=0;g<NG();g++){ var t=totals(g), a=$('tkw-tc'+g), b=$('tkw-ts'+g); if(a) a.textContent=t.c+' รายการ'; if(b) b.textContent=fmt(t.s); } }
   function setCur(g){ cur=g; P.classList.add('one'); if(!wide.matches) render(); else { mark2(); tabs(); } }
   function open(k){ key=k||key||todayKey(); day=get(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:Math.min(cur,NG()-1); undo=[]; $('tkw-undo').disabled=true; var p=key.split('-'); $('tkw-date').value=key; $('tkw-thd').textContent='📅 '+p[2]+'/'+p[1]+'/'+(+p[0]+543)+' (วัน'+dayName(key)+')'; render(); }
   function show(){ load(); var k=(typeof currentDate!=='undefined'&&currentDate)?currentDate:todayKey(); document.body.classList.add('tkw-open'); try{sbClose()}catch(e){} open(k); try{ startSync(); }catch(e){} try{ [].forEach.call(document.querySelectorAll('#app-sidebar .sb-item'),function(b){ b.classList.toggle('on',b.dataset.page==='tkw'); }); }catch(e){} }
