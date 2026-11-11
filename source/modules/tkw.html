@@ -50,6 +50,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 #tkw-page .bar button:disabled{opacity:.35}
 #tkw-page .bar button.scan{flex:1.7 1 0;height:52px;margin:0 4px;padding:0 6px;background:#f59e0b;color:#1c1917;border-radius:16px;flex-direction:row;gap:6px;font-size:14px;font-weight:700;box-shadow:none}#tkw-page .bar button.scan b{font-size:16px}
 #tkw-page .col-empty{display:none}
+#tkw-page .card{scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.45) transparent}#tkw-page .card::-webkit-scrollbar:vertical{width:0;display:none}#tkw-page .card::-webkit-scrollbar:horizontal{height:6px}#tkw-page .card::-webkit-scrollbar-track{background:transparent}#tkw-page .card::-webkit-scrollbar-thumb{background:rgba(99,102,241,.45);border-radius:6px}#tkw-sq,#tkw-page ::-webkit-scrollbar-corner{background:transparent}
 
 #cam-ov.tkw-cam #cam-types{display:none !important}
 #tkw-sq{display:none;position:absolute;inset:0;z-index:20;background:#f1f5f9;color:#0f172a;flex-direction:column;overflow:auto}
@@ -77,6 +78,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 #tkw-sq .msg.er{background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5}
 @media (max-width:899px){#tkw-page.one [data-g]:not(.cur):not(input){display:none}#tkw-page td{height:54px;padding:3px 4px}#tkw-page td input{height:44px;font-size:19px}#tkw-page tr.tot th,#tkw-page tr.tot td{height:50px}#tkw-page .dt{margin:8px 10px 2px;padding:6px}#tkw-page .dt button,#tkw-page .dt input{height:44px}#tkw-page .dt button{width:44px}#tkw-page .tabs{padding:6px 10px 4px}#tkw-cmp{font-size:12px !important}}
 #tkw-page .bk-tag{z-index:1;top:-2px}
+#tkw-thd{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}#tkw-thd .dn{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#3b2400;border-radius:999px;padding:3px 12px;font:800 14px Sarabun,sans-serif}#tkw-thd .dd{color:#a7f3d0;font:700 16px Sarabun,sans-serif}#tkw-thd .dd b{color:#fff;font-size:20px;font-weight:800}#tkw-thd .ic{font-size:16px}
 @media (min-width:900px){#tkw-page .mobonly{display:none}#tkw-page .tabs{display:none}
 #tkw-page table{table-layout:fixed;min-width:calc(58px + var(--g,7) * 150px)}
 #tkw-page td{height:52px;padding:3px 4px}#tkw-page td input{height:42px;font-size:17px;padding:0 6px;border-radius:12px}
@@ -84,7 +86,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 #tkw-page thead tr.sub th{top:58px;height:38px;font-size:14px}
 #tkw-page .pill{margin:6px 8px;padding:8px;font-size:15px}
 #tkw-page .card{margin:8px 14px 0}
-#tkw-page .dt{max-width:760px;width:calc(100% - 28px);margin:10px auto 4px}
+#tkw-page .dt{max-width:400px;width:100%;margin:10px auto 4px 14px}
 #tkw-page .bar{padding-left:max(2px,calc(50% - 380px));padding-right:max(2px,calc(50% - 380px))}
 #tkw-page .tw small{font-size:9px}}
 @media (min-width:1500px){#tkw-page td input{font-size:19px;height:44px}#tkw-page td{height:54px}}
@@ -185,7 +187,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   function tot(){ schedCmp(); for(var g=0;g<NG();g++){ var t=totals(g), a=$('tkw-tc'+g), b=$('tkw-ts'+g); if(a) a.textContent=t.c+' รายการ'; if(b) b.textContent=fmt(t.s); } }
   function setCur(g){ cur=g; P.classList.add('one'); if(!wide.matches) render(); else { mark2(); tabs(); } }
-  function open(k){ key=k||key||todayKey(); day=get(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:Math.min(cur,NG()-1); undo=[]; $('tkw-undo').disabled=true; var p=key.split('-'); $('tkw-date').value=key; $('tkw-thd').textContent='📅 '+p[2]+'/'+p[1]+'/'+(+p[0]+543)+' (วัน'+dayName(key)+')'; render(); }
+  function open(k){ key=k||key||todayKey(); day=get(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:Math.min(cur,NG()-1); undo=[]; $('tkw-undo').disabled=true; var p=key.split('-'); $('tkw-date').value=key; $('tkw-thd').innerHTML='<span class="ic">📅</span><span class="dn">วัน'+dayName(key)+'</span><span class="dd">ที่ <b>'+(+p[2])+'</b> '+MN[+p[1]]+' '+(+p[0]+543)+'</span>'; render(); }
   function show(){ load(); var k=(typeof currentDate!=='undefined'&&currentDate)?currentDate:todayKey(); document.body.classList.add('tkw-open'); try{sbClose()}catch(e){} open(k); try{ startSync(); }catch(e){} try{ [].forEach.call(document.querySelectorAll('#app-sidebar .sb-item'),function(b){ b.classList.toggle('on',b.dataset.page==='tkw'); }); }catch(e){} }
   function hide(){ document.body.classList.remove('tkw-open'); try{ var on=document.querySelector('#app-sidebar .sb-item[data-page="tkw"]'); if(on) on.classList.remove('on'); }catch(e){} }
   window.tkwOpen=show; window.tkwClose=hide;

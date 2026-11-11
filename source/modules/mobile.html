@@ -41,7 +41,7 @@ html body.app-shell:not(.page-home) #ledger-page > section:not(.no-print) > div.
 /* ตัวควบคุม: สรุป + แท็บเดือน */
 #m-ctl{display:none}
 html body.app-shell:not(.page-home) #m-ctl{display:block}
-#m-date{font-size:13px;font-weight:700;color:#a7f3d0;margin:0 2px 6px}
+#m-date{font-size:13px;font-weight:700;color:#a7f3d0;margin:0 2px 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}#m-date .dn{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#3b2400;border-radius:999px;padding:3px 12px;font:800 14px Sarabun,sans-serif}#m-date .dd{color:#a7f3d0;font:700 16px Sarabun,sans-serif}#m-date .dd b{color:#fff;font-size:20px;font-weight:800}
 #m-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
 #m-sum button{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);border-radius:12px;padding:6px 8px;text-align:left;color:#e8ecf8;font-family:inherit;cursor:pointer}
 #m-sum small{display:block;font-size:10.5px;color:#aab4d4}#m-sum b{display:block;font-size:15px;line-height:1.25;font-variant-numeric:tabular-nums}#m-sum i{display:block;font-style:normal;font-size:10px;color:#94a3b8;white-space:nowrap}
@@ -243,7 +243,10 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
     var cnt=d.months.map(function(m){ return (d.data[m]||[]).filter(function(r){return r&&String(r.ticket||'').trim()}).length; });
     var sig=currentDate+'|'+SEL+'|'+JSON.stringify(rows)+'|'+d.months.join(',')+'|'+cnt.join(',')+'|'+document.querySelectorAll('#ledger-page table tbody tr').length;
     if(!force&&sig===lastSig) return; lastSig=sig;
-    var dt=$('display-date-th'),dn=$('day-name-display'); $('m-date').textContent=dt?('📅 '+dt.textContent.trim()+' '+(dn?dn.textContent.trim():'')):'';
+    var dt=$('display-date-th'),dn=$('day-name-display'); (function(){ var el=$('m-date'); if(!dt){ el.textContent=''; return; } var t=dt.textContent.trim(), m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t), nm=(dn?dn.textContent.trim():'').replace(/[()]/g,'').replace(/^วัน/,'');
+      var MNT=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+      if(!m){ el.textContent='📅 '+t+' '+(dn?dn.textContent.trim():''); return; }
+      el.innerHTML='<span class="ic">📅</span>'+(nm?'<span class="dn">วัน'+nm+'</span>':'')+'<span class="dd">ที่ <b>'+(+m[1])+'</b> '+MNT[+m[2]]+' '+m[3]+'</span>'; })();
     $('m-sum').innerHTML=rows.map(function(r,i){ return '<button type="button" class="'+(i===3?'k':'')+'"><small>'+r.t+'</small><b>'+(r.c===''||r.c==null?'-':fmt(num(r.c)))+'</b><i>'+(r.a===''||r.a==null?'&nbsp;':compact(r.a))+'</i></button>'; }).join('');
     $('m-tabs').innerHTML=d.months.map(function(m,i){ return '<button type="button" data-s="'+i+'" class="'+(String(i)===SEL?'on':'')+'">'+esc(SH[m]||m||('ช่อง '+(i+1)))+(cnt[i]?'<em>'+cnt[i]+'</em>':'')+'</button>'; }).join('')+'<button type="button" data-s="S" class="'+(SEL==='S'?'on':'')+'">สรุป</button>';
     applyView(d);
