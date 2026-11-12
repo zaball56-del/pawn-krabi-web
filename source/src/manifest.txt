@@ -1,5 +1,4 @@
 head/00-head.html
-libs/01-tailwind-cdn.js.html
 styles/02-base.css.html
 libs/03-firebase-config.js.html
 libs/04-firebase-app.js.html
@@ -16,6 +15,7 @@ styles/overrides/14-home-mobile.css.html
 styles/overrides/15-mobile-fix.css.html
 styles/overrides/16-header-3.css.html
 styles/overrides/17-custody-hint.css.html
+libs/17a-tailwind-inline.css.html
 markup/18-login-and-body.html
 app/20-main.js.html
 app/21-desktop-update-button.js.html
