@@ -4,7 +4,7 @@
   var MN=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   function $(i){ return document.getElementById(i); }
   function isT(){ var r=$('cmp-t-tkw'); return !!(r&&r.checked); }
-  function nt(t){ return String(t==null?'':t).trim().replace(/^0+(?=\d)/,''); }
+  function nt(t){ return window.ticketNorm?window.ticketNorm(t):String(t==null?'':t).trim().replace(/^0+(?=\d)/,''); }
   function fm(v){ try{ return formatNumber(v); }catch(e){ return String(v); } }
   function paint(){ var a=$('pdf-cmp-l1'),b=$('pdf-cmp-l2'); if(!a||!b) return; var t=isT();
     a.style.cssText=a.style.cssText.replace(/border:[^;]+;/,'').replace(/background:[^;]+;/,'')+(t?'border:1px solid #cbd5e1;background:#fff;':'border:2px solid #4f46e5;background:#eef2ff;');

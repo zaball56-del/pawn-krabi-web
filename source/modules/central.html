@@ -20,17 +20,17 @@
 #ct-modal td{padding:6px 9px;border-top:1px solid #f1f5f9;white-space:nowrap}#ct-modal .r{text-align:right}
 #ct-modal .bd{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:700}
 #ct-modal .bd.renew{background:#dbeafe;color:#1d4ed8}#ct-modal .bd.new{background:#dcfce7;color:#15803d}
-#ct-modal .bd.out{background:#ede9fe;color:#6d28d9}#ct-modal .bd.chk{background:#fee2e2;color:#b91c1c}#ct-modal .bd.wait{background:#f1f5f9;color:#64748b}
+#ct-modal .bd.manual{background:#fef3c7;color:#92400e}#ct-modal .bd.diff{background:#fee2e2;color:#b91c1c}#ct-modal .bd.out{background:#ede9fe;color:#6d28d9}#ct-modal .bd.chk{background:#fee2e2;color:#b91c1c}#ct-modal .bd.wait{background:#f1f5f9;color:#64748b}
 #ct-modal .c-foot{padding:10px 18px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;background:#fff}
 #ct-modal .c-foot button{border:0;border-radius:10px;padding:9px 18px;background:#e2e8f0;cursor:pointer;font:inherit}
-@media(max-width:760px){#ct-modal .c-chips{grid-template-columns:repeat(2,1fr)}#ct-modal{padding:6px}}
+@media(max-width:760px){#ct-modal .c-chips{display:none}#ct-modal .c-note{font-size:11.5px;padding:7px 9px}#ct-modal .c-body{padding:10px 12px;gap:8px}#ct-modal{padding:6px}}
 </style>
 <div id="ct-modal" class="no-print" role="dialog" aria-modal="true" aria-label="ทะเบียนทรัพย์รับจำนำ">
  <div class="c-box">
-  <div class="c-head"><div><h3>ทะเบียนทรัพย์รับจำนำ</h3><p>รวม สธ.3 + สธ.2 · ตั๋วหนึ่งใบหนึ่งแถว · อ่านอย่างเดียว ไม่แก้บัญชี</p></div><button class="c-x" type="button" onclick="centralClose()" aria-label="ปิด">×</button></div>
+  <div class="c-head"><div><h3>ทะเบียนทรัพย์รับจำนำ</h3><p>รวม สธ.3 + สธ.2 + ตั๋วที่คีย์เอง · ตั๋วหนึ่งใบหนึ่งแถว · อ่านอย่างเดียว ไม่แก้บัญชี</p></div><button class="c-x" type="button" onclick="centralClose()" aria-label="ปิด">×</button></div>
   <div class="c-body">
    <div id="ct-chips" class="c-chips"></div>
-   <div class="c-note">ตัวอย่างสำหรับตรวจก่อน ยังไม่ได้ใช้กับหน้าสแกนหรือบัญชี · "ไถ่ถอน" ตัดสินจาก: มีใน สธ.3 แต่ไม่มีใน สธ.2 ของวันเดียวกัน และบัญชีที่คีย์ไว้เป็นประเภท ถ · ถ้าเป็นประเภทอื่นหรือว่าง จะขึ้น "ตรวจ" ให้คุณดู ระบบไม่แก้บัญชีให้เอง</div>
+   <div class="c-note">ตั๋วที่คีย์เองในรักษาของและตารางเขียนตั๋วขึ้นเป็น "คีย์เอง" จนกว่า สธ.3/สธ.2 จะยืนยัน · ยอดไม่ตรง สธ.3 ขึ้น "ยอดไม่ตรง" · สธ.3 ชนะเสมอเวลาดึงยอด · "ไถ่ถอน" ตัดสินจาก: มีใน สธ.3 แต่ไม่มีใน สธ.2 ของวันเดียวกัน และบัญชีลงประเภท ถ · ระบบไม่แก้บัญชีให้เอง</div>
    <div id="ct-tabs" class="c-tabs"></div>
    <input id="ct-q" type="text" placeholder="ค้นหาเลขตั๋ว / เล่ม" oninput="centralRender()">
    <div class="c-tw"><table><thead><tr><th>สถานะ</th><th>วันที่ (ตามรายงาน)</th><th>ตั๋วเดิม</th><th>เล่มเดิม</th><th class="r">ยอดเดิม</th><th>ตั๋วใหม่ / เล่ม</th><th class="r">ยอดใหม่</th><th>หมายเหตุ</th></tr></thead><tbody id="ct-tb"></tbody></table></div>
@@ -49,7 +49,7 @@
   function p2(n){return String(n).padStart(2,'0')}
   function num(v){var n=parseFloat(String(v==null?'':v).replace(/,/g,''));return isNaN(n)?0:n}
   function fmt(n){return n===''||n==null?'':Number(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
-  function nt(v){var t=String(v==null?'':v).trim(); if(!t) return ''; return /^\d+(?:\.0+)?$/.test(t)?String(Number(t)):t.toLowerCase()}
+  function nt(v){ if(window.ticketNorm) return window.ticketNorm(v); var t=String(v==null?'':v).trim(); if(!t) return ''; return /^\d+(?:\.0+)?$/.test(t)?String(Number(t)):t.toLowerCase() }
   // อ่านอย่างเดียว: สร้างทะเบียนรวมจาก db
   window.centralBuild=function(){
     var out=[], s3={}, s3days={}, s2days={}, used={};
@@ -124,10 +124,37 @@
           (m[nt(r.ticket)]=m[nt(r.ticket)]||[]).push({date:dk,mi:mi,book:String(r.importBook||r.book||'').trim(),amount:num(r.amount)}); }); }); });
     S3.v={by:m,days:days}; S3.at=now; return S3.v;
   };
-  var LBL={renew:['renew','ต่อตั๋ว'],new:['new','จำนำใหม่'],out:['out','ไถ่ถอน'],chk:['chk','ตรวจ'],wait:['wait','รอ สธ.2']};
+  // ตั๋วที่คีย์เอง (รักษาของ + เขียนตั๋ว) ที่ยังไม่มี สธ.3/สธ.2 ยืนยัน · อ่านอย่างเดียว ไม่เข้า centralFind (สธ.3 ชนะเสมอ)
+  window.centralManual=function(){
+    var out=[]; if(typeof db==='undefined') return out;
+    var s3=window.centralS3().by, s2={}, ents={};
+    function near(a,b){ var x=Date.parse(a),y=Date.parse(b); return !isNaN(x)&&!isNaN(y)&&Math.abs(x-y)/864e5<=366; }
+    Object.keys(db).forEach(function(dk){ var d=db[dk]; if(!/^\d{4}-\d\d-\d\d$/.test(dk)||!d) return;
+      if(d.sor2&&Array.isArray(d.sor2.rows)){ var mo=+dk.slice(5,7); d.sor2.rows.forEach(function(x){ if(!x) return; if(x[3]) (s2[mo+'|'+nt(x[3])]=s2[mo+'|'+nt(x[3])]||[]).push(dk); if(x[1]&&x[2]) (s2[x[2]+'|'+nt(x[1])]=s2[x[2]+'|'+nt(x[1])]||[]).push(dk); }); }
+    });
+    function add(src,date,mi,ticket,book,amount,type){ var t=nt(ticket); if(!t||!(mi>=1&&mi<=12)) return; var key=mi+'|'+t+'|'+nt(book), e=ents[key];
+      if(!e) e=ents[key]={mi:mi,ticket:String(ticket).trim(),book:String(book||'').trim(),date:date,amount:amount,type:type||'',srcs:{}};
+      e.srcs[src]=1; if(date>e.date){ e.date=date; e.amount=amount; e.type=type||e.type; if(book) e.book=String(book).trim(); } }
+    Object.keys(db).forEach(function(dk){ var d=db[dk]; if(!/^\d{4}-\d\d-\d\d$/.test(dk)||!d||!d.data) return;
+      Object.keys(d.data).forEach(function(mn){ var mi=TH.indexOf(mn)+1; if(mi<1||!Array.isArray(d.data[mn])) return;
+        d.data[mn].forEach(function(r){ if(!r||r.importSource==='PDF'||!String(r.ticket||'').trim()) return; add('บัญชีรายวันรักษาของ',dk,mi,r.ticket,r.book||r.importBook,num(r.amount),r.type); }); }); });
+    if(typeof window.tkwAll==='function') window.tkwAll().forEach(function(D){ D.m.forEach(function(mi,g){ (D.r[g]||[]).forEach(function(x){ if(x&&String(x[0]||'').trim()) add('ตารางเขียนตั๋ว',D.k,+mi,x[0],x[2],num(x[1]),''); }); }); });
+    Object.keys(ents).forEach(function(key){ var e=ents[key], t=nt(e.ticket), hit=null;
+      (s3[t]||[]).forEach(function(h){ if(h.mi===e.mi&&near(h.date,e.date)&&(!hit||h.date>hit.date)) hit=h; });
+      var in2=(s2[e.mi+'|'+t]||[]).some(function(dk){ return near(dk,e.date); });
+      var from=Object.keys(e.srcs).join(' + ');
+      if(hit){ if(e.srcs['ตารางเขียนตั๋ว']&&e.amount>0&&Math.abs(e.amount-hit.amount)>0.009)
+          out.push({kind:'diff',date:e.date,oldT:e.ticket,oldM:e.mi,oldB:e.book,oldA:e.amount,nT:'',nB:'',nA:'',type:e.type,note:'ยอดที่คีย์ในตารางเขียนตั๋ว '+fmt(e.amount)+' ≠ สธ.3 '+fmt(hit.amount)+' · ใช้ยอด สธ.3'});
+        return; }
+      if(in2) return;
+      out.push({kind:'manual',date:e.date,oldT:e.ticket,oldM:e.mi,oldB:e.book,oldA:e.amount>0?e.amount:'',nT:'',nB:'',nA:'',type:e.type,note:'คีย์เองใน'+from+' · ยังไม่ยืนยันกับ สธ.3'});
+    });
+    return out;
+  };
+  var LBL={renew:['renew','ต่อตั๋ว'],new:['new','จำนำใหม่'],out:['out','ไถ่ถอน'],chk:['chk','ตรวจ'],wait:['wait','รอ สธ.2'],manual:['manual','คีย์เอง'],diff:['diff','ยอดไม่ตรง']};
   window.centralRender=function(){
-    var rows=ST.rows, cnt={renew:0,new:0,out:0,chk:0,wait:0}; rows.forEach(function(r){cnt[r.kind]++});
-    $('ct-chips').innerHTML=[['ทั้งหมด',rows.length],['ต่อตั๋ว',cnt.renew],['จำนำใหม่',cnt.new],['ไถ่ถอน',cnt.out],['ต้องตรวจ',cnt.chk],['รอ สธ.2',cnt.wait]].map(function(c){return '<div class="c-chip"><small>'+c[0]+'</small><b>'+c[1].toLocaleString('th-TH')+'</b></div>'}).join('');
+    var rows=ST.rows, cnt={renew:0,new:0,out:0,chk:0,wait:0,manual:0,diff:0}; rows.forEach(function(r){cnt[r.kind]++});
+    $('ct-chips').innerHTML=[['ทั้งหมด',rows.length],['ต่อตั๋ว',cnt.renew],['จำนำใหม่',cnt.new],['ไถ่ถอน',cnt.out],['ต้องตรวจ',cnt.chk],['รอ สธ.2',cnt.wait],['คีย์เอง ยังไม่ยืนยัน',cnt.manual],['ยอดไม่ตรง สธ.3',cnt.diff]].map(function(c){return '<div class="c-chip"><small>'+c[0]+'</small><b>'+c[1].toLocaleString('th-TH')+'</b></div>'}).join('');
     var tabs=[['all','ทั้งหมด',rows.length]].concat(Object.keys(LBL).map(function(k){return [k,LBL[k][1],cnt[k]]}));
     $('ct-tabs').innerHTML=tabs.map(function(t){return '<button type="button" class="c-tab'+(ST.filter===t[0]?' on':'')+'" onclick="centralFilter(\''+t[0]+'\')">'+t[1]+' ('+t[2]+')</button>'}).join('');
     var q=($('ct-q').value||'').trim().toLowerCase();
@@ -136,7 +163,7 @@
     $('ct-more').textContent=list.length>300?'แสดง 300 จาก '+list.length+' รายการ (ค้นหาเพื่อกรอง)':'แสดง '+list.length+' รายการ';
   };
   window.centralFilter=function(f){ST.filter=f;centralRender()};
-  window.centralOpen=function(){ ST.rows=centralBuild(); ST.filter='all'; $('ct-q').value=''; $('ct-modal').classList.add('on'); centralRender(); };
+  window.centralOpen=function(){ ST.rows=centralBuild().concat(window.centralManual()).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}); ST.filter='all'; $('ct-q').value=''; $('ct-modal').classList.add('on'); centralRender(); };
   window.centralClose=function(){ $('ct-modal').classList.remove('on') };
 })();
 </script>

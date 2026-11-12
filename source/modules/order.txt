@@ -13,6 +13,7 @@ cloudcmp.html
 swreg.html
 loginfx.html
 tkw.html
+ticketfind.html
 central.html
 assetpurge.html
 holidays.html
