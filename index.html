@@ -8411,7 +8411,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   var $=function(id){return document.getElementById(id)};
   var store={}, key='', day=null, cur=0, undo=[], wide=window.matchMedia('(min-width:900px)');
   function load(){ try{ store=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ store={}; } }
-  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} }
+  function save(){ window.__dv=(window.__dv||0)+1; try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} }
   function pad(n){return (n<10?'0':'')+n}
   function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function shift(k,n){ var p=k.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]+n); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
@@ -8711,40 +8711,48 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var t=String(v==null?'':v).trim(); if(!t) return ''; return /^\d+(?:\.0+)?$/.test(t)?String(Number(t)):t.toLowerCase();
   };
   function hasVal(v){ return v!==undefined&&v!==null&&String(v).replace(/,/g,'').trim()!==''&&Number(String(v).replace(/,/g,''))!==0; }
+  // ดัชนีตั๋วที่คีย์เอง/แถวในบัญชี สร้างครั้งเดียวแล้วใช้ซ้ำ จนกว่าข้อมูลจะเปลี่ยน (saveDB / บันทึกตารางเขียนตั๋ว) หรือเกิน 30 วินาที
+  window.__dv=window.__dv||0;
+  (function(){ var os=window.saveDB; if(typeof os==='function'&&!os.__dv){ var w=function(){ window.__dv=(window.__dv||0)+1; return os.apply(this,arguments); }; w.__dv=1; window.saveDB=w; try{ saveDB=w; }catch(e){} } })();
+  var IX={map:null,v:-1,at:0};
+  function add(m,key,e){ (m[key]=m[key]||[]).push(e); }
+  function index(){
+    var now=Date.now(); if(IX.map&&IX.v===window.__dv&&now-IX.at<30000) return IX.map;
+    var m=Object.create(null), N=window.ticketNorm;
+    for(var k in db){
+      if(k.indexOf('-')<0||k.length!==10) continue;
+      var d=db[k]; if(!d||!d.months||!d.data) continue;
+      d.months.forEach(function(mn){ var rows=d.data[mn]; if(!mn||!rows) return; var mname=String(mn).trim();
+        rows.forEach(function(r){ if(!r) return;
+          if(hasVal(r.amount)){ var t1=N(r.ticket); if(t1) add(m,t1,{date:k,month:mn,mname:mname,amount:String(r.amount).replace(/,/g,''),book:N(r.book),src:'ตั๋ว',man:r.importSource!=='PDF'}); }
+          if(r.newTicket&&hasVal(r.newAmount)){ var t2=N(r.newTicket); if(t2) add(m,t2,{date:k,month:mn,mname:mname,amount:String(r.newAmount).replace(/,/g,''),book:N(r.newBook),src:'ตั๋วใหม่',man:true}); }
+        }); });
+    }
+    try{ if(typeof window.tkwAll==='function') window.tkwAll().forEach(function(D){ D.m.forEach(function(mo,g){ var mname=TM[Number(mo)-1]||'';
+      (D.r[g]||[]).forEach(function(x){ if(!x) return; var am=String(x[1]==null?'':x[1]).replace(/,/g,''); if(!hasVal(am)) return; var t=N(x[0]); if(!t) return;
+        add(m,t,{date:D.k,month:mname,mname:mname,amount:am,book:N(x[2]),src:'ตารางเขียนตั๋ว',man:true,tkw:true}); }); }); }); }catch(e){}
+    IX.map=m; IX.v=window.__dv; IX.at=now; return m;
+  }
   window.ticketFind=function(ticket,book,month,opts){
     opts=opts||{};
-    var t=window.ticketNorm(ticket), b=window.ticketNorm(book), mn=Number(month)||0, c=[];
+    var t=window.ticketNorm(ticket), b=window.ticketNorm(book), mn=Number(month)||0;
     if(!t) return {status:'none'};
     var mName=(mn>=1&&mn<=12)?TM[mn-1]:'';
     // 1) ทะเบียนทรัพย์รับจำนำ
     try{ if(typeof window.centralFind==='function'){ var cr=window.centralFind(ticket,book,mn); if(cr) return cr; } }catch(e){}
     var cutKey=''; try{ var cp=String(currentDate).split('-'); if(cp.length===3){ var cd=new Date(Number(cp[0]),Number(cp[1])-1,Number(cp[2]),12); cd.setDate(cd.getDate()-365); cutKey=cd.getFullYear()+'-'+pad(cd.getMonth()+1)+'-'+pad(cd.getDate()); } }catch(e){}
-    // 2) + 3) บัญชีรายวัน (แถวจาก สธ.3 = ทางการ, แถวอื่น = คีย์เอง)
-    for(var k in db){
-      if(k.indexOf('-')<0||k.length!==10) continue;
-      if(cutKey&&k<=cutKey) continue;
-      var d=db[k]; if(!d||!d.months||!d.data) continue;
-      d.months.forEach(function(m){ var rows=d.data[m]; if(!m||!rows) return;
-        if(mName&&String(m).trim()!==mName) return;
-        rows.forEach(function(r){ if(!r) return;
-          if(window.ticketNorm(r.ticket)===t && (!b||window.ticketNorm(r.book)===b) && hasVal(r.amount)) c.push({date:k,month:m,amount:String(r.amount).replace(/,/g,''),book:window.ticketNorm(r.book),src:'ตั๋ว',man:r.importSource!=='PDF'});
-          if(r.newTicket&&window.ticketNorm(r.newTicket)===t && (!b||window.ticketNorm(r.newBook)===b) && hasVal(r.newAmount)) c.push({date:k,month:m,amount:String(r.newAmount).replace(/,/g,''),book:window.ticketNorm(r.newBook),src:'ตั๋วใหม่',man:true});
-        });
-      });
-    }
-    // 3) ตารางเขียนตั๋ว (คีย์เอง) · หน้าเขียนตั๋วไม่ดึงวันที่กำลังเปิดอยู่
-    try{ if(typeof window.tkwAll==='function'){
-      var curK=(opts.tkwCtx&&typeof window.tkwKey==='function')?window.tkwKey():'';
-      window.tkwAll().forEach(function(D){ var k=D.k; if(k===curK) return; if(cutKey&&k<=cutKey) return;
-        D.m.forEach(function(mo,g){ if(mn&&Number(mo)!==mn) return;
-          (D.r[g]||[]).forEach(function(x){ if(!x) return; var am=String(x[1]==null?'':x[1]).replace(/,/g,'');
-            if(window.ticketNorm(x[0])!==t||!hasVal(am)) return; if(b&&window.ticketNorm(x[2])!==b) return;
-            c.push({date:k,month:TM[Number(mo)-1]||'',amount:am,book:window.ticketNorm(x[2]),src:'ตารางเขียนตั๋ว',man:true}); }); }); }); } }catch(e){}
+    var curK=(opts.tkwCtx&&typeof window.tkwKey==='function')?window.tkwKey():'';
+    var c=(index()[t]||[]).filter(function(x){
+      if(cutKey&&x.date<=cutKey) return false;
+      if(mName&&x.mname!==mName) return false;
+      if(b&&x.book!==b) return false;
+      if(x.tkw&&x.date===curK) return false;
+      return true; });
     if(!c.length) return {status:'none'};
     // สธ.3 ชนะเสมอ: มีรายการจากรายงาน (PDF) ใช้เฉพาะรายการนั้น ที่คีย์เองใช้เมื่อไม่มีรายงานเท่านั้น
     var pool=c.filter(function(x){return !x.man}); if(!pool.length) pool=c;
     if(!b){ var bs={}; pool.forEach(function(x){ if(x.book) bs[x.book]=1; }); if(Object.keys(bs).length>1) return {status:'multibook'}; }   // รายการที่ไม่มีเล่ม ไม่นับเป็นอีกเล่ม
-    pool.sort(function(x,y){ return x.date<y.date?1:(x.date>y.date?-1:0); });
+    pool=pool.slice().sort(function(x,y){ return x.date<y.date?1:(x.date>y.date?-1:0); });
     var best=pool[0], diff=c.some(function(x){ return Number(x.amount)!==Number(best.amount); });
     return {status:'ok',amount:best.amount,date:best.date,month:best.month,src:best.src,differs:diff,book:best.book||'',manual:!!best.man};
   };
@@ -8844,13 +8852,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   // ===== ค้นหาจากทะเบียน (อ่านอย่างเดียว) ใช้โดยคีย์ด่วนของบัญชีรายวันรักษาของ และบัญชีรายวันเขียนตั๋ว =====
   var IDX={at:0,map:null};
   function index(){
-    var now=Date.now(); if(IDX.map&&now-IDX.at<3000) return IDX.map;
+    var now=Date.now(); if(IDX.map&&IDX.v===(window.__dv||0)&&now-IDX.at<30000) return IDX.map;
     var m={}; centralBuild().forEach(function(r){
       var mo=+String(r.date).slice(5,7);
       if(r.oldT&&r.oldA!==''&&r.oldA>0) (m[nt(r.oldT)]=m[nt(r.oldT)]||[]).push({kind:'old',book:String(r.oldB||''),amount:r.oldA,month:r.oldM,date:r.date});
       if(r.nT&&r.nA!==''&&r.nA>0) (m[nt(r.nT)]=m[nt(r.nT)]||[]).push({kind:'new',book:String(r.nB||''),amount:r.nA,month:mo,date:r.date});
     });
-    IDX.map=m; IDX.at=now; return m;
+    IDX.map=m; IDX.at=now; IDX.v=(window.__dv||0); return m;
   }
   window.centralFind=function(ticket,book,month){
     try{
@@ -8870,12 +8878,12 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   // ===== รายการจาก สธ.3 อย่างเดียว (แถวที่นำเข้าจาก PDF) ใช้เทียบกับบัญชีรายวันเขียนตั๋ว =====
   var S3={at:0,v:null};
   window.centralS3=function(){
-    var now=Date.now(); if(S3.v&&now-S3.at<3000) return S3.v;
+    var now=Date.now(); if(S3.v&&S3.dv===(window.__dv||0)&&now-S3.at<30000) return S3.v;
     var m={}, days={}; if(typeof db!=='undefined') Object.keys(db).forEach(function(dk){ var d=db[dk]; if(!/^\d{4}-\d\d-\d\d$/.test(dk)||!d||!d.data) return;
       Object.keys(d.data).forEach(function(mn){ var mi=TH.indexOf(mn)+1; if(mi<1||!Array.isArray(d.data[mn])) return;
         d.data[mn].forEach(function(r){ if(!r||r.importSource!=='PDF'||!String(r.ticket||'').trim()) return; days[dk]=1;
           (m[nt(r.ticket)]=m[nt(r.ticket)]||[]).push({date:dk,mi:mi,book:String(r.importBook||r.book||'').trim(),amount:num(r.amount)}); }); }); });
-    S3.v={by:m,days:days}; S3.at=now; return S3.v;
+    S3.v={by:m,days:days}; S3.at=now; S3.dv=(window.__dv||0); return S3.v;
   };
   // ตั๋วที่คีย์เอง (รักษาของ + เขียนตั๋ว) ที่ยังไม่มี สธ.3/สธ.2 ยืนยัน · อ่านอย่างเดียว ไม่เข้า centralFind (สธ.3 ชนะเสมอ)
   window.centralManual=function(){
