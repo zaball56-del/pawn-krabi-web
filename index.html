@@ -9063,6 +9063,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
 #tp-pop .b button{flex:1;height:46px;border:0;border-radius:14px;font:800 15px Sarabun,sans-serif;cursor:pointer}
 #tp-pop .b .x{background:#e2e8f0;color:#334155;flex:0 0 38%}
 #tp-pop .b .o{background:linear-gradient(135deg,#14b8a6,#0ea5e9);color:#fff}
+#tp-pop .dl{display:none;width:100%;height:42px;margin-top:8px;border:1.5px solid #fca5a5;border-radius:14px;background:#fff;color:#b91c1c;font:800 14px Sarabun,sans-serif;cursor:pointer}#tp-pop .dl.on{display:block}#tp-pop .dl.sure{background:#dc2626;color:#fff;border-color:#dc2626}
 #tp-pop .h{font:600 10.5px Sarabun,sans-serif;color:#94a3b8;margin-top:8px;text-align:center}
 @media print{#tp-pop{display:none !important}}
 </style>
@@ -9071,6 +9072,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
   <div class="s" id="tp-sub"></div>
   <div class="g"><div><label for="tp-t">เลขที่ตั๋ว</label><input id="tp-t" type="text" inputmode="numeric" autocomplete="off"></div><div><label for="tp-b">เล่มที่</label><input id="tp-b" type="text" inputmode="numeric" autocomplete="off"></div></div>
   <div class="b"><button type="button" class="x" id="tp-x">ยกเลิก</button><button type="button" class="o" id="tp-o">ตกลง (Enter)</button></div>
+  <button type="button" class="dl" id="tp-del">🗑 ลบรายการนี้</button>
   <div class="h">กด Enter ที่ช่องเลขที่ → ไปช่องเล่มที่ → Enter เพื่อบันทึก</div>
 </div></div>
 <script>
@@ -9083,6 +9085,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
     document.getElementById('tp-ttl').textContent='คีย์ตั๋ว · แถว '+(r+1); document.getElementById('tp-mon').textContent=x.m;
     document.getElementById('tp-sub').textContent=x.row.ticket?'แก้ไขตั๋วที่มีอยู่':'ตั๋วใหม่ในแถวนี้';
     T.value=x.row.ticket||''; B.value=x.row.book||x.row.importBook||'';
+    var DL=document.getElementById('tp-del'); DL.classList.toggle('on',!!x.row.ticket); DL.classList.remove('sure'); DL.textContent='🗑 ลบรายการนี้';
     P.classList.add('on'); fit(); setTimeout(function(){ T.focus(); T.select(); },30);
   }
   function fit(){ var v=window.visualViewport; if(!v||!P.classList.contains('on')){ P.style.top=P.style.height=P.style.bottom=''; return; } P.style.bottom='auto'; P.style.top=v.offsetTop+'px'; P.style.height=v.height+'px'; }
@@ -9097,6 +9100,29 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
     try{ renderTable(); }catch(e){}
     setTimeout(function(){ var a=document.querySelector('.amount-input-'+c+'-'+r); if(a) a.focus(); },80);
   }
+  function snack(msg,undo){
+    var o=document.getElementById('tp-snack'); if(o) o.remove();
+    o=document.createElement('div'); o.id='tp-snack';
+    o.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100001;background:#0f172a;color:#fff;border-radius:14px;padding:10px 14px;display:flex;gap:12px;align-items:center;font:600 14px Sarabun,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:92vw';
+    o.innerHTML='<span>'+msg+'</span><button type="button" style="border:0;border-radius:10px;padding:6px 12px;background:#10b981;color:#fff;font:800 14px Sarabun,sans-serif">↶ กู้คืน</button>';
+    document.body.appendChild(o); o.querySelector('button').onclick=function(){ o.remove(); undo(); };
+    setTimeout(function(){ if(o.parentNode) o.remove(); },15000);
+  }
+  document.getElementById('tp-del').onclick=function(){
+    if(!cur) return;
+    if(!this.classList.contains('sure')){ this.classList.add('sure'); this.textContent='แตะอีกครั้งเพื่อยืนยันลบ'; return; }
+    var c=cur.c, r=cur.r, d=getCurrentDayData(), m=d.months[c], rec=(d.data[m]||[])[r]; if(!rec){ close(); return; }
+    var bak=JSON.parse(JSON.stringify(rec)), tk=rec.ticket;
+    var oi=rec.origIdx; Object.keys(rec).forEach(function(k){ delete rec[k]; });
+    rec.type=''; rec.ticket=''; rec.amount=''; rec.count=''; rec.origIdx=oi; rec.timestamp='';
+    try{ saveDB(); }catch(e){} close();
+    try{ renderTable(); }catch(e){}
+    snack('ลบตั๋ว '+tk+' (แถว '+(r+1)+' · '+m+') แล้ว',function(){
+      var d2=getCurrentDayData(), rr=(d2.data[m]||[])[r]; if(!rr) return;
+      Object.keys(rr).forEach(function(k){ delete rr[k]; }); Object.keys(bak).forEach(function(k){ rr[k]=bak[k]; });
+      try{ saveDB(); }catch(e){} try{ renderTable(); }catch(e){}
+    });
+  };
   document.getElementById('tp-x').onclick=close; document.getElementById('tp-o').onclick=ok;
   P.addEventListener('click',function(e){ if(e.target===P) close(); });
   T.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); if(dig(T.value)) B.focus(),B.select(); } });
