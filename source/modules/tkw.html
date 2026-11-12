@@ -153,8 +153,16 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   var P=document.getElementById('tkw-page'); if(!P) return;
   var $=function(id){return document.getElementById(id)};
   var store={}, key='', day=null, cur=0, undo=[], wide=window.matchMedia('(min-width:900px)');
-  function load(){ try{ store=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ store={}; } } load();  /* โหลดตั้งแต่เปิดเว็บ เพื่อให้ตารางรักษาของค้นยอดจากตารางเขียนตั๋วได้ แม้ยังไม่เคยเปิดหน้าเขียนตั๋ว */
-  function save(){ window.__dv=(window.__dv||0)+1; try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} }
+  /* โหลดตั้งแต่เปิดเว็บ เพื่อให้ตารางรักษาของค้นยอดจากตารางเขียนตั๋วได้ แม้ยังไม่เคยเปิดหน้าเขียนตั๋ว
+     load() = "รวม" ไม่ใช่ "ทับ": เอาวันที่ใหม่กว่า (u) ระหว่างในหน่วยความจำกับ localStorage และเก็บวันที่มีแต่ในหน่วยความจำไว้
+     (กันข้อมูลหายเมื่อบันทึกลง localStorage ไม่สำเร็จ หรือมีแท็บ/โค้ดอื่นเขียนคีย์เดียวกันทีหลัง) · ถ้าข้อความใน localStorage ไม่เปลี่ยนจะข้ามทันที (เร็ว ใช้ในทางค้นตั๋วได้) */
+  var lastRaw=null;
+  function load(){ var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){} if(lastRaw!==null&&raw===lastRaw) return; lastRaw=raw;
+    var ls={}; try{ ls=JSON.parse(raw||'{}')||{}; }catch(e){ ls={}; } var ch=false;
+    Object.keys(ls).forEach(function(k){ var l=ls[k], m=store[k]; if(!l) return; if(!m||(l.u||0)>(m.u||0)){ store[k]=l; ch=true; } });
+    if(ch) window.__dv=(window.__dv||0)+1; } load();
+  function save(){ window.__dv=(window.__dv||0)+1; var s=JSON.stringify(store);
+    try{ localStorage.setItem(KEY,s); lastRaw=s; }catch(e){ lastRaw=null; try{ console.warn('tkw save',e); }catch(_){} try{ chip('⚠ บันทึกในเครื่องไม่ได้ (พื้นที่เก็บเต็ม) · ข้อมูลยังอยู่ในหน้านี้จนกว่าจะรีเฟรช','er'); }catch(_){} } }
   function pad(n){return (n<10?'0':'')+n}
   function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function shift(k,n){ var p=k.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]+n); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
@@ -371,9 +379,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   /* ใช้โดยหน้าเทียบ สธ.3: อ่านตารางของวัน และแก้ยอดเงินรายตั๋ว */
   window.tkwCountDay=function(){ var n=0; (day&&day.r||[]).forEach(function(c){ c.forEach(function(x){ if(String(x[0]==null?'':x[0]).trim()!=='') n++; }); }); return n; };
   window.tkwClearDay=function(){ snap(); day=blank(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:0; commit(); render(); };
-  window.tkwAll=function(){ return Object.keys(store).filter(function(k){ return /^\d{4}-\d\d-\d\d$/.test(k)&&store[k]&&store[k].m&&store[k].r; }).map(function(k){ return {k:k,m:store[k].m.slice(),r:store[k].r}; }); };
+  window.tkwAll=function(){ load(); return Object.keys(store).filter(function(k){ return /^\d{4}-\d\d-\d\d$/.test(k)&&store[k]&&store[k].m&&store[k].r; }).map(function(k){ return {k:k,m:store[k].m.slice(),r:store[k].r}; }); };
   window.tkwKey=function(){ return key; };
-  window.tkwReadDay=function(k){ var d=store[k]; if((!d||!d.r||!d.m)&&k===key&&day&&day.r&&day.m&&hasData(day)) d=day; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
+  window.tkwReadDay=function(k){ load(); var d=store[k]; if((!d||!d.r||!d.m)&&k===key&&day&&day.r&&day.m&&hasData(day)) d=day; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
+  /* ให้หน้าเทียบ สธ.3 เรียกก่อนอ่าน: รวมข้อมูลในเครื่องล่าสุด + เริ่มซิงก์คลาวด์ (เดิมเริ่มเฉพาะตอนเปิดหน้าเขียนตั๋ว) แล้วรอข้อมูลชุดแรกสูงสุด ms */
+  window.tkwEnsure=function(ms){ load(); try{ startSync(); }catch(e){}
+    return new Promise(function(res){ if(CL.on||CL.denied||!fbExists()) return res(); var t0=Date.now(), iv=setInterval(function(){ if(CL.on||CL.denied||Date.now()-t0>(ms||4000)){ clearInterval(iv); res(); } },100); }); };
+  window.tkwSyncState=function(){ return {firebase:fbExists(),signedIn:fbReady(),on:!!CL.on,denied:!!CL.denied}; };
   window.tkwSetAmount=function(k,m,t,amt){ var d=JSON.parse(JSON.stringify(get(k))), g=d.m.indexOf(+m); if(g<0) return false; var hit=false;
     d.r[g].forEach(function(x){ if(String(x[0]).replace(/^0+/,'')===String(t).replace(/^0+/,'')){ x[1]=String(num(amt)); hit=true; } });
     if(hit){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){} if(key===k){ day=d; if(document.body.classList.contains('tkw-open')) render(); } } return hit; };

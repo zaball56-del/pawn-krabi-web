@@ -12,11 +12,34 @@
     var n=$('pdf-cmp-note'); if(n) n.textContent=t?'เทียบ สธ.3 กับตารางเขียนตั๋ว · ไม่แก้ข้อมูลให้เอง (มีปุ่มแก้ยอด/เพิ่มตั๋วให้กดทีละใบ)':'เทียบเลขตั๋ว เดือน และเงินต้นของ สธ.3 กับตารางที่เลือกของวันที่ระบุ'; }
   document.addEventListener('change',function(e){ if(e.target&&e.target.name==='cmpT'){ paint(); try{ $('pdf-compare-summary').classList.add('hidden'); $('pdf-compare-results').classList.add('hidden'); }catch(x){} } });
 
+  function thDate(k){ var p=String(k).split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+(+p[0]+543)):k; }
+  /* ไม่พบข้อมูลของวันนั้น: บอกสาเหตุจริง (ซิงก์/ออฟไลน์/ไม่มีตั๋ว) และให้กดเลือกวันที่ที่มีข้อมูลอยู่ */
+  function noData(dk){
+    var days=[]; try{ (window.tkwAll?window.tkwAll():[]).forEach(function(D){ var n=0; D.m.forEach(function(m,g){ (D.r[g]||[]).forEach(function(x){ if(nt(x[0])!=='') n++; }); }); if(n) days.push({k:D.k,n:n}); }); }catch(e){}
+    days.sort(function(a,b){ return a.k<b.k?1:-1; });
+    var s={}; try{ s=window.tkwSyncState?window.tkwSyncState():{}; }catch(e){}
+    var why= s.denied?'ซิงก์คลาวด์ไม่ได้: ยังไม่มีสิทธิ์อ่านคอลเลกชัน tkw จึงเห็นเฉพาะข้อมูลในเครื่องนี้'
+      : (!s.firebase?'เครื่องนี้ยังไม่ได้เชื่อม Firebase จึงเห็นเฉพาะข้อมูลที่บันทึกในเครื่องนี้'
+      : (!s.signedIn?'ยังไม่ได้เข้าสู่ระบบ จึงยังดึงข้อมูลจากคลาวด์ไม่ได้'
+      : (!s.on?'คลาวด์ยังไม่ตอบกลับ (อาจออฟไลน์) ลองใหม่เมื่อสัญญาณกลับมา'
+      : 'ซิงก์คลาวด์แล้ว แต่วันที่นี้ยังไม่มีเลขตั๋วในตารางเขียนตั๋ว')));
+    var h='<span class="text-rose-700 font-bold">ไม่พบข้อมูลในตารางเขียนตั๋วของวันที่ '+escapeHtml(thDate(dk))+'</span><div class="mt-1">'+escapeHtml(why)+'</div>';
+    if(days.length){ h+='<div class="mt-2 text-[11px]">วันที่มีข้อมูลในตารางเขียนตั๋ว (กดเพื่อเปรียบเทียบกับวันนั้น):</div><div class="mt-1 flex flex-wrap gap-1">'+days.slice(0,6).map(function(d){ return '<button type="button" data-cmpd="'+escapeHtml(d.k)+'" class="px-2 py-1 rounded bg-indigo-700 text-white text-[10px] font-bold">'+escapeHtml(thDate(d.k))+' · '+d.n+' ตั๋ว</button>'; }).join('')+'</div>'; }
+    else h+='<div class="mt-1">เปิดหน้าบัญชีรายวันเขียนตั๋วของวันนั้นและคีย์ก่อน หรือเลือกวันที่ให้ตรง</div>';
+    $('pdf-compare-status').innerHTML=h; $('pdf-compare-summary').classList.add('hidden'); $('pdf-compare-results').classList.add('hidden'); }
+  document.addEventListener('click',function(e){ var b=e.target&&e.target.closest&&e.target.closest('#pdf-compare-status [data-cmpd]'); if(!b) return; e.preventDefault(); $('pdf-compare-date').value=b.getAttribute('data-cmpd'); if(typeof window.runPDFComparison==='function') window.runPDFComparison(); });
+
   function compareTkw(){
     var dk=$('pdf-compare-date').value; if(!dk){ alert('กรุณาระบุวันที่ประจำวันที่ของรายงานก่อนเปรียบเทียบ'); return; }
     var recs=pdfCompareRecords||[];
-    var D=window.tkwReadDay&&window.tkwReadDay(dk);
-    if(!D){ $('pdf-compare-status').innerHTML='<span class="text-rose-700 font-bold">ไม่พบข้อมูลในตารางเขียนตั๋วของวันที่ '+escapeHtml(dk)+'</span><div class="mt-1">เปิดหน้าบัญชีรายวันเขียนตั๋วของวันนั้นและคีย์ก่อน หรือเลือกวันที่ให้ตรง</div>'; $('pdf-compare-summary').classList.add('hidden'); $('pdf-compare-results').classList.add('hidden'); return; }
+    var rd=function(){ return window.tkwReadDay&&window.tkwReadDay(dk); };
+    var D=rd(); if(D) return runTkw(dk,recs,D);
+    /* ยังไม่เห็นข้อมูล: รวมข้อมูลในเครื่องล่าสุด + เริ่ม/รอซิงก์คลาวด์ (ปกติเริ่มเฉพาะตอนเปิดหน้าเขียนตั๋ว) ก่อนสรุปว่าไม่มี */
+    $('pdf-compare-status').innerHTML='<span class="font-bold text-indigo-700">กำลังโหลดข้อมูลตารางเขียนตั๋ว…</span>';
+    var p=(window.tkwEnsure?window.tkwEnsure(4000):Promise.resolve());
+    p.then(function(){ var D2=rd(); if(D2) runTkw(dk,recs,D2); else noData(dk); },function(){ noData(dk); });
+  }
+  function runTkw(dk,recs,D){
     var keyed=[]; D.m.forEach(function(m,g){ (D.r[g]||[]).forEach(function(x,i){ var t=nt(x[0]); if(t==='') return; keyed.push({month:+m,monthName:MN[m-1],ticket:t,amount:parseFloat(String(x[1]||'').replace(/,/g,''))||0,book:String(x[2]||''),row:i+1}); }); });
     var byKeyT=new Map(); keyed.forEach(function(r){ var k=r.month+'|'+r.ticket; if(!byKeyT.has(k)) byKeyT.set(k,[]); byKeyT.get(k).push(r); });
     var pdfKeys=new Map(); recs.forEach(function(r){ var k=r.month+'|'+nt(r.ticket); pdfKeys.set(k,(pdfKeys.get(k)||0)+1); });
