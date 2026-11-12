@@ -1406,6 +1406,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                             <span aria-hidden="true">›</span>
                         </button>
                         <button onclick="goToday()" class="ml-2 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold shadow-sm">วันนี้</button>
+                        <button id="ledger-delday" type="button" onclick="dayDelAsk('ledger')" class="ml-2 px-3 py-1.5 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg text-xs font-bold shadow-sm" title="ลบข้อมูลทั้งวันที่เลือก">🗑 ลบทั้งวัน</button>
                         <span class="text-sm font-bold text-emerald-900 bg-emerald-100/70 px-2 py-1 rounded-md border border-emerald-300 ml-2">
                             ( <span id="display-date-th">--/--/----</span> ) <span id="day-name-display" class="ml-1"></span>
                         </span>
@@ -8413,7 +8414,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div class="top"><h1>บัญชีรายวันเขียนตั๋ว<small id="tkw-cloud" class="cloud"></small></h1><button type="button" class="x" id="tkw-x" aria-label="ปิด">✕</button></div>
   <div class="dt"><button type="button" id="tkw-prev">‹</button><input type="date" id="tkw-date"><button type="button" id="tkw-next">›</button><button type="button" class="td" id="tkw-today">วันนี้</button></div>
   <div id="tkw-ph"><div class="t1"></div><div class="t2"></div></div>
-  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
+  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb" id="tkw-delday" onclick="dayDelAsk('tkw')" style="color:#fecaca !important;border-color:rgba(248,113,113,.6) !important">🗑 ลบทั้งวัน</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
   <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
   <div class="tabs" id="tkw-tabs"></div>
   <div class="card" id="tkw-card"><table id="tkw-table"></table></div>
@@ -8637,6 +8638,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     return {added:add,skipped:skip};
   };
   /* ใช้โดยหน้าเทียบ สธ.3: อ่านตารางของวัน และแก้ยอดเงินรายตั๋ว */
+  window.tkwCountDay=function(){ var n=0; (day&&day.r||[]).forEach(function(c){ c.forEach(function(x){ if(String(x[0]==null?'':x[0]).trim()!=='') n++; }); }); return n; };
+  window.tkwClearDay=function(){ snap(); day=blank(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:0; commit(); render(); };
   window.tkwReadDay=function(k){ var d=store[k]; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
   window.tkwSetAmount=function(k,m,t,amt){ var d=JSON.parse(JSON.stringify(get(k))), g=d.m.indexOf(+m); if(g<0) return false; var hit=false;
     d.r[g].forEach(function(x){ if(String(x[0]).replace(/^0+/,'')===String(t).replace(/^0+/,'')){ x[1]=String(num(amt)); hit=true; } });
@@ -9265,6 +9268,50 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
       }catch(e){} return r; }; f.__t=1; window.filterPDFCompareResults=f; return true; }
   var n=0,t=setInterval(function(){ var a=wrapRun(), b=wrapFilter(); if((a&&b)||++n>40) clearInterval(t); },500);
   if(typeof window.runPDFComparison==='function') wrapRun(); if(typeof window.filterPDFCompareResults==='function') wrapFilter();
+})();
+</script>
+
+<script id="daydel-js">
+(function(){
+  function $(i){ return document.getElementById(i); }
+  function be(k){ var p=String(k||'').split('-'); return p.length===3?(+p[2])+'/'+(+p[1])+'/'+((+p[0])+543):k; }
+  function ledgerCount(k){ var d=db[k]; if(!d||!d.data) return 0; var n=0; Object.keys(d.data).forEach(function(m){ if(m==='สรุปประจำวัน') return; (d.data[m]||[]).forEach(function(r){ if(r&&String(r.ticket==null?'':r.ticket).trim()!=='') n++; }); }); return n; }
+  function toast(html,undo){
+    var o=$('dd-snack'); if(o) o.remove();
+    o=document.createElement('div'); o.id='dd-snack';
+    o.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100001;background:#0f172a;color:#fff;border-radius:14px;padding:10px 14px;display:flex;gap:12px;align-items:center;font:600 14px Sarabun,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:92vw';
+    o.innerHTML='<span>'+html+'</span>'+(undo?'<button type="button" style="border:0;border-radius:10px;padding:6px 12px;background:#10b981;color:#fff;font:800 14px Sarabun,sans-serif">↶ กู้คืน</button>':'');
+    document.body.appendChild(o);
+    if(undo) o.querySelector('button').onclick=function(){ o.remove(); undo(); };
+    setTimeout(function(){ if(o.parentNode) o.remove(); },20000);
+  }
+  window.dayDelAsk=function(kind){
+    var k, n, label;
+    if(kind==='tkw'){ k=($('tkw-date')||{}).value; n=window.tkwCountDay?window.tkwCountDay():0; label='บัญชีรายวันเขียนตั๋ว'; }
+    else { k=currentDate; n=ledgerCount(k); label='บัญชีรายวันรักษาของ'; }
+    if(!k) return;
+    if(!n){ toast('วันที่ '+be(k)+' ยังไม่มีข้อมูลใน'+label); return; }
+    var ov=document.createElement('div'); ov.id='dd-ov';
+    ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML='<div style="background:#fff;color:#0f172a;border-radius:20px;max-width:360px;width:100%;padding:20px;font-family:Sarabun,sans-serif;box-shadow:0 20px 50px rgba(0,0,0,.4)">'
+      +'<div style="font-size:18px;font-weight:800;color:#b91c1c">🗑 ลบข้อมูลทั้งวัน</div>'
+      +'<div style="margin-top:10px;font-size:15px;line-height:1.5">'+label+'<br>วันที่ <b>'+be(k)+'</b><br>มีข้อมูล <b>'+n+'</b> รายการ ที่จะถูกลบทั้งหมด</div>'
+      +'<div style="margin-top:8px;font-size:12px;color:#475569">หลังลบ กด “กู้คืน” ได้ทันทีภายใน 20 วินาที</div>'
+      +'<div style="display:flex;gap:10px;margin-top:16px"><button type="button" id="dd-no" style="flex:1;border:1px solid #cbd5e1;background:#fff;border-radius:12px;padding:11px;font:700 15px Sarabun,sans-serif">ยกเลิก</button><button type="button" id="dd-yes" style="flex:1;border:0;background:#dc2626;color:#fff;border-radius:12px;padding:11px;font:800 15px Sarabun,sans-serif">ลบทั้งวัน</button></div></div>';
+    document.body.appendChild(ov);
+    $('dd-no').onclick=function(){ ov.remove(); };
+    $('dd-yes').onclick=function(){ ov.remove(); doDel(kind,k,n,label); };
+  };
+  function doDel(kind,k,n,label){
+    if(kind==='tkw'){
+      window.tkwClearDay(); // เก็บ undo ไว้ในปุ่ม "เลิกทำ" ของหน้านั้นด้วย
+      toast('ลบแล้ว '+n+' รายการ ('+be(k)+')',function(){ var b=$('tkw-undo'); if(b&&!b.disabled) b.click(); });
+    } else {
+      var bak=JSON.stringify(db[k]);
+      delete db[k]; getCurrentDayData(); saveDB(); renderTable();
+      toast('ลบแล้ว '+n+' รายการ ('+be(k)+')',function(){ db[k]=JSON.parse(bak); saveDB(); renderTable(); showToast('กู้คืนข้อมูลแล้ว'); });
+    }
+  }
 })();
 </script>
 

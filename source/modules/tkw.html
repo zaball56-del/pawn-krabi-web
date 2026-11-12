@@ -123,7 +123,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div class="top"><h1>บัญชีรายวันเขียนตั๋ว<small id="tkw-cloud" class="cloud"></small></h1><button type="button" class="x" id="tkw-x" aria-label="ปิด">✕</button></div>
   <div class="dt"><button type="button" id="tkw-prev">‹</button><input type="date" id="tkw-date"><button type="button" id="tkw-next">›</button><button type="button" class="td" id="tkw-today">วันนี้</button></div>
   <div id="tkw-ph"><div class="t1"></div><div class="t2"></div></div>
-  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
+  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb" id="tkw-delday" onclick="dayDelAsk('tkw')" style="color:#fecaca !important;border-color:rgba(248,113,113,.6) !important">🗑 ลบทั้งวัน</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
   <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
   <div class="tabs" id="tkw-tabs"></div>
   <div class="card" id="tkw-card"><table id="tkw-table"></table></div>
@@ -347,6 +347,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     return {added:add,skipped:skip};
   };
   /* ใช้โดยหน้าเทียบ สธ.3: อ่านตารางของวัน และแก้ยอดเงินรายตั๋ว */
+  window.tkwCountDay=function(){ var n=0; (day&&day.r||[]).forEach(function(c){ c.forEach(function(x){ if(String(x[0]==null?'':x[0]).trim()!=='') n++; }); }); return n; };
+  window.tkwClearDay=function(){ snap(); day=blank(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:0; commit(); render(); };
   window.tkwReadDay=function(k){ var d=store[k]; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
   window.tkwSetAmount=function(k,m,t,amt){ var d=JSON.parse(JSON.stringify(get(k))), g=d.m.indexOf(+m); if(g<0) return false; var hit=false;
     d.r[g].forEach(function(x){ if(String(x[0]).replace(/^0+/,'')===String(t).replace(/^0+/,'')){ x[1]=String(num(amt)); hit=true; } });
