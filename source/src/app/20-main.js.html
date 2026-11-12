@@ -307,7 +307,7 @@
         function openQuickScanModal() {
             const m = document.getElementById('quick-scan-modal');
             m.classList.remove('hidden'); m.style.display = 'flex';
-            qsClearFields(false); qsSetMsg('', ''); qsRenderRecent();
+            qsClearFields(false); if (window.__qsLastMonth) { qsEl('qs-month').value = window.__qsLastMonth; qsMonthHint(); } qsSetMsg('', ''); qsRenderRecent();
             setTimeout(() => { if (m.contains(document.activeElement)) return; const b = document.querySelector('.qs-type-btn'); if (b) b.focus(); }, 100); // ไม่แย่งโฟกัสถ้าเริ่มกรอก/ยิงบาร์โค้ดแล้ว
         }
 
@@ -339,7 +339,7 @@
             if (el.value) qsEl(qsEl('qs-month').value ? 'qs-ticket' : 'qs-month').focus();
         }
         function qsMonthHint() {
-            const n = parseInt(qsEl('qs-month').value, 10), el = qsEl('qs-month-name');
+            const n = parseInt(qsEl('qs-month').value, 10), el = qsEl('qs-month-name'); if (n >= 1 && n <= 12) window.__qsLastMonth = String(n);
             if (isNaN(n) || n < 1 || n > 12) { el.textContent = ''; return; }
             const name = thaiMonths[n - 1], open = getCurrentDayData().months.indexOf(name) !== -1;
             el.textContent = open ? name + ' ✓' : name + ' (ยังไม่เปิดคอลัมน์)';

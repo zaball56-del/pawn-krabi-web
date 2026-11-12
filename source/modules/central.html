@@ -91,13 +91,13 @@
   // ===== ค้นหาจากทะเบียน (อ่านอย่างเดียว) ใช้โดยคีย์ด่วนของบัญชีรายวันรักษาของ และบัญชีรายวันเขียนตั๋ว =====
   var IDX={at:0,map:null};
   function index(){
-    var now=Date.now(); if(IDX.map&&now-IDX.at<3000) return IDX.map;
+    var now=Date.now(); if(IDX.map&&IDX.v===(window.__dv||0)&&now-IDX.at<30000) return IDX.map;
     var m={}; centralBuild().forEach(function(r){
       var mo=+String(r.date).slice(5,7);
       if(r.oldT&&r.oldA!==''&&r.oldA>0) (m[nt(r.oldT)]=m[nt(r.oldT)]||[]).push({kind:'old',book:String(r.oldB||''),amount:r.oldA,month:r.oldM,date:r.date});
       if(r.nT&&r.nA!==''&&r.nA>0) (m[nt(r.nT)]=m[nt(r.nT)]||[]).push({kind:'new',book:String(r.nB||''),amount:r.nA,month:mo,date:r.date});
     });
-    IDX.map=m; IDX.at=now; return m;
+    IDX.map=m; IDX.at=now; IDX.v=(window.__dv||0); return m;
   }
   window.centralFind=function(ticket,book,month){
     try{
@@ -117,12 +117,12 @@
   // ===== รายการจาก สธ.3 อย่างเดียว (แถวที่นำเข้าจาก PDF) ใช้เทียบกับบัญชีรายวันเขียนตั๋ว =====
   var S3={at:0,v:null};
   window.centralS3=function(){
-    var now=Date.now(); if(S3.v&&now-S3.at<3000) return S3.v;
+    var now=Date.now(); if(S3.v&&S3.dv===(window.__dv||0)&&now-S3.at<30000) return S3.v;
     var m={}, days={}; if(typeof db!=='undefined') Object.keys(db).forEach(function(dk){ var d=db[dk]; if(!/^\d{4}-\d\d-\d\d$/.test(dk)||!d||!d.data) return;
       Object.keys(d.data).forEach(function(mn){ var mi=TH.indexOf(mn)+1; if(mi<1||!Array.isArray(d.data[mn])) return;
         d.data[mn].forEach(function(r){ if(!r||r.importSource!=='PDF'||!String(r.ticket||'').trim()) return; days[dk]=1;
           (m[nt(r.ticket)]=m[nt(r.ticket)]||[]).push({date:dk,mi:mi,book:String(r.importBook||r.book||'').trim(),amount:num(r.amount)}); }); }); });
-    S3.v={by:m,days:days}; S3.at=now; return S3.v;
+    S3.v={by:m,days:days}; S3.at=now; S3.dv=(window.__dv||0); return S3.v;
   };
   // ตั๋วที่คีย์เอง (รักษาของ + เขียนตั๋ว) ที่ยังไม่มี สธ.3/สธ.2 ยืนยัน · อ่านอย่างเดียว ไม่เข้า centralFind (สธ.3 ชนะเสมอ)
   window.centralManual=function(){
