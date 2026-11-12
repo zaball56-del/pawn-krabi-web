@@ -10,7 +10,7 @@
   // ตัวค้นยอดย้ายไปอยู่ที่ตัวค้นกลาง ticketFind (modules/ticketfind.html) เพื่อให้ทุกหน้าใช้กฎเดียวกัน
   window.qsLookupKnownAmount=function(ticket,book){
     var ov=(typeof window.__qsMonthOverride==='number');
-    return typeof window.ticketFind==='function'?window.ticketFind(ticket,book,qmon(),{tkwCtx:ov}):{status:'none'};
+    return typeof window.ticketFind==='function'?window.ticketFind(ticket,book,qmon(),{tkwCtx:ov,soft:!!window.__qsSoft||(!ov&&!window.__qsMonthTyped)}):{status:'none'};
   };
   function run(){
     try{
@@ -18,8 +18,8 @@
       if(!tk){ if(A.classList.contains('qs-auto')){A.value='';A.classList.remove('qs-auto')} hint.textContent='';hint.className='qs-amt-hint'; return; }
       var r=qsLookupKnownAmount(tk,B.value.trim());
       if(r.status==='ok'){
-        if(r.base){ if(!B.value.trim()){ B.value=r.base.book; }
-          var ME=document.getElementById('qs-month'); if(ME&&!ME.value){ ME.value=String(r.base.month); try{qsMonthHint()}catch(e){} } }
+        if(r.base&&!B.value.trim()){ B.value=r.base.book; }
+        var ME=document.getElementById('qs-month'); if(ME&&(!ME.value||r.monthFallback)){ var mo=r.base?+r.base.month:(r.monthFallback?(['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'].indexOf(String(r.month||'').trim())):0); if(mo>=1&&mo<=12){ ME.value=String(mo); try{qsMonthHint()}catch(e){} } }
         if(editable){ A.value=formatNumber(r.amount); A.classList.add('qs-auto');
           if(r.base){ hint.className='qs-amt-hint'; hint.textContent='ดึงยอดจากทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+') แก้ไขได้'; }
           else {
@@ -35,10 +35,10 @@
   var tm=null; function sched(){clearTimeout(tm);tm=setTimeout(run,120)}
   window.__qsRun=run;
   T.addEventListener('input',sched); B.addEventListener('input',sched);
-  var MO=document.getElementById('qs-month'); if(MO) MO.addEventListener('input',sched);
+  var MO=document.getElementById('qs-month'); if(MO) MO.addEventListener('input',function(){ window.__qsMonthTyped=true; sched(); });
   A.addEventListener('input',function(){A.classList.remove('qs-auto')});
   var oc=window.qsClearFields;
-  if(typeof oc==='function') window.qsClearFields=function(){ var r=oc.apply(this,arguments); A.classList.remove('qs-auto'); hint.textContent=''; hint.className='qs-amt-hint'; return r; };
+  if(typeof oc==='function') window.qsClearFields=function(){ window.__qsMonthTyped=false; var r=oc.apply(this,arguments); A.classList.remove('qs-auto'); hint.textContent=''; hint.className='qs-amt-hint'; return r; };
 })();
 </script>
 

@@ -35,6 +35,10 @@
   }
   window.ticketFind=function(ticket,book,month,opts){
     opts=opts||{};
+    // เดือนแบบ "อ่อน" (เดือนที่จำไว้จากครั้งก่อน ไม่ได้พิมพ์เอง): ไม่พบในเดือนนั้นให้ลองหาทุกเดือน แล้วบอกว่าเดือนเปลี่ยน
+    if(opts.soft&&Number(month)){ var o2={}; for(var kk in opts) o2[kk]=opts[kk]; o2.soft=false;
+      var r1=window.ticketFind(ticket,book,month,o2); if(r1.status==='ok') return r1;
+      var r2=window.ticketFind(ticket,book,0,o2); if(r2.status==='ok'){ r2.monthFallback=true; return r2; } return r1; }
     var t=window.ticketNorm(ticket), b=window.ticketNorm(book), mn=Number(month)||0;
     if(!t) return {status:'none'};
     var mName=(mn>=1&&mn<=12)?TM[mn-1]:'';
