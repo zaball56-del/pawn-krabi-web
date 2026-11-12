@@ -14,7 +14,7 @@
       var sel=ready.filter(function(r){ return r.selected&&!r.duplicate; });
       var forT=ready.filter(function(r){ return r.selected||r.reason==='มีเลขตั๋วนี้ในตารางแล้ว'; });
       var btn=document.getElementById('pdf-import-confirm');
-      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')); }catch(e){} return r; }
+      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')+(r.filled?' · เติมเล่มที่ให้ '+r.filled+' ใบ':'')); }catch(e){} return r; }
       if(toL&&sel.length){
         orig.apply(this,arguments);
         if(toT&&btn&&btn.disabled) doT();   /* ledger สำเร็จ (ปุ่มถูกปิด) จึงส่งต่อให้เขียนตั๋ว */

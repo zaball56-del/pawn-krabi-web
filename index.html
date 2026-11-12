@@ -8711,20 +8711,21 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   /* นำเข้าจาก สธ.3: เลขตั๋ว + เงินต้น + เล่ม ลงคอลัมน์เดือนที่รับจำนำ ไม่ทับแถวที่มี ข้ามเลขตั๋วซ้ำ */
   window.tkwImportS3=function(k,recs){
-    var d=JSON.parse(JSON.stringify(get(k))), add=0, skip=0;
+    var d=JSON.parse(JSON.stringify(get(k))), add=0, skip=0, fill=0;
     (recs||[]).forEach(function(p){
       var t=String(p.ticket||'').trim(); if(!t) return;
       var m=+p.month, b=String(p.book||'').trim(), a=String(p.amount==null?'':p.amount).replace(/,/g,'');
       var g=d.m.indexOf(m); if(g<0){ d.m.push(m); d.r.push(emptyCol()); g=d.m.length-1; }
       var col=d.r[g];
-      if(col.some(function(x){ return x[0]===t&&(!b||!x[2]||x[2]===b); })){ skip++; return; }
+      var hit=null; col.some(function(x){ if(x[0]===t&&(!b||!x[2]||x[2]===b)){ hit=x; return true; } return false; });
+      if(hit){ skip++; if(b&&!hit[2]){ hit[2]=b; fill++; } return; }   /* มีเลขตั๋วอยู่แล้วแต่ยังไม่มีเล่มที่ → เติมเล่มที่จาก สธ.3 ให้ */
       var i=0; while(i<col.length&&(col[i][0]||col[i][1])) i++;
       while(col.length<=i) col.push(['','']);
       col[i]=[t,a===''?'':String(num(a)),b,''];
       add++; });
-    if(add){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){}
+    if(add||fill){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){}
       if(key===k){ day=d; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } }
-    return {added:add,skipped:skip};
+    return {added:add,skipped:skip,filled:fill};
   };
   /* ใช้โดยหน้าเทียบ สธ.3: อ่านตารางของวัน และแก้ยอดเงินรายตั๋ว */
   window.tkwCountDay=function(){ var n=0; (day&&day.r||[]).forEach(function(c){ c.forEach(function(x){ if(String(x[0]==null?'':x[0]).trim()!=='') n++; }); }); return n; };
@@ -9385,7 +9386,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
       var sel=ready.filter(function(r){ return r.selected&&!r.duplicate; });
       var forT=ready.filter(function(r){ return r.selected||r.reason==='มีเลขตั๋วนี้ในตารางแล้ว'; });
       var btn=document.getElementById('pdf-import-confirm');
-      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')); }catch(e){} return r; }
+      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')+(r.filled?' · เติมเล่มที่ให้ '+r.filled+' ใบ':'')); }catch(e){} return r; }
       if(toL&&sel.length){
         orig.apply(this,arguments);
         if(toT&&btn&&btn.disabled) doT();   /* ledger สำเร็จ (ปุ่มถูกปิด) จึงส่งต่อให้เขียนตั๋ว */
