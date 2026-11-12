@@ -62,4 +62,9 @@ const R3=[rec('252',11,'262','8000'),rec('701',11,'266','20000'),rec('815',10,'2
   ok(tickets(w,DAY).length===1&&tickets(w,DAY)[0].b==='255','10d สธ.3 ไม่มีเล่มที่ → ไม่ลบเล่มที่เดิม'); }
 { const w=boot(); setRecs(w,[rec('',11,'1','1'),rec('55',11,'3','1,500')]); w.commitPDFImport(); const t=tickets(w,DAY);
   ok(t.length===1&&t[0].t==='55'&&t[0].a==='1500','11 แถวไม่มีเลขตั๋วถูกข้าม และยอดมีคอมมา (1,500) แปลงเป็นตัวเลข'); }
+{ const w=boot(); w.eval("tkwOpen()"); setRecs(w,R3); w.commitPDFImport(); const el=w.document.getElementById('tkw-s3note');
+  ok(el.classList.contains('on')&&/ลงเขียนตั๋ว 3 ใบ/.test(el.textContent)&&/12\/11\/2569/.test(el.textContent),'12 หลังนำเข้า มีสรุปถาวรเหนือแผงเทียบ: ลง 3 ใบ วันที่ 12/11/2569 ('+el.textContent.slice(0,90)+'…)');
+  ok(/ตุลาคม 1/.test(el.textContent)&&/พฤศจิกายน 2/.test(el.textContent),'12b บอกว่าลงเดือนไหนกี่ใบ (ต.ค. 1 · พ.ย. 2)');
+  w.eval("tkwOpen()"); ok(w.document.getElementById('tkw-s3note').classList.contains('on'),'12c เปิดหน้าใหม่แล้วสรุปยังอยู่ (ไม่หายเหมือนข้อความ toast)');
+  const w2=w.localStorage.getItem('pawn_tkw_s3note'); ok(!!w2&&JSON.parse(w2)[DAY].added===3,'12d เก็บลงเครื่อง (pawn_tkw_s3note)'); }
 console.log(fail?`❌ ล้มเหลว ${fail}`:'✅ ผ่านทั้งหมด'); process.exit(fail?1:0);
