@@ -4,7 +4,8 @@
     var KEY='pawn_krabi_app_settings', SALT='krabi-pawn-v1:';
     var DEF={pinHash:null,recoveryHash:null,autoLockMin:0,org:'',headerExtra:'',showDate:true,showLogo:false,paper:'A4',orient:'landscape',margin:5,sound:true,warnBackup:false,theme:'light',fontScale:100,qsConfirm:true};
     function load(){ try{ return Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(e){ return Object.assign({},DEF); } }
-    function save(s){ try{ localStorage.setItem(KEY,JSON.stringify(s)); }catch(e){} }
+    /* ค่าที่เก็บที่นี่รวม PIN/รหัสกู้คืน/ล็อกอัตโนมัติ: ถ้าเขียนลงเครื่องไม่ได้ (พื้นที่เต็ม/ถูกบล็อก) ต้องแจ้ง ไม่ใช่เงียบ (ไม่เปลี่ยนวิธีทำงานอื่น) */
+    function save(s){ try{ localStorage.setItem(KEY,JSON.stringify(s)); return true; }catch(e){ try{ console.warn('settings save',e); }catch(_){} if(Date.now()-(save.w||0)>5000){ save.w=Date.now(); toast('⚠ บันทึกการตั้งค่าไม่สำเร็จ (พื้นที่เก็บเต็มหรือถูกบล็อก) ค่าที่เพิ่งตั้งจะหายเมื่อรีเฟรชหน้า'); } return false; } }
     function set(k,v){ var s=load(); s[k]=v; save(s); applyAll(); }
     function toast(m){ if(typeof showToast==='function') showToast(m); }
     function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}

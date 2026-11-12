@@ -11,7 +11,7 @@
 
     /* ================= 1) ประวัติการแก้ไข ================= */
     function loadA(){ try{ var a=JSON.parse(localStorage.getItem(AKEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-    function pushA(items){ if(!items.length) return; var a=loadA().concat(items); if(a.length>MAXA) a=a.slice(a.length-MAXA); try{ localStorage.setItem(AKEY,JSON.stringify(a)); }catch(e){ try{ localStorage.setItem(AKEY,JSON.stringify(a.slice(-1000))); }catch(x){} } }
+    function pushA(items){ if(!items.length) return; var a=loadA().concat(items); if(a.length>MAXA) a=a.slice(a.length-MAXA); try{ localStorage.setItem(AKEY,JSON.stringify(a)); }catch(e){ try{ localStorage.setItem(AKEY,JSON.stringify(a.slice(-1000))); }catch(x){ try{ console.warn('audit save',x); }catch(_){} if(Date.now()-(pushA.w||0)>30000){ pushA.w=Date.now(); toast('⚠ บันทึกประวัติการแก้ไขไม่สำเร็จ (พื้นที่เก็บเต็ม)'); } } } }
     window.__audit=function(action,detail,dateKey){ pushA([{ts:Date.now(),date:dateKey||(typeof currentDate==='string'?currentDate:''),a:action,d:detail||''}]); };
     function snap(k){
         var d=db[k]; if(!d||!d.data) return null; var o={months:(d.months||[]).join('|'),rows:{},pl:'',bal:''}, used={};
