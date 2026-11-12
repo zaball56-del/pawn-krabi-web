@@ -926,6 +926,11 @@
         html body #global-search-modal.fixed > div > div:first-child .rounded-full{background:#e0e7ff !important}
         html body #global-search-modal.fixed button[onclick="closeGlobalSearch()"]{background:#e0e7ff !important;color:#1e1b4b !important;width:36px;height:36px;border-radius:18px !important}
         html body #global-search-modal.fixed > div > div:nth-child(2){background:#fff !important;border:0 !important;padding:16px 28px 8px !important}
+        html body #global-search-modal.fixed #global-search-row{display:flex !important;flex-wrap:nowrap !important;gap:8px !important;align-items:center;padding-left:12px !important;padding-right:12px !important}
+        html body #global-search-modal.fixed #global-search-input{flex:1 1 0 !important;min-width:0 !important;padding:0 14px !important}
+        html body #global-search-modal.fixed #global-search-book{flex:0 0 84px !important;width:84px !important;min-width:0 !important}
+        html body #global-search-modal.fixed #global-search-row button[onclick="executeGlobalSearch()"]{flex:0 0 auto !important;padding:0 16px !important}
+        html body #global-search-modal.fixed #global-search-book{height:50px;font-size:20px !important;font-weight:700;border-radius:25px !important;padding:0 14px !important;text-align:center;background:#fff !important;border:1.5px solid #a5b4fc !important;color:#0f1b4d !important;color-scheme:light}
         html body #global-search-modal.fixed #global-search-input{height:50px;font-size:20px !important;font-weight:700;border-radius:25px !important;padding:0 22px !important;background:#fff !important;border:1.5px solid #a5b4fc !important;color:#0f1b4d !important;color-scheme:light}
         html body #global-search-modal.fixed #global-search-input:focus{outline:none !important;border-color:#4f46e5 !important;box-shadow:0 0 0 3px rgba(99,102,241,.3)}
         html body #global-search-modal.fixed button[onclick="executeGlobalSearch()"]{height:50px;padding:0 26px !important;border-radius:25px !important;background:linear-gradient(135deg,#4338ca,#0f766e) !important;color:#fff !important;font-size:16px !important;box-shadow:0 12px 26px -12px rgba(67,56,202,.8)}
@@ -1518,8 +1523,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 </div>
                 <button onclick="closeGlobalSearch()" class="text-slate-400 hover:text-slate-600"><span aria-hidden="true" style="font-size:1.15em;line-height:1">×</span></button>
             </div>
-            <div class="p-4 bg-white border-b border-slate-100 flex gap-2">
-                <input type="text" id="global-search-input" onkeypress="if(event.key === 'Enter') executeGlobalSearch()" placeholder="กรอกเลขตั๋วที่ต้องการค้นหา..." class="flex-grow bg-slate-50 text-slate-800 border border-slate-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
+            <div id="global-search-row" class="p-4 bg-white border-b border-slate-100 flex gap-2">
+                <input type="text" id="global-search-input" onkeypress="if(event.key === 'Enter') executeGlobalSearch()" inputmode="numeric" placeholder="เลขที่ตั๋ว" class="flex-grow min-w-0 bg-slate-50 text-slate-800 border border-slate-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
+                <input type="text" id="global-search-book" inputmode="numeric" onkeypress="if(event.key === 'Enter') executeGlobalSearch()" placeholder="เล่มที่" aria-label="เล่มที่" class="bg-slate-50 text-slate-800 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold" >
                 <button onclick="executeGlobalSearch()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow transition">ค้นหา</button>
             </div>
             <div class="flex-grow overflow-auto p-4 bg-slate-100">
@@ -1536,7 +1542,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                         </tr>
                     </thead>
                     <tbody id="global-search-results">
-                        <tr><td colspan="7" class="text-center text-slate-500 py-6">กรอกเลขตั๋วแล้วกดปุ่ม "ค้นหา"</td></tr>
+                        <tr><td colspan="7" class="text-center text-slate-500 py-6">กรอกเลขที่ตั๋ว + เล่มที่ แล้วกดปุ่ม "ค้นหา"</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -3678,13 +3684,14 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             document.getElementById('global-search-modal').classList.remove('hidden');
             document.getElementById('global-search-modal').style.display = 'flex';
             document.getElementById('global-search-input').focus();
-            document.getElementById('global-search-results').innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-6">กรอกเลขตั๋วแล้วกดปุ่ม "ค้นหา"</td></tr>';
+            document.getElementById('global-search-results').innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-6">กรอกเลขที่ตั๋ว + เล่มที่ แล้วกดปุ่ม "ค้นหา"</td></tr>';
         }
 
         function closeGlobalSearch() {
             document.getElementById('global-search-modal').style.display = 'none';
             document.getElementById('global-search-modal').classList.add('hidden');
             document.getElementById('global-search-input').value = '';
+            { const _b = document.getElementById('global-search-book'); if (_b) _b.value = ''; }
         }
 
         function searchLinkNote(r) {
@@ -3712,6 +3719,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
 
         function executeGlobalSearch() {
             let query = document.getElementById('global-search-input').value.trim().toLowerCase();
+            const bookQ = ((document.getElementById('global-search-book') || {}).value || '').trim().toLowerCase();
             let tbody = document.getElementById('global-search-results');
             
             if (query === '') {
@@ -3732,14 +3740,18 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                                 if (row && row.ticket !== undefined && row.ticket !== null) {
                                     let tStr = String(row.ticket).trim().toLowerCase();
                                     const nStr = String(row.newTicket || '').trim().toLowerCase();
-                                    if ((tStr !== '' && tStr.includes(query)) || (nStr !== '' && nStr.includes(query))) {
+                                    const bOld = String(row.book || '').trim().toLowerCase(), bNew = String(row.newBook || '').trim().toLowerCase();
+                                    /* ระบุเล่มที่: ต้องตรงทั้งเลขที่และเล่มที่ (ตั๋วเดิมหรือตั๋วใหม่) */
+                                    const hitOld = tStr !== '' && (bookQ ? (tStr === query && bOld === bookQ) : tStr.includes(query));
+                                    const hitNew = nStr !== '' && (bookQ ? (nStr === query && bNew === bookQ) : nStr.includes(query));
+                                    if (hitOld || hitNew) {
                                         results.push({ 
                                             date: dKey, 
                                             month: m, 
                                             type: row.type || '', 
                                             ticket: row.ticket, 
                                             amount: row.amount || '',
-                                            timestamp: row.timestamp || '-', book: row.book || '', newTicket: row.newTicket || '', newBook: row.newBook || '', newAmount: (row.newAmount === undefined ? '' : row.newAmount), viaNew: !(tStr !== '' && tStr.includes(query))
+                                            timestamp: row.timestamp || '-', book: row.book || '', newTicket: row.newTicket || '', newBook: row.newBook || '', newAmount: (row.newAmount === undefined ? '' : row.newAmount), viaNew: !hitOld
                                         });
                                     }
                                 }
@@ -6248,7 +6260,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
   function build(){
     host.innerHTML=''; var rows=Array.prototype.slice.call(tb.children); if(!rows.length) return;
     if(rows.length===1&&rows[0].children.length===1){var t=rows[0].textContent.trim();host.innerHTML='<div class="gs-msg'+(/ไม่พบ/.test(t)?' bad':'')+'">'+esc(t)+'</div>';return;}
-    var q=(document.getElementById('global-search-input')||{}).value||'', evs=[], dates=rows.map(function(r){return r.children[1].textContent.trim()});
+    var q=(document.getElementById('global-search-input')||{}).value||'',bq=((document.getElementById('global-search-book')||{}).value||'').trim(), evs=[], dates=rows.map(function(r){return r.children[1].textContent.trim()});
     rows.forEach(function(tr){
       var c=tr.children; if(c.length<7) return;
       var type=c[4].textContent.trim(), cell=c[5], divs=Array.prototype.slice.call(cell.children), via=false, old='', nw='';
@@ -6261,7 +6273,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       var amt=c[6].textContent.trim();
       evs.push('<div class="gs-ev'+(type==='ถ'?' red':'')+'"><div class="gs-r1"><span class="gs-d">'+esc(c[1].textContent.trim())+'</span><span class="gs-s">'+esc(c[2].textContent.trim())+'</span><span class="gs-ch'+(TY[type]?' t'+TY[type]:'')+'">'+esc(type||'-')+'</span><span class="gs-s">คอลัมน์ '+esc(c[3].textContent.trim())+'</span>'+(amt?'<span class="gs-amt">฿ '+esc(amt)+'</span>':'')+'</div><div class="gs-tk">'+old+nw+(via?'<span class="gs-via">พบจากเลขตั๋วใหม่</span>':'')+'</div></div>');
     });
-    var hero='<div class="gs-hero"><div><small>ค้นหา</small><b>'+esc(q)+'</b></div><div><small>พบทั้งหมด</small><b>'+evs.length+' ครั้ง</b></div><div><small>ล่าสุด</small><b>'+esc(dates[0])+'</b></div><div><small>ครั้งแรกที่พบ</small><b>'+esc(dates[dates.length-1])+'</b></div></div>';
+    var hero='<div class="gs-hero"><div><small>ค้นหา</small><b>'+esc(q)+(bq?' / เล่ม '+esc(bq):'')+'</b></div><div><small>พบทั้งหมด</small><b>'+evs.length+' ครั้ง</b></div><div><small>ล่าสุด</small><b>'+esc(dates[0])+'</b></div><div><small>ครั้งแรกที่พบ</small><b>'+esc(dates[dates.length-1])+'</b></div></div>';
     host.innerHTML=hero+'<div class="gs-tl">'+evs.join('')+'</div>';
   }
   new MutationObserver(function(){try{build()}catch(e){console.error('gs-timeline',e)}}).observe(tb,{childList:true});

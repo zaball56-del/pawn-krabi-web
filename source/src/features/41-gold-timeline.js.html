@@ -7,7 +7,7 @@
   function build(){
     host.innerHTML=''; var rows=Array.prototype.slice.call(tb.children); if(!rows.length) return;
     if(rows.length===1&&rows[0].children.length===1){var t=rows[0].textContent.trim();host.innerHTML='<div class="gs-msg'+(/ไม่พบ/.test(t)?' bad':'')+'">'+esc(t)+'</div>';return;}
-    var q=(document.getElementById('global-search-input')||{}).value||'', evs=[], dates=rows.map(function(r){return r.children[1].textContent.trim()});
+    var q=(document.getElementById('global-search-input')||{}).value||'',bq=((document.getElementById('global-search-book')||{}).value||'').trim(), evs=[], dates=rows.map(function(r){return r.children[1].textContent.trim()});
     rows.forEach(function(tr){
       var c=tr.children; if(c.length<7) return;
       var type=c[4].textContent.trim(), cell=c[5], divs=Array.prototype.slice.call(cell.children), via=false, old='', nw='';
@@ -20,7 +20,7 @@
       var amt=c[6].textContent.trim();
       evs.push('<div class="gs-ev'+(type==='ถ'?' red':'')+'"><div class="gs-r1"><span class="gs-d">'+esc(c[1].textContent.trim())+'</span><span class="gs-s">'+esc(c[2].textContent.trim())+'</span><span class="gs-ch'+(TY[type]?' t'+TY[type]:'')+'">'+esc(type||'-')+'</span><span class="gs-s">คอลัมน์ '+esc(c[3].textContent.trim())+'</span>'+(amt?'<span class="gs-amt">฿ '+esc(amt)+'</span>':'')+'</div><div class="gs-tk">'+old+nw+(via?'<span class="gs-via">พบจากเลขตั๋วใหม่</span>':'')+'</div></div>');
     });
-    var hero='<div class="gs-hero"><div><small>ค้นหา</small><b>'+esc(q)+'</b></div><div><small>พบทั้งหมด</small><b>'+evs.length+' ครั้ง</b></div><div><small>ล่าสุด</small><b>'+esc(dates[0])+'</b></div><div><small>ครั้งแรกที่พบ</small><b>'+esc(dates[dates.length-1])+'</b></div></div>';
+    var hero='<div class="gs-hero"><div><small>ค้นหา</small><b>'+esc(q)+(bq?' / เล่ม '+esc(bq):'')+'</b></div><div><small>พบทั้งหมด</small><b>'+evs.length+' ครั้ง</b></div><div><small>ล่าสุด</small><b>'+esc(dates[0])+'</b></div><div><small>ครั้งแรกที่พบ</small><b>'+esc(dates[dates.length-1])+'</b></div></div>';
     host.innerHTML=hero+'<div class="gs-tl">'+evs.join('')+'</div>';
   }
   new MutationObserver(function(){try{build()}catch(e){console.error('gs-timeline',e)}}).observe(tb,{childList:true});

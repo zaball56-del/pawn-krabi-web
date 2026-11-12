@@ -1991,13 +1991,14 @@
             document.getElementById('global-search-modal').classList.remove('hidden');
             document.getElementById('global-search-modal').style.display = 'flex';
             document.getElementById('global-search-input').focus();
-            document.getElementById('global-search-results').innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-6">กรอกเลขตั๋วแล้วกดปุ่ม "ค้นหา"</td></tr>';
+            document.getElementById('global-search-results').innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-6">กรอกเลขที่ตั๋ว + เล่มที่ แล้วกดปุ่ม "ค้นหา"</td></tr>';
         }
 
         function closeGlobalSearch() {
             document.getElementById('global-search-modal').style.display = 'none';
             document.getElementById('global-search-modal').classList.add('hidden');
             document.getElementById('global-search-input').value = '';
+            { const _b = document.getElementById('global-search-book'); if (_b) _b.value = ''; }
         }
 
         function searchLinkNote(r) {
@@ -2025,6 +2026,7 @@
 
         function executeGlobalSearch() {
             let query = document.getElementById('global-search-input').value.trim().toLowerCase();
+            const bookQ = ((document.getElementById('global-search-book') || {}).value || '').trim().toLowerCase();
             let tbody = document.getElementById('global-search-results');
             
             if (query === '') {
@@ -2045,14 +2047,18 @@
                                 if (row && row.ticket !== undefined && row.ticket !== null) {
                                     let tStr = String(row.ticket).trim().toLowerCase();
                                     const nStr = String(row.newTicket || '').trim().toLowerCase();
-                                    if ((tStr !== '' && tStr.includes(query)) || (nStr !== '' && nStr.includes(query))) {
+                                    const bOld = String(row.book || '').trim().toLowerCase(), bNew = String(row.newBook || '').trim().toLowerCase();
+                                    /* ระบุเล่มที่: ต้องตรงทั้งเลขที่และเล่มที่ (ตั๋วเดิมหรือตั๋วใหม่) */
+                                    const hitOld = tStr !== '' && (bookQ ? (tStr === query && bOld === bookQ) : tStr.includes(query));
+                                    const hitNew = nStr !== '' && (bookQ ? (nStr === query && bNew === bookQ) : nStr.includes(query));
+                                    if (hitOld || hitNew) {
                                         results.push({ 
                                             date: dKey, 
                                             month: m, 
                                             type: row.type || '', 
                                             ticket: row.ticket, 
                                             amount: row.amount || '',
-                                            timestamp: row.timestamp || '-', book: row.book || '', newTicket: row.newTicket || '', newBook: row.newBook || '', newAmount: (row.newAmount === undefined ? '' : row.newAmount), viaNew: !(tStr !== '' && tStr.includes(query))
+                                            timestamp: row.timestamp || '-', book: row.book || '', newTicket: row.newTicket || '', newBook: row.newBook || '', newAmount: (row.newAmount === undefined ? '' : row.newAmount), viaNew: !hitOld
                                         });
                                     }
                                 }
