@@ -19,3 +19,5 @@ holidays.html
 tablelock.html
 ticketpop.html
 printfit.html
+s3tkw.html
+cmptkw.html

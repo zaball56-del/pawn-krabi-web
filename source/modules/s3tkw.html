@@ -1,0 +1,51 @@
+<script id="s3tkw-js">
+(function(){
+  /* ติ๊ก "บัญชีรายวันเขียนตั๋ว" ในหน้านำเข้า สธ.3 → ส่งตั๋วเข้าตารางเขียนตั๋วด้วย (ติ๊กช่องรักษาของออก = ลงเฉพาะเขียนตั๋ว) */
+  function wrap(){
+    if(typeof window.commitPDFImport!=='function'||window.commitPDFImport.__s3) return false;
+    var orig=window.commitPDFImport;
+    var fn=function(){
+      var L=document.getElementById('pdf-dest-ledger'), T=document.getElementById('pdf-dest-tkw');
+      var toL=!L||L.checked, toT=!!(T&&T.checked&&typeof window.tkwImportS3==='function');
+      if(!toL&&!toT){ alert('กรุณาเลือกอย่างน้อย 1 ปลายทาง'); return; }
+      var dk=(document.getElementById('pdf-import-date')||{}).value;
+      if(!dk||!/^\d{4}-\d{2}-\d{2}$/.test(dk)){ return orig.apply(this,arguments); }
+      var ready=(typeof pdfImportReadyRecords!=='undefined'&&pdfImportReadyRecords)||[];
+      var sel=ready.filter(function(r){ return r.selected&&!r.duplicate; });
+      var forT=ready.filter(function(r){ return r.selected||r.reason==='มีเลขตั๋วนี้ในตารางแล้ว'; });
+      var btn=document.getElementById('pdf-import-confirm');
+      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')); }catch(e){} return r; }
+      if(toL&&sel.length){
+        orig.apply(this,arguments);
+        if(toT&&btn&&btn.disabled) doT();   /* ledger สำเร็จ (ปุ่มถูกปิด) จึงส่งต่อให้เขียนตั๋ว */
+        return;
+      }
+      if(toT&&forT.length){
+        if(!window.confirm('ลงตารางเขียนตั๋ว '+forT.length+' รายการ วันที่ '+dk+' ?')) return;
+        var r=doT(); try{ closePDFImportModal(); }catch(e){}
+        return;
+      }
+      return orig.apply(this,arguments);
+    };
+    fn.__s3=1; window.commitPDFImport=fn; return true;
+  }
+  /* ปุ่มยืนยันต้องกดได้ แม้ตั๋วทั้งหมดมีในรักษาของแล้ว ถ้าจะลงเฉพาะเขียนตั๋ว */
+  function sync(){
+    try{
+      var btn=document.getElementById('pdf-import-confirm'), T=document.getElementById('pdf-dest-tkw'), L=document.getElementById('pdf-dest-ledger');
+      var ready=(typeof pdfImportReadyRecords!=='undefined'&&pdfImportReadyRecords)||[]; if(!btn||!ready.length) return;
+      var selL=ready.filter(function(r){ return r.selected&&!r.duplicate; }).length;
+      var forT=ready.filter(function(r){ return r.selected||r.reason==='มีเลขตั๋วนี้ในตารางแล้ว'; }).length;
+      var toL=!L||L.checked, toT=!!(T&&T.checked);
+      btn.disabled=!((toL&&selL>0)||(toT&&forT>0));
+    }catch(e){}
+  }
+  function wrapR(){
+    if(typeof window.renderPDFImportPreview!=='function'||window.renderPDFImportPreview.__s3) return false;
+    var o=window.renderPDFImportPreview; var f=function(){ var r=o.apply(this,arguments); sync(); return r; }; f.__s3=1; window.renderPDFImportPreview=f; return true;
+  }
+  document.addEventListener('change',function(e){ if(e.target&&(e.target.id==='pdf-dest-tkw'||e.target.id==='pdf-dest-ledger')) sync(); });
+  if(!wrapR()){ var m=0,u=setInterval(function(){ if(wrapR()||++m>40) clearInterval(u); },500); }
+  if(!wrap()){ var n=0,t=setInterval(function(){ if(wrap()||++n>40) clearInterval(t); },500); }
+})();
+</script>

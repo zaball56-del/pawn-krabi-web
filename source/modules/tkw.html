@@ -329,6 +329,28 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){}
     if($('tkw-sq-cont').checked) setTimeout(camOpen,500); else ST.focus();
   }
+  /* นำเข้าจาก สธ.3: เลขตั๋ว + เงินต้น + เล่ม ลงคอลัมน์เดือนที่รับจำนำ ไม่ทับแถวที่มี ข้ามเลขตั๋วซ้ำ */
+  window.tkwImportS3=function(k,recs){
+    var d=JSON.parse(JSON.stringify(get(k))), add=0, skip=0;
+    (recs||[]).forEach(function(p){
+      var t=String(p.ticket||'').trim(); if(!t) return;
+      var m=+p.month, b=String(p.book||'').trim(), a=String(p.amount==null?'':p.amount).replace(/,/g,'');
+      var g=d.m.indexOf(m); if(g<0){ d.m.push(m); d.r.push(emptyCol()); g=d.m.length-1; }
+      var col=d.r[g];
+      if(col.some(function(x){ return x[0]===t&&(!b||!x[2]||x[2]===b); })){ skip++; return; }
+      var i=0; while(i<col.length&&(col[i][0]||col[i][1])) i++;
+      while(col.length<=i) col.push(['','']);
+      col[i]=[t,a===''?'':String(num(a)),b,''];
+      add++; });
+    if(add){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){}
+      if(key===k){ day=d; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } }
+    return {added:add,skipped:skip};
+  };
+  /* ใช้โดยหน้าเทียบ สธ.3: อ่านตารางของวัน และแก้ยอดเงินรายตั๋ว */
+  window.tkwReadDay=function(k){ var d=store[k]; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
+  window.tkwSetAmount=function(k,m,t,amt){ var d=JSON.parse(JSON.stringify(get(k))), g=d.m.indexOf(+m); if(g<0) return false; var hit=false;
+    d.r[g].forEach(function(x){ if(String(x[0]).replace(/^0+/,'')===String(t).replace(/^0+/,'')){ x[1]=String(num(amt)); hit=true; } });
+    if(hit){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){} if(key===k){ day=d; if(document.body.classList.contains('tkw-open')) render(); } } return hit; };
   function undoBtn(){ $('tkw-undo').disabled=!undo.length; }
   SM.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ST.focus(); } });
   ST.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); onTk(); if(ST.value.trim()) SA.focus(); } });

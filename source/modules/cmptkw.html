@@ -1,0 +1,62 @@
+<script id="cmptkw-js">
+(function(){
+  /* เทียบก่อนนำเข้า: เลือกเทียบ สธ.3 กับ "บัญชีรายวันเขียนตั๋ว" (ค่าเริ่มต้นยังเป็นรักษาของ) */
+  var MN=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  function $(i){ return document.getElementById(i); }
+  function isT(){ var r=$('cmp-t-tkw'); return !!(r&&r.checked); }
+  function nt(t){ return String(t==null?'':t).trim().replace(/^0+(?=\d)/,''); }
+  function fm(v){ try{ return formatNumber(v); }catch(e){ return String(v); } }
+  function paint(){ var a=$('pdf-cmp-l1'),b=$('pdf-cmp-l2'); if(!a||!b) return; var t=isT();
+    a.style.cssText=a.style.cssText.replace(/border:[^;]+;/,'').replace(/background:[^;]+;/,'')+(t?'border:1px solid #cbd5e1;background:#fff;':'border:2px solid #4f46e5;background:#eef2ff;');
+    b.style.cssText=b.style.cssText.replace(/border:[^;]+;/,'').replace(/background:[^;]+;/,'')+(t?'border:2px solid #4f46e5;background:#eef2ff;':'border:1px solid #cbd5e1;background:#fff;');
+    var n=$('pdf-cmp-note'); if(n) n.textContent=t?'เทียบ สธ.3 กับตารางเขียนตั๋ว · ไม่แก้ข้อมูลให้เอง (มีปุ่มแก้ยอด/เพิ่มตั๋วให้กดทีละใบ)':'เทียบเลขตั๋ว เดือน และเงินต้นของ สธ.3 กับตารางที่เลือกของวันที่ระบุ'; }
+  document.addEventListener('change',function(e){ if(e.target&&e.target.name==='cmpT'){ paint(); try{ $('pdf-compare-summary').classList.add('hidden'); $('pdf-compare-results').classList.add('hidden'); }catch(x){} } });
+
+  function compareTkw(){
+    var dk=$('pdf-compare-date').value; if(!dk){ alert('กรุณาระบุวันที่ประจำวันที่ของรายงานก่อนเปรียบเทียบ'); return; }
+    var recs=pdfCompareRecords||[];
+    var D=window.tkwReadDay&&window.tkwReadDay(dk);
+    if(!D){ $('pdf-compare-status').innerHTML='<span class="text-rose-700 font-bold">ไม่พบข้อมูลในตารางเขียนตั๋วของวันที่ '+escapeHtml(dk)+'</span><div class="mt-1">เปิดหน้าบัญชีรายวันเขียนตั๋วของวันนั้นและคีย์ก่อน หรือเลือกวันที่ให้ตรง</div>'; $('pdf-compare-summary').classList.add('hidden'); $('pdf-compare-results').classList.add('hidden'); return; }
+    var keyed=[]; D.m.forEach(function(m,g){ (D.r[g]||[]).forEach(function(x,i){ var t=nt(x[0]); if(t==='') return; keyed.push({month:+m,monthName:MN[m-1],ticket:t,amount:parseFloat(String(x[1]||'').replace(/,/g,''))||0,book:String(x[2]||''),row:i+1}); }); });
+    var byKeyT=new Map(); keyed.forEach(function(r){ var k=r.month+'|'+r.ticket; if(!byKeyT.has(k)) byKeyT.set(k,[]); byKeyT.get(k).push(r); });
+    var pdfKeys=new Map(); recs.forEach(function(r){ var k=r.month+'|'+nt(r.ticket); pdfKeys.set(k,(pdfKeys.get(k)||0)+1); });
+    var res=[],ok=0,am=0,miss=0,mm=0,ex=0,du=0,used=new Set();
+    recs.forEach(function(p){
+      var t=nt(p.ticket), k=p.month+'|'+t, g=byKeyT.get(k)||[];
+      if(pdfKeys.get(k)>1){ du++; res.push({status:'ข้อมูลซ้ำใน PDF',kind:'error',month:p.month,ticket:p.ticket,book:p.book,amount:p.amount,ledgerAmount:null,detail:'เลขตั๋ว/เดือนนี้ปรากฏใน PDF มากกว่า 1 ครั้ง'}); return; }
+      if(g.length>1){ du++; g.forEach(function(r){ used.add(r.month+'|'+r.ticket+'|'+r.row); }); res.push({status:'ข้อมูลซ้ำในตาราง',kind:'error',month:p.month,ticket:p.ticket,book:p.book,amount:p.amount,ledgerAmount:null,detail:'พบเลขตั๋วนี้ในตารางเขียนตั๋ว '+g.length+' แถว'}); return; }
+      if(g.length===1){ var r=g[0]; used.add(r.month+'|'+r.ticket+'|'+r.row);
+        if(Math.abs(r.amount-p.amount)>0.009){ am++; res.push({status:'ยอดเงินไม่ตรง',kind:'error',month:p.month,ticket:p.ticket,book:p.book,amount:p.amount,ledgerAmount:r.amount,tkw:'amt',detail:'ในตารางเขียนตั๋วแถว '+r.row+' ต่างกัน '+fm(Math.abs(r.amount-p.amount))+' บาท'}); return; }
+        if(r.book&&p.book&&String(+r.book)!==String(+p.book)){ mm++; res.push({status:'เล่มไม่ตรง',kind:'warn',month:p.month,ticket:p.ticket,book:p.book,amount:p.amount,ledgerAmount:r.amount,detail:'ตารางเขียนตั๋วเป็นเล่ม '+r.book+' แต่ สธ.3 เป็นเล่ม '+p.book}); return; }
+        ok++; res.push({status:'ตรงกัน',kind:'ok',month:p.month,ticket:p.ticket,book:p.book,amount:p.amount,ledgerAmount:r.amount,detail:'เลขตั๋ว เดือน และยอดตรงกัน'}); return; }
+      var el=keyed.filter(function(r){ return r.ticket===t; });
+      if(el.length){ mm++; el.forEach(function(r){ used.add(r.month+'|'+r.ticket+'|'+r.row); }); res.push({status:'อาจคีย์ผิดเดือน',kind:'warn',month:p.month,ticket:p.ticket,book:p.book,amount:p.amount,ledgerAmount:el[0].amount,detail:'สธ.3 อยู่เดือน '+MN[p.month-1]+' แต่ในตารางเขียนตั๋วอยู่เดือน '+el.map(function(x){return x.monthName;}).join(', ')}); return; }
+      miss++; res.push({status:'ยังไม่ได้คีย์',kind:'warn',month:p.month,ticket:p.ticket,book:p.book,amount:p.amount,ledgerAmount:null,tkw:'add',detail:'พบใน สธ.3 แต่ยังไม่มีในตารางเขียนตั๋ว'}); });
+    keyed.forEach(function(r){ if(used.has(r.month+'|'+r.ticket+'|'+r.row)||pdfKeys.has(r.month+'|'+r.ticket)) return; ex++;
+      res.push({status:'มีในตารางแต่ไม่พบใน PDF',kind:'warn',month:r.month,ticket:r.ticket,book:'—',amount:0,ledgerAmount:r.amount,detail:'อยู่ในตารางเขียนตั๋วเดือน '+r.monthName+' แถว '+r.row+' แต่ไม่มีใน สธ.3'}); });
+    var pri={'อาจคีย์ผิดเดือน':0,'ยอดเงินไม่ตรง':1,'เล่มไม่ตรง':2,'ข้อมูลซ้ำใน PDF':3,'ข้อมูลซ้ำในตาราง':4,'มีในตารางแต่ไม่พบใน PDF':5,'ยังไม่ได้คีย์':6,'ตรงกัน':8};
+    res.sort(function(a,b){ return (pri[a.status]!=null?pri[a.status]:9)-(pri[b.status]!=null?pri[b.status]:9); });
+    var cards=[['ตรงกัน',ok,'compare-ok'],['ยอดเงินผิด',am,'compare-error'],['ยังไม่ได้คีย์',miss,'compare-warn'],['ผิดเดือน/เล่ม',mm,'compare-warn'],['เกิน/ซ้ำ',ex+du,'compare-warn']];
+    var sm=$('pdf-compare-summary'); sm.innerHTML=cards.map(function(c){ return '<div class="rounded-lg border p-2 '+c[2]+'"><div class="text-[10px]">'+c[0]+'</div><div class="text-xl font-bold">'+c[1]+'</div></div>'; }).join(''); sm.classList.remove('hidden');
+    pdfCompareResultsCache=res; window.__cmpTkwDate=dk; window.__cmpTkwMode=true;
+    $('pdf-compare-filter').value='issues'; $('pdf-compare-results').classList.remove('hidden'); filterPDFCompareResults();
+    $('pdf-compare-status').innerHTML='<span class="font-bold text-violet-800">เปรียบเทียบเสร็จแล้ว (กับตารางเขียนตั๋ว)</span><div>วันที่: '+escapeHtml(dk)+' · สธ.3 '+recs.length+' รายการ · ในตารางเขียนตั๋ว '+keyed.length+' รายการ</div>';
+  }
+
+  function wrapRun(){ if(typeof window.runPDFComparison!=='function'||window.runPDFComparison.__t) return false; var o=window.runPDFComparison;
+    var f=function(){ if(isT()){ if(!(pdfCompareRecords||[]).length) return; return compareTkw(); } window.__cmpTkwMode=false; return o.apply(this,arguments); }; f.__t=1; window.runPDFComparison=f; return true; }
+  function wrapFilter(){ if(typeof window.filterPDFCompareResults!=='function'||window.filterPDFCompareResults.__t) return false; var o=window.filterPDFCompareResults;
+    var f=function(){ var r=o.apply(this,arguments); if(!window.__cmpTkwMode) return r;
+      try{ var mode=($('pdf-compare-filter')||{}).value||'issues';
+        var vis=pdfCompareResultsCache.filter(function(x){ if(mode==='all') return true; if(mode==='monthMismatch') return x.status==='อาจคีย์ผิดเดือน'; if(mode==='ok') return x.kind==='ok'; if(mode==='error') return x.kind==='error'; if(mode==='warn') return x.kind==='warn'; return x.kind!=='ok'; });
+        var trs=$('pdf-compare-tbody').querySelectorAll('tr');
+        vis.forEach(function(x,i){ var tr=trs[i]; if(!tr||!x.tkw) return; var td=tr.lastElementChild; if(!td) return; var d=document.createElement('div'); d.className='mt-2';
+          var b=document.createElement('button'); b.type='button'; b.className='px-2.5 py-1.5 rounded bg-indigo-700 text-white text-[10px] font-bold';
+          if(x.tkw==='add'){ b.textContent='＋ เพิ่มลงตารางเขียนตั๋ว'; b.onclick=function(){ var r=window.tkwImportS3(window.__cmpTkwDate,[{month:x.month,ticket:x.ticket,book:x.book,amount:x.amount}]); b.textContent=r.added?'✓ เพิ่มแล้ว':'มีอยู่แล้ว'; b.disabled=true; }; }
+          else { b.textContent='แก้ยอดเป็น '+fm(x.amount); b.onclick=function(){ var ok=window.tkwSetAmount(window.__cmpTkwDate,x.month,x.ticket,x.amount); b.textContent=ok?'✓ แก้แล้ว':'แก้ไม่ได้'; b.disabled=true; }; }
+          d.appendChild(b); td.appendChild(d); });
+      }catch(e){} return r; }; f.__t=1; window.filterPDFCompareResults=f; return true; }
+  var n=0,t=setInterval(function(){ var a=wrapRun(), b=wrapFilter(); if((a&&b)||++n>40) clearInterval(t); },500);
+  if(typeof window.runPDFComparison==='function') wrapRun(); if(typeof window.filterPDFCompareResults==='function') wrapFilter();
+})();
+</script>
