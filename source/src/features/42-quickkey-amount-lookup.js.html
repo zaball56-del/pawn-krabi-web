@@ -19,7 +19,7 @@
       var r=qsLookupKnownAmount(tk,B.value.trim());
       if(r.status==='ok'){
         if(r.base&&!B.value.trim()){ B.value=r.base.book; }
-        var ME=document.getElementById('qs-month'); if(ME&&(!ME.value||r.monthFallback)){ var mo=r.base?+r.base.month:(r.monthFallback?(['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'].indexOf(String(r.month||'').trim())):0); if(mo>=1&&mo<=12){ ME.value=String(mo); try{qsMonthHint()}catch(e){} } }
+        var ME=document.getElementById('qs-month'); if(ME&&(!ME.value||r.monthFallback)){ var mo=r.base?+r.base.month:((['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'].indexOf(String(r.month||'').trim()))); if(mo>=1&&mo<=12){ ME.value=String(mo); try{qsMonthHint()}catch(e){} } }
         if(editable){ A.value=formatNumber(r.amount); A.classList.add('qs-auto');
           if(r.base){ hint.className='qs-amt-hint'; hint.textContent='ดึงยอดจากทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+') แก้ไขได้'; }
           else {

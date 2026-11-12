@@ -153,7 +153,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   var P=document.getElementById('tkw-page'); if(!P) return;
   var $=function(id){return document.getElementById(id)};
   var store={}, key='', day=null, cur=0, undo=[], wide=window.matchMedia('(min-width:900px)');
-  function load(){ try{ store=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ store={}; } }
+  function load(){ try{ store=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ store={}; } } load();  /* โหลดตั้งแต่เปิดเว็บ เพื่อให้ตารางรักษาของค้นยอดจากตารางเขียนตั๋วได้ แม้ยังไม่เคยเปิดหน้าเขียนตั๋ว */
   function save(){ window.__dv=(window.__dv||0)+1; try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} }
   function pad(n){return (n<10?'0':'')+n}
   function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
@@ -373,7 +373,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   window.tkwClearDay=function(){ snap(); day=blank(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:0; commit(); render(); };
   window.tkwAll=function(){ return Object.keys(store).filter(function(k){ return /^\d{4}-\d\d-\d\d$/.test(k)&&store[k]&&store[k].m&&store[k].r; }).map(function(k){ return {k:k,m:store[k].m.slice(),r:store[k].r}; }); };
   window.tkwKey=function(){ return key; };
-  window.tkwReadDay=function(k){ var d=store[k]; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
+  window.tkwReadDay=function(k){ var d=store[k]; if((!d||!d.r||!d.m)&&k===key&&day&&day.r&&day.m&&hasData(day)) d=day; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
   window.tkwSetAmount=function(k,m,t,amt){ var d=JSON.parse(JSON.stringify(get(k))), g=d.m.indexOf(+m); if(g<0) return false; var hit=false;
     d.r[g].forEach(function(x){ if(String(x[0]).replace(/^0+/,'')===String(t).replace(/^0+/,'')){ x[1]=String(num(amt)); hit=true; } });
     if(hit){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){} if(key===k){ day=d; if(document.body.classList.contains('tkw-open')) render(); } } return hit; };
