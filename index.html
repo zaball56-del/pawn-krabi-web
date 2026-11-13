@@ -9801,5 +9801,63 @@ html #tkw-page .tabs{padding-bottom:8px !important}
 @media print{#m-bar,#tkw-page .bar{display:none !important}}
 </style>
 
+<style id="cpk-css">
+#cpk-modal{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(15,23,42,.55)}
+#cpk-modal.on{display:flex}
+#cpk-modal .cpk-box{width:100%;max-width:420px;max-height:88vh;overflow:auto;border-radius:18px;background:#fff;color:#0f172a;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#cpk-modal .cpk-h{padding:14px 16px;font-weight:800;font-size:16px;background:linear-gradient(90deg,#0891b2,#4f46e5);color:#fff;border-radius:18px 18px 0 0}
+#cpk-modal .cpk-p{padding:10px 16px 0;font-size:12.5px;color:#475569}
+#cpk-modal .cpk-l{padding:10px 16px;display:flex;flex-direction:column;gap:8px}
+#cpk-modal .cpk-r{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:12px}
+#cpk-modal .cpk-r b{flex:1;font-size:14px}#cpk-modal .cpk-r small{display:block;font-weight:400;color:#64748b;font-size:12px}
+#cpk-modal .cpk-r button{padding:8px 12px;border:0;border-radius:10px;font-weight:700;color:#fff;background:linear-gradient(135deg,#22d3ee,#4f46e5);cursor:pointer}
+#cpk-modal .cpk-r button:disabled{background:#cbd5e1;color:#64748b;cursor:default}
+#cpk-modal .cpk-f{padding:10px 16px 14px;text-align:right}
+#cpk-modal .cpk-f button{padding:9px 18px;border:0;border-radius:10px;font-weight:700;background:#e2e8f0;color:#334155;cursor:pointer}
+@media print{#cpk-modal{display:none !important}}
+</style>
+<script id="cpk-js">
+(function(){
+  /* เมนู "เดือน / แถว" → เลื่อนแถวว่างขึ้น: เลือกเดือนเดียว ตั๋วเดือนอื่นไม่ขยับ (ไม่เหมือน "ลบแถวนี้" ที่ตัดแถวเดียวกันทุกเดือน) */
+  function used(r){ return !!(r&&(String(r.type||'').trim()||String(r.ticket||'').trim()||String(r.amount==null?'':r.amount).trim())); }
+  function stat(rows){ var n=0,last=-1; rows.forEach(function(r,i){ if(used(r)){ n++; last=i; } }); return {n:n,gaps:last+1-n}; }
+  function blank(i){ return {type:'',ticket:'',amount:'',count:'',origIdx:i,timestamp:''}; }
+  function compact(day,mn){
+    var rows=day.data&&day.data[mn]; if(!Array.isArray(rows)) return 0; var s=stat(rows); if(!s.gaps) return 0;
+    var keep=rows.filter(used), tail=rows.length-keep.length, out=keep.slice();
+    for(var i=0;i<tail;i++) out.push(blank(0));
+    out.forEach(function(r,i){ r.origIdx=i; }); day.data[mn]=out; return s.gaps;
+  }
+  function locked(){ try{ return window.__isLocked&&window.__isLocked(currentDate); }catch(e){ return false; } }
+  function build(){
+    var m=document.getElementById('cpk-modal'); if(!m){ m=document.createElement('div'); m.id='cpk-modal'; document.body.appendChild(m); m.addEventListener('click',function(e){ if(e.target===m) close(); }); }
+    return m;
+  }
+  function close(){ var m=document.getElementById('cpk-modal'); if(m) m.classList.remove('on'); }
+  function open(){
+    if(locked()){ try{ window.__askUnlock(null,currentDate); }catch(e){} return; }
+    var day=db[currentDate]; if(!day||!day.data){ try{ showToast('ยังไม่มีข้อมูลวันนี้'); }catch(e){} return; }
+    var m=build(); var h='<div class="cpk-box"><div class="cpk-h">เลื่อนแถวว่างขึ้น</div><div class="cpk-p">เลือกเดือนที่ต้องการ ตั๋วของเดือนนั้นจะเลื่อนขึ้นมาเติมช่องว่าง ลำดับเดิมคงเดิม · เดือนอื่นไม่ขยับ · กด “เลิกทำ” ย้อนได้</div><div class="cpk-l">';
+    var any=false;
+    (day.months||[]).forEach(function(mn){ if(!mn||!Array.isArray(day.data[mn])) return; var s=stat(day.data[mn]); any=true;
+      h+='<div class="cpk-r"><b>'+mn+'<small>'+s.n+' ใบ · แถวว่างคั่นกลาง '+s.gaps+' แถว</small></b><button type="button" data-m="'+mn+'"'+(s.gaps?'':' disabled')+'>เลื่อนขึ้น</button></div>'; });
+    if(!any) h+='<div class="cpk-p">ไม่มีคอลัมน์เดือน</div>';
+    h+='</div><div class="cpk-f"><button type="button" id="cpk-x">ปิด</button></div></div>'; m.innerHTML=h; m.classList.add('on');
+    document.getElementById('cpk-x').onclick=close;
+    [].forEach.call(m.querySelectorAll('button[data-m]'),function(b){ b.onclick=function(){
+      var mn=b.getAttribute('data-m'); var g=compact(db[currentDate],mn);
+      if(g){ saveDB(); try{ renderTable(); }catch(e){} try{ showToast('เลื่อนแถวว่างขึ้น '+mn+' แล้ว (ปิดช่องว่าง '+g+' แถว)'); }catch(e){} open(); }
+    }; });
+  }
+  function addItem(){
+    var b=document.querySelector('button.menu-item[onclick*="trimEmptyRows"]'); if(!b||document.getElementById('cpk-item')) return !!document.getElementById('cpk-item');
+    var n=document.createElement('button'); n.className='menu-item'; n.id='cpk-item'; n.type='button'; n.innerHTML='<i class="fa-solid fa-arrow-up-short-wide"></i> เลื่อนแถวว่างขึ้น (เลือกเดือน)'; n.addEventListener('click',function(){ var d=n.closest('details'); if(d) d.open=false; open(); });
+    b.parentNode.insertBefore(n,b.nextSibling); return true;
+  }
+  window.__cpk={open:open,compact:compact,stat:stat};
+  if(!addItem()){ var k=0,t=setInterval(function(){ if(addItem()||++k>40) clearInterval(t); },500); }
+})();
+</script>
+
 </body>
 </html>

@@ -25,3 +25,4 @@ s3move.html
 cmptkw.html
 daydel.html
 dock.html
+compact.html
