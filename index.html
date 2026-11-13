@@ -9480,6 +9480,112 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
 })();
 </script>
 
+<style id="s3mv-css">
+#s3mv-box{margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;font-size:13px}
+#s3mv-box label{display:flex;gap:8px;align-items:flex-start;font-weight:700;cursor:pointer}
+#s3mv-box input{margin-top:3px;width:16px;height:16px}
+#s3mv-box ul{margin:6px 0 0 24px;padding:0;list-style:disc;font-weight:400}
+#s3mv-box .s3mv-w{margin-top:6px;color:#9f1239;font-weight:700}
+</style>
+<script id="s3mv-js">
+(function(){
+  /* นำเข้า สธ.3: ตั๋วที่คีย์มือไว้ผิดเดือนในรักษาของ (เลขตั๋ว+เงินต้นตรง, เล่มไม่ขัด) → ย้ายไปเดือนที่ถูกตามไฟล์ พร้อมประเภท/ตั๋วใหม่ที่กรอกไว้ */
+  var S=null;
+  function num(v){ return Number(String(v==null?'':v).replace(/,/g,''))||0; }
+  function fmt(n){ return Number(n).toLocaleString('en-US'); }
+  function trim(v){ return String(v==null?'':v).trim(); }
+  function nrm(t){ try{ return normalizeCompareTicket(t); }catch(e){ return trim(t); } }
+  function findMoves(dateKey){
+    var out={moves:[],dups:[]}; var day=(typeof db!=='undefined'&&db)?db[dateKey]:null;
+    var ready=(typeof pdfImportReadyRecords!=='undefined'&&pdfImportReadyRecords)||[];
+    if(!day||!day.data||!ready.length) return out;
+    var used={};
+    ready.forEach(function(r){
+      if(r.duplicate&&r.reason!=='มีเลขตั๋วนี้ในตารางแล้ว') return;
+      var tgt=thaiMonths[r.month-1]; var key=nrm(r.ticket); if(!tgt||!key) return;
+      (day.months||[]).some(function(mn){
+        if(!mn||mn===tgt) return false; var rows=day.data[mn]||[];
+        for(var i=0;i<rows.length;i++){
+          var w=rows[i]; if(!w||nrm(w.ticket)!==key||used[mn+'|'+i]) continue;
+          if(num(w.amount)!==num(r.amount)) continue;
+          if(trim(w.book)&&trim(r.book)&&trim(w.book)!==trim(r.book)) continue;
+          used[mn+'|'+i]=1;
+          (r.duplicate?out.dups:out.moves).push({rec:r,from:mn,to:tgt,idx:i,row:w,ticket:trim(r.ticket),amount:num(r.amount)});
+          return true;
+        }
+        return false;
+      });
+    });
+    return out;
+  }
+  function draw(){
+    var old=document.getElementById('s3mv-box'); if(old) old.remove();
+    if(!S||(!S.moves.length&&!S.dups.length)) return;
+    var wrap=document.getElementById('pdf-import-preview-wrap'); if(!wrap||!wrap.parentNode) return;
+    var b=document.createElement('div'); b.id='s3mv-box'; var h='';
+    if(S.moves.length){
+      h+='<label><input type="checkbox" id="s3mv-on" checked><span>พบตั๋วที่คีย์ผิดเดือน '+S.moves.length+' ใบ — ย้ายไปเดือนที่ถูกต้องตอนนำเข้า (เก็บประเภท/ตั๋วใหม่ที่กรอกไว้)</span></label><ul>'+
+        S.moves.map(function(m){ return '<li>'+m.ticket+' ('+fmt(m.amount)+') : '+m.from+' → '+m.to+'</li>'; }).join('')+'</ul>';
+    }
+    if(S.dups.length){
+      h+='<div class="s3mv-w">⚠ ตั๋วซ้ำผิดเดือน '+S.dups.length+' ใบ (มีในเดือนที่ถูกอยู่แล้ว ระบบไม่ลบให้): '+
+        S.dups.map(function(m){ return m.ticket+' ('+m.from+' ควรลบ)'; }).join(', ')+'</div>';
+    }
+    b.innerHTML=h; wrap.parentNode.insertBefore(b,wrap);
+  }
+  function apply(moves,dateKey){
+    var day=db[dateKey]; if(!day) return 0; var n=0;
+    moves.forEach(function(m){
+      var from=day.data[m.from]||[]; var w=from[m.idx]; if(!w||w!==m.row) return;
+      var rows=day.data[m.to]||[]; var key=nrm(m.ticket); var t=null;
+      for(var i=0;i<rows.length;i++){ if(rows[i]&&nrm(rows[i].ticket)===key&&rows[i].importSource==='PDF'){ t=rows[i]; break; } }
+      if(!t) return;
+      Object.keys(w).forEach(function(k){
+        if(k==='ticket'||k==='amount'||k==='count'||k==='origIdx') return;
+        if(t[k]===undefined||t[k]===''||t[k]===null) t[k]=w[k];
+      });
+      from[m.idx]={type:'',ticket:'',amount:'',count:'',origIdx:m.idx,timestamp:''}; n++;
+    });
+    return n;
+  }
+  function wrapPrep(){
+    if(typeof window.preparePDFImport!=='function'||window.preparePDFImport.__mv) return false;
+    var o=window.preparePDFImport;
+    var f=function(){
+      var r=o.apply(this,arguments);
+      try{ var dk=(document.getElementById('pdf-import-date')||{}).value; S=dk?findMoves(dk):null; if(S) S.dateKey=dk; draw(); }catch(e){ S=null; }
+      return r;
+    };
+    f.__mv=1; window.preparePDFImport=f; return true;
+  }
+  function wrapCommit(){
+    if(typeof window.commitPDFImport!=='function'||window.commitPDFImport.__mv) return false;
+    var o=window.commitPDFImport;
+    var f=function(){
+      var cb=document.getElementById('s3mv-on'), L=document.getElementById('pdf-dest-ledger');
+      var dk=(document.getElementById('pdf-import-date')||{}).value;
+      var want=(S&&cb&&cb.checked&&(!L||L.checked)&&dk===S.dateKey)?S.moves.filter(function(m){ return m.rec.selected&&!m.rec.duplicate; }):[];
+      var r=o.apply(this,arguments);
+      try{
+        var btn=document.getElementById('pdf-import-confirm');
+        if(want.length&&btn&&btn.disabled){
+          var n=apply(want,dk);
+          if(n){ if(typeof saveDB==='function') saveDB(); if(dk===currentDate&&typeof renderTable==='function') renderTable();
+            try{ showToast('ย้ายตั๋วที่คีย์ผิดเดือนไปเดือนที่ถูก '+n+' ใบ'); }catch(e){} }
+          S=null; var bx=document.getElementById('s3mv-box'); if(bx) bx.remove();
+        }
+      }catch(e){ console.error('s3move',e); }
+      return r;
+    };
+    f.__mv=1; f.__s3=o.__s3; window.commitPDFImport=f; return true;
+  }
+  window.__s3mv={find:findMoves,apply:apply,state:function(){ return S; }};
+  if(!wrapPrep()){ var a=0,u=setInterval(function(){ if(wrapPrep()||++a>40) clearInterval(u); },500); }
+  /* ห่อหลัง s3tkw เสมอ: รอให้ s3tkw ห่อ commit ก่อน */
+  var b=0,t=setInterval(function(){ var c=window.commitPDFImport; if(c&&c.__s3&&wrapCommit()) clearInterval(t); else if(++b>40){ wrapCommit(); clearInterval(t); } },250);
+})();
+</script>
+
 <script id="cmptkw-js">
 (function(){
   /* เทียบก่อนนำเข้า: เลือกเทียบ สธ.3 กับ "บัญชีรายวันเขียนตั๋ว" (ค่าเริ่มต้นยังเป็นรักษาของ) */

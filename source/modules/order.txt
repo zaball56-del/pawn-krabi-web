@@ -21,6 +21,7 @@ tablelock.html
 ticketpop.html
 printfit.html
 s3tkw.html
+s3move.html
 cmptkw.html
 daydel.html
 dock.html
