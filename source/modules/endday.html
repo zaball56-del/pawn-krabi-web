@@ -24,7 +24,7 @@
 </style>
 <script id="ed-js">
 (function(){
-  /* "ปิดวัน": รายการตรวจก่อนปิดยอด 4 ขั้น (ตรวจความสอดคล้อง · รักษาของ=เขียนตั๋ว · สำรองข้อมูล · ปิดยอดเงินสด) อ่านอย่างเดียว ปุ่มพาไปทำต่อ */
+  /* "ตรวจก่อนจบวัน": รายการตรวจ 3 ขั้น (ตรวจความสอดคล้อง · รักษาของ=เขียนตั๋ว · สำรองข้อมูล) อ่านอย่างเดียว ปุ่มพาไปทำต่อ */
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function fmtDT(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
   function steps(){
@@ -41,29 +41,27 @@
     var lb=null; try{ lb=localStorage.getItem('pawn_krabi_last_backup'); }catch(e){}
     var age=lb?(Date.now()-new Date(lb).getTime())/864e5:null;
     out.push({id:'bk',st:(age!=null&&age<=1.5)?'ok':'warn',t:'สำรองข้อมูล (.json)',d:lb?('สำรองล่าสุด '+fmtDT(lb)+(age>1.5?' · '+Math.floor(age)+' วันก่อน':'')):'ยังไม่เคยสำรองในเครื่องนี้',btn:(age!=null&&age<=1.5)?'':'สำรองตอนนี้',act:function(){ try{ exportJSON(); }catch(e){} setTimeout(open,900); }});
-    var c=null; try{ c=db[currentDate].closing; }catch(e){}
-    out.push({id:'cl',st:(c&&c.closed)?'ok':'info',t:'ปิดยอดเงินสด',d:(c&&c.closed)?('ปิดยอดแล้ว '+(c.closedAt||'')):'ยังไม่ได้นับเงินและปิดยอด',btn:(c&&c.closed)?'ดู/พิมพ์':'ปิดยอด',act:function(){ close(); try{ openDayClose(); }catch(e){} }});
     return out;
   }
   function close(){ var m=document.getElementById('ed-modal'); if(m) m.classList.remove('on'); }
   function open(){
     try{ if(typeof sbClose==='function') sbClose(); }catch(e){}
     var m=document.getElementById('ed-modal'); if(!m){ m=document.createElement('div'); m.id='ed-modal'; document.body.appendChild(m); m.addEventListener('click',function(e){ if(e.target===m) close(); }); }
-    var S=steps(), done=S.filter(function(s){ return s.st==='ok'; }).length, pre=S.slice(0,3), preOk=pre.every(function(s){ return s.st==='ok'; });
+    var S=steps(), done=S.filter(function(s){ return s.st==='ok'; }).length, preOk=(done===S.length);
     var th=''; try{ th=thDate(currentDate); }catch(e){ th=currentDate; }
-    var h='<div class="ed-box"><div class="ed-h"><b>ปิดวัน</b><small>'+esc(th)+' · ตรวจก่อนปิดยอด '+S.length+' ขั้นตอน</small><div class="ed-bar"><i style="width:'+Math.round(done/S.length*100)+'%"></i></div></div><div class="ed-l">';
+    var h='<div class="ed-box"><div class="ed-h"><b>ตรวจก่อนจบวัน</b><small>'+esc(th)+' · ตรวจ '+S.length+' ขั้นตอน</small><div class="ed-bar"><i style="width:'+Math.round(done/S.length*100)+'%"></i></div></div><div class="ed-l">';
     S.forEach(function(s,i){ h+='<div class="ed-r '+s.st+'"><div class="ed-ic">'+(s.st==='ok'?'✓':(s.st==='info'?(i+1):'!'))+'</div><div class="ed-t"><b>'+esc(s.t)+'</b><span>'+esc(s.d)+'</span></div>'+(s.btn?'<button type="button" data-i="'+i+'">'+esc(s.btn)+'</button>':'')+'</div>'; });
-    h+='</div><div class="ed-f"><button type="button" class="ed-go'+(preOk?'':' hold')+'" id="ed-go">'+(preOk?'ไปปิดยอดเงินสด →':'ปิดยอดต่อ (ยังมีข้อที่ควรตรวจ)')+'</button><button type="button" class="ed-x" id="ed-x">ปิดหน้านี้</button></div></div>';
+    h+='</div><div class="ed-f"><button type="button" class="ed-go'+(preOk?'':' hold')+'" id="ed-go">'+(preOk?'เรียบร้อย ✓ จบวันได้':'รับทราบ (ยังมีข้อที่ควรตรวจ)')+'</button><button type="button" class="ed-x" id="ed-x">ปิดหน้านี้</button></div></div>';
     m.innerHTML=h; m.classList.add('on');
     [].forEach.call(m.querySelectorAll('button[data-i]'),function(b){ b.onclick=function(){ var s=S[+b.getAttribute('data-i')]; if(s&&s.act) s.act(); }; });
-    document.getElementById('ed-x').onclick=close; document.getElementById('ed-go').onclick=function(){ close(); try{ openDayClose(); }catch(e){} };
+    document.getElementById('ed-x').onclick=close; document.getElementById('ed-go').onclick=close;
   }
   function addEntries(){
     var ok=true;
-    if(!document.getElementById('ed-side')){ var b=document.querySelector('button.sb-item[onclick*="openDayClose"]');
-      if(b){ var n=b.cloneNode(true); n.id='ed-side'; n.setAttribute('onclick',''); n.removeAttribute('onclick'); n.innerHTML='<span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>ปิดวัน (ตรวจก่อนปิดยอด)</span>'; n.addEventListener('click',open); b.parentNode.insertBefore(n,b); } else ok=false; }
+    if(!document.getElementById('ed-side')){ var b=document.querySelector('button.sb-item[onclick*="openChecks"]');
+      if(b){ var n=b.cloneNode(true); n.id='ed-side'; n.setAttribute('onclick',''); n.removeAttribute('onclick'); n.innerHTML='<span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>ตรวจก่อนจบวัน</span>'; n.addEventListener('click',open); b.parentNode.insertBefore(n,b); } else ok=false; }
     if(!document.getElementById('ed-home')){ var g=document.querySelector('#home-page .hp-grid5');
-      if(g&&g.parentNode){ var hb=document.createElement('button'); hb.type='button'; hb.id='ed-home'; hb.innerHTML='<span style="font-size:22px">✅</span><span>ปิดวัน<small>ตรวจ 4 ขั้นตอนก่อนปิดยอดประจำวัน</small></span>'; hb.addEventListener('click',open); g.parentNode.appendChild(hb); } else ok=false; }
+      if(g&&g.parentNode){ var hb=document.createElement('button'); hb.type='button'; hb.id='ed-home'; hb.innerHTML='<span style="font-size:22px">✅</span><span>ตรวจก่อนจบวัน<small>ตรวจ 3 ขั้นตอนก่อนจบงานประจำวัน</small></span>'; hb.addEventListener('click',open); g.parentNode.appendChild(hb); } else ok=false; }
     return ok;
   }
   window.__endday={open:open,steps:steps};

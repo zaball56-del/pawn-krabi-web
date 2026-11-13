@@ -30,7 +30,7 @@
     el.innerHTML='<div class="ai-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="#0a1020" aria-hidden="true"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></div>'
       +'<div class="ai-b"><div class="ai-t">สรุปอัตโนมัติของวันนี้ · คำนวณในเครื่อง</div><div class="ai-x">'+t+'</div>'
       +'<div class="ai-a">'+(issues?'<button type="button" class="p" onclick="openChecks()">ดูรายการที่พบ</button>':'')
-      +'<button type="button"'+(issues?'':' class="p"')+' onclick="openDayClose()">ปิดยอดวัน / เงินเบิก</button></div></div>';
+      +'</div></div>';
   }
   if(typeof renderHome==='function'){
     var o=renderHome;
