@@ -40,6 +40,18 @@
 #sor2-modal .s2-foot button{border:0;border-radius:10px;padding:9px 18px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
 #sor2-modal .s2-cancel{background:#e2e8f0;color:#334155}#sor2-modal .s2-go{background:linear-gradient(90deg,#4f46e5,#0d9488);color:#fff}#sor2-modal .s2-go:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:760px){#sor2-modal .s2-ctl{grid-template-columns:1fr}#sor2-modal .s2-chips{grid-template-columns:repeat(2,1fr)}#sor2-modal{padding:6px}}
+#s2-alert{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(15,23,42,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);font-family:Sarabun,sans-serif}
+#s2-alert.on{display:flex}
+#s2-alert .al-box{width:100%;max-width:560px;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;background:#fff;color:#1e293b;box-shadow:0 24px 70px rgba(15,23,42,.45)}
+#s2-alert .al-h{padding:14px 18px;background:linear-gradient(135deg,#f59e0b,#dc2626);color:#fff}
+#s2-alert .al-h b{display:block;font-size:17px}#s2-alert .al-h span{font-size:12.5px;opacity:.95}
+#s2-alert .al-b{padding:10px 16px;overflow:auto;display:flex;flex-direction:column;gap:8px;background:#fff7ed}
+#s2-alert .al-i{border:1px solid #fed7aa;border-left:5px solid #ea580c;background:#fff;border-radius:10px;padding:8px 10px;font-size:13px}
+#s2-alert .al-i.nf{border-left-color:#dc2626}#s2-alert .al-i.ex{border-left-color:#7c3aed}
+#s2-alert .al-i b{font-size:14px}#s2-alert .al-i div{color:#9a3412;margin-top:2px}
+#s2-alert .al-f{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #e2e8f0;background:#fff}
+#s2-alert .al-f button{flex:1;border:0;border-radius:12px;padding:12px;font:800 15px Sarabun,sans-serif;background:#e2e8f0;color:#334155}
+#s2-alert .al-f button.pri{background:linear-gradient(135deg,#f59e0b,#ea580c);color:#fff}
 </style>
 <div id="sor2-modal" class="no-print" role="dialog" aria-modal="true" aria-label="นำเข้า สธ.2">
  <div class="s2-box">
@@ -226,7 +238,19 @@
   window.sor2Filter=function(f){S.filter=f;render()};
   window.sor2Fix=function(i,v){S.fix[i]=!!v};
   window.sor2SetSum=function(v){S.setSummary=!!v};
-  window.sor2Reanalyze=function(){ if(!S.parsed) return; var a=analyze(S.parsed,$('s2-date').value); S.res=a.res;S.extra=a.extra;S.fix={};S.setSummary=undefined;render(); };
+  window.sor2Reanalyze=function(){ if(!S.parsed) return; var a=analyze(S.parsed,$('s2-date').value); S.res=a.res;S.extra=a.extra;S.fix={};S.setSummary=undefined;render(); showAlert(); };
+  function showAlert(){
+    var o=$('s2-alert'); if(!o){ o=document.createElement('div'); o.id='s2-alert'; document.body.appendChild(o); }
+    var items=[]; S.res.forEach(function(x,i){ if(x.kind!=='conflict'&&x.kind!=='nofound') return; var r=x.row;
+      items.push('<div class="al-i '+(x.kind==='nofound'?'nf':'')+'"><b>'+(x.kind==='nofound'?'ไม่พบตั๋วเดิม':'ขัดกับบัญชี')+' · ตั๋วเดิม '+esc(r.type)+' '+esc(r.oldT)+' → ตั๋วใหม่ '+esc(r.ticket)+' / '+esc(r.book)+'</b>'+x.msgs.map(function(m){return '<div>'+esc(m)+'</div>'}).join('')+'</div>'); });
+    S.extra.forEach(function(e){ items.push('<div class="al-i ex"><b>ตั๋วใหม่ในบัญชีไม่อยู่ใน สธ.2 · '+esc(e.tk)+(e.book?' / '+esc(e.book):'')+'</b><div>ผูกกับตั๋วเดิม '+esc(e.type||'')+' '+esc(e.old)+' ('+esc(e.mn)+') ลองตรวจว่ากรอกเลขตั๋วใหม่ผิดหรือไม่</div></div>'); });
+    if(!items.length){ o.classList.remove('on'); return 0; }
+    o.innerHTML='<div class="al-box" role="alertdialog" aria-modal="true"><div class="al-h"><b>⚠ พบรายการที่ไม่ตรงกับบัญชี '+items.length+' รายการ</b><span>ตรวจกับตั๋วจริงก่อนกดยืนยันนำเข้า สธ.2 (รายการเหล่านี้จะไม่ถูกบันทึกจนกว่าคุณจะติ๊กแก้เอง)</span></div><div class="al-b">'+items.join('')+'</div><div class="al-f"><button type="button" class="pri" id="s2-al-go">ดูเฉพาะรายการเตือน</button><button type="button" id="s2-al-x">ปิด</button></div></div>';
+    o.classList.add('on');
+    $('s2-al-go').onclick=function(){ o.classList.remove('on'); S.filter='warn'; render(); };
+    $('s2-al-x').onclick=function(){ o.classList.remove('on'); };
+    return items.length;
+  }
   window.sor2Read=async function(ev){
     var f=ev.target.files&&ev.target.files[0]; if(!f) return; S.file=f.name; S.parsed=null; $('s2-go').disabled=true; $('s2-main').style.display='none';
     $('s2-st').textContent='กำลังอ่าน PDF...';
@@ -238,6 +262,7 @@
       var a=analyze(P,$('s2-date').value); S.res=a.res;S.extra=a.extra;S.fix={};S.filter='all';S.setSummary=undefined;
       $('s2-st').innerHTML='<b style="color:#047857">อ่านสำเร็จ '+P.rows.length+' รายการ</b> · ไฟล์ '+esc(f.name)+(P.date?' · ประจำวันที่ '+esc(P.date):' · ไม่พบวันที่ในหัวรายงาน กรุณาเลือกวันที่เอง')+(P.goldBuy?' · ทองซื้อ '+fmt(P.goldBuy)+' ขาย '+fmt(P.goldSell):'')+((!P.rows.some(function(r){return r.oldT})&&window.__s2dbg)?'<div style="margin-top:6px;color:#b91c1c;font-size:12px;word-break:break-all">⚠ อ่านตั๋วเดิมไม่ได้ · ข้อมูลตรวจสอบ: '+esc(window.__s2dbg)+'</div>':'');
       $('s2-main').style.display='flex'; render();
+      showAlert();
     }catch(e){ console.error(e); $('s2-st').innerHTML='<b style="color:#b91c1c">อ่าน PDF ไม่สำเร็จ</b> '+esc(e.message||e); }
   };
   window.sor2Commit=function(){
@@ -273,7 +298,7 @@
     try{ showToast('นำเข้า สธ.2 แล้ว '+n+' ราย'+(tN?' · เติม ถ '+tN+' แถว':'')); }catch(e){}
     closeSor2Modal();
   };
-  window.__sor2={parse:parse,analyze:analyze,dec:dec};
+  window.__sor2={parse:parse,analyze:analyze,dec:dec,test:function(P,dk){ S.parsed=P; $('s2-date').value=dk; var a=analyze(P,dk); S.res=a.res;S.extra=a.extra;S.fix={};S.filter='all';S.setSummary=undefined; render(); return showAlert(); }};
   function enable(){
     [].slice.call(document.querySelectorAll('button[disabled]')).forEach(function(b){
       if(!/นำเข้า สธ\.2/.test(b.textContent)) return;
