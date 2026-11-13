@@ -5691,6 +5691,18 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     if(tk&&!String(r.book||'').trim()) nb.push('['+m+'] ตั๋ว '+tk+' ไม่มีเล่มที่');
                     if(nt){ if(!String(r.newBook||'').trim()) nb.push('['+m+'] ตั๋วใหม่ '+nt+' ไม่มีเล่มที่'); if(num(r.newAmount)===0) nn.push('['+m+'] ตั๋วใหม่ '+nt+' ไม่มียอดเงิน');
                         var nk=normT(r.newBook)+'|'+normT(nt); (nd[nk]=nd[nk]||[]).push(m); } }); });
+                /* ตรวจเพิ่ม (v3): ตั๋วเดียวกัน (เลข+เงินต้น+เล่มไม่ขัด) อยู่ผิดเดือนซ้ำกัน เช่น คีย์มือผิดเดือนแล้วนำเข้า สธ.3 เติมอีกแถวที่เดือนถูก */
+                try{ var _all=[]; (d.months||[]).forEach(function(m){ if(!m||m==='สรุปประจำวัน') return; (d.data[m]||[]).forEach(function(r,i){ if(r&&String(r.ticket||'').trim()) _all.push({m:m,i:i,t:String(r.ticket).trim(),a:num(r.amount),b:String(r.book||r.importBook||'').trim()}); }); });
+                    var _dp={}, _out=[]; _all.forEach(function(x,xi){ _all.forEach(function(y,yi){ if(yi<=xi||x.m===y.m||normT(x.t)!==normT(y.t)||x.a!==y.a) return; if(x.b&&y.b&&normT(x.b)!==normT(y.b)) return; var kk=normT(x.t)+'|'+x.a; if(_dp[kk]) return; _dp[kk]=1; _out.push('ตั๋ว '+x.t+' ('+fmt(x.a)+') อยู่ทั้ง '+x.m+' แถว '+(x.i+1)+' และ '+y.m+' แถว '+(y.i+1)); }); });
+                    if(_out.length) F.push({sev:'warn',date:k,t:'ตั๋วเดียวกันซ้ำคนละเดือน ('+_out.length+' ใบ) — น่าจะคีย์ผิดเดือน',x:_out.slice(0,4).join(' · ')+(_out.length>4?' …':'')+' · ลบแถวที่ผิดเดือน แล้วใช้ "เลื่อนแถวว่างขึ้น" ปิดช่องว่าง'});
+                    /* ตรวจเพิ่ม (v3): รักษาของ เทียบ ตารางเขียนตั๋ว ของวันเดียวกัน (เฉพาะเมื่อมีตั๋วในตารางเขียนตั๋วแล้ว) */
+                    var _tk=(JSON.parse(localStorage.getItem('pawn_tkw_v1')||'{}')||{})[k], _T=[];
+                    if(_tk&&_tk.r) _tk.r.forEach(function(col){ (col||[]).forEach(function(x){ if(x&&String(x[0]==null?'':x[0]).trim()) _T.push({t:String(x[0]).trim(),a:num(x[1])}); }); });
+                    if(_T.length&&_all.length){ var _cnt=function(arr){ var o={}; arr.forEach(function(x){ var q=normT(x.t)+'|'+x.a; o[q]=(o[q]||0)+1; }); return o; }, _lc=_cnt(_all), _tc=_cnt(_T), _onlyL=[], _onlyT=[];
+                        Object.keys(_lc).forEach(function(q){ var d1=_lc[q]-(_tc[q]||0); for(var z=0;z<d1;z++) _onlyL.push(q.split('|')[0]+' ('+fmt(+q.split('|')[1])+')'); });
+                        Object.keys(_tc).forEach(function(q){ var d2=_tc[q]-(_lc[q]||0); for(var z=0;z<d2;z++) _onlyT.push(q.split('|')[0]+' ('+fmt(+q.split('|')[1])+')'); });
+                        if(_onlyL.length||_onlyT.length) F.push({sev:'warn',date:k,t:'รักษาของไม่ตรงกับตารางเขียนตั๋ว (รักษาของ '+_all.length+' ใบ · เขียนตั๋ว '+_T.length+' ใบ)',x:(_onlyL.length?'มีเฉพาะรักษาของ: '+_onlyL.slice(0,4).join(', ')+(_onlyL.length>4?' …':''):'')+(_onlyL.length&&_onlyT.length?' · ':'')+(_onlyT.length?'มีเฉพาะเขียนตั๋ว: '+_onlyT.slice(0,4).join(', ')+(_onlyT.length>4?' …':''):'')}); }
+                }catch(e){ console.error('ck-v3',e); }
                 if(nb.length) F.push({sev:'warn',date:k,t:'ไม่มีเล่มที่ ('+nb.length+' แถว)',x:nb.slice(0,4).join(' · ')+(nb.length>4?' …':''),clr:'bk'});
                 if(nn.length) F.push({sev:'warn',date:k,t:'ตั๋วใหม่ไม่มียอดเงิน ('+nn.length+' แถว)',x:nn.slice(0,4).join(' · ')+(nn.length>4?' …':'')});
                 Object.keys(nd).forEach(function(q){ if(nd[q].length>1){ var pr=q.split('|'); F.push({sev:'warn',date:k,t:'ตั๋วใหม่ซ้ำ: เล่ม '+(pr[0]||'-')+' เลข '+pr[1]+' ('+nd[q].length+' แถว)',x:'ตั๋วใหม่หมายเลขเดียวกันถูกบันทึกมากกว่า 1 แถวในวันนี้'}); } });
