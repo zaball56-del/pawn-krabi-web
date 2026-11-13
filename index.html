@@ -8122,6 +8122,24 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   new MutationObserver(paint).observe(ov,{attributes:true,attributeFilter:['class']});
   ty.addEventListener('change',paint); paint();
 }catch(e){ try{console.error(e)}catch(_){} } })();
+/* เลือกเดือนในหน้ากล้องสแกน (เหมือนปุ่มประเภท ส พ ผ ถ) — ตั้งค่าช่องเดือนของคีย์ด่วนตัวเดิม */
+(function(){ try{
+  var ov=document.getElementById('cam-ov'), mon=document.getElementById('qs-month'); if(!ov||!mon||document.getElementById('cam-months')) return;
+  var AB=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var st=document.createElement('style'); st.textContent='#cam-ov .cam-bot .cam-mo{display:flex;gap:8px;align-items:center}#cam-ov .cam-bot .cam-mo>span{font:700 13px Sarabun,sans-serif;color:#94a3b8;white-space:nowrap}#cam-ov .cam-bot .cam-mo .cam-mw{flex:1;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 0}#cam-ov .cam-bot .cam-mo .cam-mw::-webkit-scrollbar{display:none}#cam-ov .cam-bot .cam-mo button{flex:none;height:38px;min-width:54px;padding:0 10px;border-radius:12px;font:700 14px Sarabun,sans-serif;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.28);box-shadow:none;color:#e2e8f0}#cam-ov .cam-bot .cam-mo button.on{background:linear-gradient(135deg,#fbbf24,#f97316);border-color:#fbbf24;color:#fff}#cam-ov.tkw-cam #cam-months{display:none !important}'; document.head.appendChild(st);
+  var row=document.createElement('div'); row.id='cam-months'; row.className='cam-mo'; row.innerHTML='<span>เดือน</span><div class="cam-mw"></div>';
+  var wrap=row.querySelector('.cam-mw');
+  AB.forEach(function(t,i){ var b=document.createElement('button'); b.type='button'; b.textContent=t; b.dataset.m=String(i+1);
+    b.addEventListener('click',function(){ mon.value=String(i+1); try{ mon.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} paint(); try{navigator.vibrate&&navigator.vibrate(10)}catch(e){} });
+    wrap.appendChild(b); });
+  function paint(){ var n=parseInt(mon.value,10)||0, on=null; wrap.querySelectorAll('button').forEach(function(b){ var a=(+b.dataset.m===n); b.classList.toggle('on',a); if(a) on=b; });
+    if(on&&ov.classList.contains('on')){ try{ var l=on.offsetLeft-wrap.clientWidth/2+on.offsetWidth/2; if(Math.abs(wrap.scrollLeft-l)>8) wrap.scrollLeft=l; }catch(e){} } }
+  var tp=document.getElementById('cam-types'), bot=ov.querySelector('.cam-bot');
+  if(bot){ if(tp&&tp.parentNode===bot) bot.insertBefore(row,tp.nextSibling); else bot.insertBefore(row,bot.firstChild); }
+  var tm=null; function watch(){ clearInterval(tm); if(ov.classList.contains('on')){ paint(); tm=setInterval(paint,400); } }
+  new MutationObserver(watch).observe(ov,{attributes:true,attributeFilter:['class']});
+  mon.addEventListener('input',paint); mon.addEventListener('change',paint); paint();
+}catch(e){ try{console.error(e)}catch(_){} } })();
 </script>
 
 <script id="ig-js">
