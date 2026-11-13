@@ -1,0 +1,73 @@
+<style id="ed-css">
+#ed-modal{position:fixed;inset:0;z-index:85;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(8,12,28,.62);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#ed-modal.on{display:flex}
+#ed-modal .ed-box{width:100%;max-width:460px;max-height:92vh;overflow:auto;border-radius:22px;background:#fff;color:#0f172a;box-shadow:0 24px 70px rgba(0,0,0,.45);font-family:Sarabun,sans-serif}
+#ed-modal .ed-h{padding:18px 18px 14px;color:#fff;border-radius:22px 22px 0 0;background:linear-gradient(135deg,#0ea5e9,#6366f1 60%,#8b5cf6)}
+#ed-modal .ed-h b{display:block;font-size:19px;font-weight:800}
+#ed-modal .ed-h small{display:block;margin-top:2px;opacity:.9;font-size:12.5px}
+#ed-modal .ed-bar{margin-top:12px;height:8px;border-radius:99px;background:rgba(255,255,255,.28);overflow:hidden}
+#ed-modal .ed-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#a7f3d0,#fff);transition:width .35s}
+#ed-modal .ed-l{padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+#ed-modal .ed-r{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:16px;border:1.5px solid #e2e8f0;background:#f8fafc}
+#ed-modal .ed-r.ok{border-color:#86efac;background:#f0fdf4}#ed-modal .ed-r.warn{border-color:#fcd34d;background:#fffbeb}#ed-modal .ed-r.bad{border-color:#fca5a5;background:#fef2f2}
+#ed-modal .ed-ic{flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff;background:#94a3b8}
+#ed-modal .ok .ed-ic{background:linear-gradient(135deg,#34d399,#059669)}#ed-modal .warn .ed-ic{background:linear-gradient(135deg,#fbbf24,#d97706)}#ed-modal .bad .ed-ic{background:linear-gradient(135deg,#fb7185,#e11d48)}
+#ed-modal .ed-t{flex:1;min-width:0}#ed-modal .ed-t b{display:block;font-size:14.5px}#ed-modal .ed-t span{display:block;font-size:12.5px;color:#475569;margin-top:1px;overflow-wrap:anywhere}
+#ed-modal .ed-r button{flex:none;border:0;border-radius:11px;padding:8px 11px;font:700 12.5px Sarabun,sans-serif;color:#fff;background:linear-gradient(135deg,#6366f1,#4338ca);cursor:pointer;box-shadow:0 4px 10px rgba(67,56,202,.3)}
+#ed-modal .ed-f{padding:4px 14px 16px;display:flex;flex-direction:column;gap:8px}
+#ed-modal .ed-go{border:0;border-radius:16px;padding:14px;font:800 16px Sarabun,sans-serif;color:#fff;cursor:pointer;background:linear-gradient(135deg,#34d399,#059669);box-shadow:0 8px 18px rgba(5,150,105,.35)}
+#ed-modal .ed-go.hold{background:linear-gradient(135deg,#fbbf24,#ea580c);box-shadow:0 8px 18px rgba(234,88,12,.35)}
+#ed-modal .ed-x{border:0;background:transparent;color:#64748b;font:600 13px Sarabun,sans-serif;padding:6px;cursor:pointer}
+#ed-home{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:13px 14px;border:0;border-radius:16px;color:#fff;text-align:left;cursor:pointer;font:800 15px Sarabun,sans-serif;background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 8px 18px rgba(99,102,241,.35)}
+#ed-home small{display:block;font-weight:400;font-size:12px;opacity:.9}
+@media print{#ed-modal,#ed-home{display:none !important}}
+</style>
+<script id="ed-js">
+(function(){
+  /* "ปิดวัน": รายการตรวจก่อนปิดยอด 4 ขั้น (ตรวจความสอดคล้อง · รักษาของ=เขียนตั๋ว · สำรองข้อมูล · ปิดยอดเงินสด) อ่านอย่างเดียว ปุ่มพาไปทำต่อ */
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function fmtDT(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+  function steps(){
+    var out=[], F=[]; try{ F=(window.__ckList&&window.__ckList())||[]; }catch(e){}
+    var nbad=F.filter(function(x){ return x.sev==='bad'; }).length;
+    out.push({id:'ck',st:F.length?(nbad?'bad':'warn'):'ok',t:'ตรวจความสอดคล้องของข้อมูล',
+      d:F.length?('พบ '+F.length+' รายการที่ควรตรวจสอบ'+(F[0]?' · '+F[0].t:'')):'ไม่พบรายการผิดปกติ',btn:F.length?'ดูรายการ':'',act:function(){ close(); try{ openChecks(); }catch(e){} }});
+    var tn=0; try{ var tk=(JSON.parse(localStorage.getItem('pawn_tkw_v1')||'{}')||{})[currentDate]; if(tk&&tk.r) tk.r.forEach(function(c){ (c||[]).forEach(function(x){ if(x&&String(x[0]==null?'':x[0]).trim()) tn++; }); }); }catch(e){}
+    var ln=0; try{ var dd=db[currentDate]; (dd.months||[]).forEach(function(m){ if(!m||m==='สรุปประจำวัน') return; (dd.data[m]||[]).forEach(function(r){ if(r&&String(r.ticket||'').trim()) ln++; }); }); }catch(e){}
+    var mis=F.filter(function(x){ return /^รักษาของไม่ตรงกับตารางเขียนตั๋ว/.test(x.t)||/^ตั๋วเดียวกันซ้ำคนละเดือน/.test(x.t); });
+    if(!tn&&ln) out.push({id:'tk',st:'warn',t:'รักษาของ = ตารางเขียนตั๋ว',d:'ยังไม่มีตั๋วในตารางเขียนตั๋วของวันนี้ (รักษาของ '+ln+' ใบ)',btn:'เปิดตารางเขียนตั๋ว',act:function(){ close(); try{ tkwOpen(); }catch(e){} }});
+    else if(mis.length) out.push({id:'tk',st:'warn',t:'รักษาของ = ตารางเขียนตั๋ว',d:mis[0].t+(mis[0].x?' · '+mis[0].x:''),btn:'ดูรายการ',act:function(){ close(); try{ openChecks(); }catch(e){} }});
+    else out.push({id:'tk',st:'ok',t:'รักษาของ = ตารางเขียนตั๋ว',d:ln?('ตรงกันทั้ง '+ln+' ใบ'):'วันนี้ยังไม่มีตั๋ว',btn:'',act:null});
+    var lb=null; try{ lb=localStorage.getItem('pawn_krabi_last_backup'); }catch(e){}
+    var age=lb?(Date.now()-new Date(lb).getTime())/864e5:null;
+    out.push({id:'bk',st:(age!=null&&age<=1.5)?'ok':'warn',t:'สำรองข้อมูล (.json)',d:lb?('สำรองล่าสุด '+fmtDT(lb)+(age>1.5?' · '+Math.floor(age)+' วันก่อน':'')):'ยังไม่เคยสำรองในเครื่องนี้',btn:(age!=null&&age<=1.5)?'':'สำรองตอนนี้',act:function(){ try{ exportJSON(); }catch(e){} setTimeout(open,900); }});
+    var c=null; try{ c=db[currentDate].closing; }catch(e){}
+    out.push({id:'cl',st:(c&&c.closed)?'ok':'info',t:'ปิดยอดเงินสด',d:(c&&c.closed)?('ปิดยอดแล้ว '+(c.closedAt||'')):'ยังไม่ได้นับเงินและปิดยอด',btn:(c&&c.closed)?'ดู/พิมพ์':'ปิดยอด',act:function(){ close(); try{ openDayClose(); }catch(e){} }});
+    return out;
+  }
+  function close(){ var m=document.getElementById('ed-modal'); if(m) m.classList.remove('on'); }
+  function open(){
+    try{ if(typeof sbClose==='function') sbClose(); }catch(e){}
+    var m=document.getElementById('ed-modal'); if(!m){ m=document.createElement('div'); m.id='ed-modal'; document.body.appendChild(m); m.addEventListener('click',function(e){ if(e.target===m) close(); }); }
+    var S=steps(), done=S.filter(function(s){ return s.st==='ok'; }).length, pre=S.slice(0,3), preOk=pre.every(function(s){ return s.st==='ok'; });
+    var th=''; try{ th=thDate(currentDate); }catch(e){ th=currentDate; }
+    var h='<div class="ed-box"><div class="ed-h"><b>ปิดวัน</b><small>'+esc(th)+' · ตรวจก่อนปิดยอด '+S.length+' ขั้นตอน</small><div class="ed-bar"><i style="width:'+Math.round(done/S.length*100)+'%"></i></div></div><div class="ed-l">';
+    S.forEach(function(s,i){ h+='<div class="ed-r '+s.st+'"><div class="ed-ic">'+(s.st==='ok'?'✓':(s.st==='info'?(i+1):'!'))+'</div><div class="ed-t"><b>'+esc(s.t)+'</b><span>'+esc(s.d)+'</span></div>'+(s.btn?'<button type="button" data-i="'+i+'">'+esc(s.btn)+'</button>':'')+'</div>'; });
+    h+='</div><div class="ed-f"><button type="button" class="ed-go'+(preOk?'':' hold')+'" id="ed-go">'+(preOk?'ไปปิดยอดเงินสด →':'ปิดยอดต่อ (ยังมีข้อที่ควรตรวจ)')+'</button><button type="button" class="ed-x" id="ed-x">ปิดหน้านี้</button></div></div>';
+    m.innerHTML=h; m.classList.add('on');
+    [].forEach.call(m.querySelectorAll('button[data-i]'),function(b){ b.onclick=function(){ var s=S[+b.getAttribute('data-i')]; if(s&&s.act) s.act(); }; });
+    document.getElementById('ed-x').onclick=close; document.getElementById('ed-go').onclick=function(){ close(); try{ openDayClose(); }catch(e){} };
+  }
+  function addEntries(){
+    var ok=true;
+    if(!document.getElementById('ed-side')){ var b=document.querySelector('button.sb-item[onclick*="openDayClose"]');
+      if(b){ var n=b.cloneNode(true); n.id='ed-side'; n.setAttribute('onclick',''); n.removeAttribute('onclick'); n.innerHTML='<span class="sb-ic" style="--c:#34D399"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>ปิดวัน (ตรวจก่อนปิดยอด)</span>'; n.addEventListener('click',open); b.parentNode.insertBefore(n,b); } else ok=false; }
+    if(!document.getElementById('ed-home')){ var g=document.querySelector('#home-page .hp-grid5');
+      if(g&&g.parentNode){ var hb=document.createElement('button'); hb.type='button'; hb.id='ed-home'; hb.innerHTML='<span style="font-size:22px">✅</span><span>ปิดวัน<small>ตรวจ 4 ขั้นตอนก่อนปิดยอดประจำวัน</small></span>'; hb.addEventListener('click',open); g.parentNode.appendChild(hb); } else ok=false; }
+    return ok;
+  }
+  window.__endday={open:open,steps:steps};
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+  var k=0,t=setInterval(function(){ if(addEntries()||++k>40) clearInterval(t); },500);
+})();
+</script>

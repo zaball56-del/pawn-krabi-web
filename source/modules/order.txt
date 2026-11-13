@@ -26,3 +26,4 @@ cmptkw.html
 daydel.html
 dock.html
 compact.html
+endday.html

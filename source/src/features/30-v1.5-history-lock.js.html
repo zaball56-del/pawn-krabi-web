@@ -186,6 +186,7 @@
         var n=lastF.length, bad=lastF.some(function(x){ return x.sev==='bad'; });
         var bd=document.getElementById('ck-badge'); if(bd){ bd.textContent=n; bd.style.display=n?'inline-block':'none'; bd.style.background=bad?'#DC2626':'#F59E0B'; }
         var bar=document.getElementById('ck-bar'); if(bar){ bar.style.display=n?'flex':'none'; bar.className=bad?'bad':''; var tx=bar.querySelector('span'); if(tx) tx.textContent=(bad?'⛔ ':'⚠ ')+'พบ '+n+' รายการที่ควรตรวจสอบ'+(bad?' (มีรายการผิดปกติร้ายแรง)':''); } }
+    window.__ckList=function(){ try{ setBadge(); }catch(e){} return lastF.slice(); };
     var ckT=null; window.__ckSoon=function(){ clearTimeout(ckT); ckT=setTimeout(setBadge,1500); };
     function ensureBar(){ if(document.getElementById('ck-bar')) return; var g=document.querySelector('#home-page .hp-grid4'); if(!g) return; var b=document.createElement('div'); b.id='ck-bar'; b.innerHTML='<span></span><button type="button" onclick="openChecks()">ดูรายละเอียด</button>'; g.parentNode.insertBefore(b,g); }
     if(typeof renderHome==='function'){ var oRH=renderHome; renderHome=function(){ var r=oRH.apply(this,arguments); try{ ensureBar(); setBadge(); }catch(e){} return r; }; }
