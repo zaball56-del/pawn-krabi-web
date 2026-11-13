@@ -23,3 +23,4 @@ printfit.html
 s3tkw.html
 cmptkw.html
 daydel.html
+dock.html
