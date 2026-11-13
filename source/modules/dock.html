@@ -36,5 +36,32 @@ html body.app-shell:not(.page-home) #save-indicator{bottom:88px !important}
 html body.app-shell:not(.page-home) #toast{bottom:92px !important}
 @media (min-width:900px){#tkw-page .bar{left:max(10px,calc(50% - 310px)) !important;right:max(10px,calc(50% - 310px)) !important}}
 @media (max-width:640px){html body.app-shell:not(.page-home) #ledger-page{padding-bottom:96px}}
+/* ปุ่มสีสดไล่สี + เงาเรือง (แบบ D) — หน้าเขียนตั๋ว และหน้าบัญชีแยกประเภทบนมือถือ */
+html body #tkw-page .dt{background:rgba(255,255,255,.05) !important;border:0 !important;box-shadow:none !important}
+html body #tkw-page .dt button{background:linear-gradient(135deg,#818cf8,#6366f1) !important;color:#fff !important;border:0 !important;border-radius:16px !important;box-shadow:0 6px 14px rgba(99,102,241,.55) !important;transition:transform .1s,box-shadow .1s}
+html body #tkw-page .dt .td{background:linear-gradient(135deg,#34d399,#10b981) !important;box-shadow:0 6px 14px rgba(16,185,129,.55) !important}
+html body #tkw-page .dt input{box-shadow:inset 0 2px 5px rgba(0,0,0,.35) !important}
+html body #tkw-page .thd .mb{border:0 !important;color:#fff !important;border-radius:16px !important;box-shadow:0 6px 14px rgba(2,6,23,.4) !important;-webkit-backdrop-filter:none;backdrop-filter:none;background:linear-gradient(135deg,#64748b,#475569) !important;transition:transform .1s,box-shadow .1s}
+html body #tkw-page #tkw-addcol{background:linear-gradient(135deg,#a78bfa,#7c3aed) !important;box-shadow:0 6px 14px rgba(124,58,237,.55) !important}
+html body #tkw-page #tkw-delday{background:linear-gradient(135deg,#fb7185,#e11d48) !important;box-shadow:0 6px 14px rgba(225,29,72,.5) !important;color:#fff !important}
+html body #tkw-page .t{background:linear-gradient(135deg,#334155,#1e293b) !important;color:#cbd5e1 !important;border:0 !important;box-shadow:0 4px 10px rgba(2,6,23,.4) !important;transition:transform .1s,box-shadow .1s}
+html body #tkw-page .t.on{background:linear-gradient(135deg,#f59e0b,#ea580c) !important;color:#fff !important;box-shadow:0 6px 14px rgba(234,88,12,.55) !important}
+html body #tkw-page .t em{background:linear-gradient(180deg,#fcd34d,#f59e0b);box-shadow:0 2px 5px rgba(0,0,0,.35)}
+html body #tkw-page .dt button:active,html body #tkw-page .thd .mb:active,html body #tkw-page .t:active{transform:scale(.95);filter:brightness(1.1)}
+html body #tkw-page .thd .mb:disabled{opacity:.4;box-shadow:none !important}
+html #tkw-page .tabs{padding-bottom:8px !important}
+@media (max-width:640px){
+ html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child{background:rgba(255,255,255,.05) !important;border:0 !important;box-shadow:none !important}
+ html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child > button{background:linear-gradient(135deg,#818cf8,#6366f1) !important;color:#fff !important;border:0 !important;border-radius:16px !important;box-shadow:0 6px 14px rgba(99,102,241,.55) !important;transition:transform .1s}
+ html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child > button[onclick*="goToday"]{background:linear-gradient(135deg,#34d399,#10b981) !important;box-shadow:0 6px 14px rgba(16,185,129,.55) !important;font-weight:800}
+ html body.app-shell:not(.page-home) #ledger-page #doc-date{box-shadow:inset 0 2px 5px rgba(0,0,0,.35) !important}
+ html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > #ledger-delday{background:linear-gradient(135deg,#fb7185,#e11d48) !important;color:#fff !important;border:0 !important;border-radius:16px !important;box-shadow:0 6px 14px rgba(225,29,72,.5) !important}
+ html body.app-shell:not(.page-home) #ledger-page #m-tabs button{background:linear-gradient(135deg,#334155,#1e293b) !important;color:#cbd5e1 !important;box-shadow:0 4px 10px rgba(2,6,23,.4);transition:transform .1s}
+ html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on{background:linear-gradient(135deg,#f59e0b,#ea580c) !important;color:#fff !important;box-shadow:0 6px 14px rgba(234,88,12,.55)}
+ html body.app-shell:not(.page-home) #ledger-page #m-tabs{padding-bottom:12px !important}
+ html body.app-shell:not(.page-home) #ledger-page #m-sum button{border-radius:14px;box-shadow:0 6px 14px rgba(2,6,23,.3),inset 0 1px 0 rgba(255,255,255,.1)}
+ html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child button:active,html body.app-shell:not(.page-home) #ledger-page #m-tabs button:active{transform:scale(.95);filter:brightness(1.1)}
+}
+@media print{#tkw-page .dt,#tkw-page .t,#tkw-page .mb{box-shadow:none !important}}
 @media print{#m-bar,#tkw-page .bar{display:none !important}}
 </style>
