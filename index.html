@@ -8451,7 +8451,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div class="top"><h1>บัญชีรายวันเขียนตั๋ว<small id="tkw-cloud" class="cloud"></small></h1><button type="button" class="x" id="tkw-x" aria-label="ปิด">✕</button></div>
   <div class="dt"><button type="button" id="tkw-prev">‹</button><input type="date" id="tkw-date"><button type="button" id="tkw-next">›</button><button type="button" class="td" id="tkw-today">วันนี้</button></div>
   <div id="tkw-ph"><div class="t1"></div><div class="t2"></div></div>
-  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb" id="tkw-delday" onclick="dayDelAsk('tkw')" style="color:#fecaca !important;border-color:rgba(248,113,113,.6) !important">🗑 ลบทั้งวัน</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
+  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb" id="tkw-delday" onclick="dayDelAsk('tkw')" style="color:#fecaca !important;border-color:rgba(248,113,113,.6) !important">🗑 ลบทั้งวัน</button><button type="button" class="mb" id="tkw-compact" title="เลื่อนตั๋วของเดือนที่เลือกขึ้นมาเติมช่องว่าง (เดือนอื่นไม่ขยับ)">⇡ เลื่อนขึ้น</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
   <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
   <div class="tabs" id="tkw-tabs"></div>
   <div class="card" id="tkw-card"><table id="tkw-table"></table></div>
@@ -8655,6 +8655,15 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   $('tkw-add').onclick=function(){ addRow(false); };
   $('tkw-addcol').onclick=function(){ if(NG()>=MAXG) return; snap(); var last=day.m[NG()-1]; day.m.push(last%12+1); day.r.push(emptyCol()); cur=NG()-1; commit(); render(); };
   $('tkw-delcol').onclick=function(){ delCol(cur); };
+  /* เลื่อนแถวว่างขึ้น: เฉพาะคอลัมน์เดือนที่เลือก (cur) เดือนอื่นไม่ขยับ ลำดับเดิมคงเดิม แถวว่างไปอยู่ท้าย เลิกทำได้ */
+  function cUsed(x){ return !!(x&&(String(x[0]==null?'':x[0]).trim()!==''||String(x[1]==null?'':x[1]).trim()!=='')); }
+  function compactCol(g){ var col=day.r[g]; if(!col) return 0; var keep=col.filter(cUsed), gaps=0, last=-1; col.forEach(function(x,i){ if(cUsed(x)) last=i; }); gaps=last+1-keep.length; if(gaps<=0) return 0;
+    snap(); var out=keep.slice(); while(out.length<col.length) out.push(['','']); day.r[g]=out; commit(); render(); return gaps; }
+  window.tkwCompact=function(g){ return compactCol(g==null?cur:g); };
+  $('tkw-compact').onclick=function(){ var g=cur, mn=MN[day.m[g]]; var col=day.r[g]||[], last=-1, n=0; col.forEach(function(x,i){ if(cUsed(x)){ last=i; n++; } }); var gaps=last+1-n;
+    if(gaps<=0){ try{ showToast('เดือน'+mn+' ไม่มีแถวว่างคั่นกลาง'); }catch(e){} return; }
+    if(!window.confirm('เลื่อนตั๋วเดือน '+mn+' ขึ้นมาเติมช่องว่าง '+gaps+' แถว?\n(เดือนอื่นไม่ขยับ · กดเลิกทำเพื่อย้อนได้)')) return;
+    var r=compactCol(g); if(r){ try{ showToast('เลื่อนแถวว่างขึ้น เดือน'+mn+' แล้ว (ปิดช่องว่าง '+r+' แถว)'); }catch(e){} } };
   $('tkw-undo').onclick=function(){ if(!undo.length) return; day=JSON.parse(undo.pop()); commit(); if(!undo.length) this.disabled=true; render(); };
   $('tkw-find').onclick=function(){ P.classList.toggle('s-on'); if(P.classList.contains('s-on')) $('tkw-q').focus(); else { $('tkw-q').value=''; mark(''); } };
   function mark(q){ var first=null; [].forEach.call(T.querySelectorAll('input[data-f="0"]'),function(el){ var hit=q&&el.value.indexOf(q)>=0; el.classList.toggle('hit',!!hit); if(hit&&!first) first=el; }); return first; }
