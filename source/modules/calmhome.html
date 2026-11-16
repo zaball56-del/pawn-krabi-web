@@ -1,0 +1,64 @@
+<style id="ch-css">
+/* หน้าแรกแบบเรียบหรู: สรุปวัน · การ์ดตัวเลข · ก่อนจบวัน · กราฟไถ่ถอน 7 วัน (เฉพาะหน้าจอ แถบเมนูเดิมไม่แตะ) */
+#ch-root{grid-column:1 / -1;max-width:none;width:100%;margin:0;padding:6px 22px 4px;box-sizing:border-box;color:#14213D;font-family:Sarabun,"Noto Sans Thai",sans-serif}
+#ch-root .cap{font-size:12.5px;color:#7A7566;margin:6px 0 2px}
+#ch-root h1{margin:0 0 12px;font-size:24px;font-weight:800;color:#14213D;line-height:1.25}
+#ch-root .st{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border:1px solid #E3DCC4;border-radius:16px;overflow:hidden}
+#ch-root .st>div{padding:14px 14px 13px;border-left:1px solid #EDE8D8;min-width:0}#ch-root .st>div:first-child{border-left:0}
+#ch-root .st small{display:block;font-size:12px;color:#7A7566}
+#ch-root .st b{display:block;font-size:30px;line-height:1.15;font-weight:800;margin-top:3px;white-space:nowrap}
+#ch-root .st b em{font-style:normal;font-size:12px;font-weight:500;color:#7A7566;margin-left:4px}
+#ch-root .st span{display:block;font-size:12.5px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ch-root .st .bal span{color:#8A6A12}
+#ch-root .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+#ch-root .cd{background:#fff;border:1px solid #E3DCC4;border-radius:16px;padding:16px 16px 14px;min-width:0}
+#ch-root .cd h2{margin:0;font-size:15.5px;font-weight:800;color:#14213D}
+#ch-root .cd .sub{font-size:12px;color:#7A7566;margin:2px 0 8px}
+#ch-root .it{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid #EDE8D8;cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;font-family:inherit;color:inherit}
+#ch-root .ic{flex:none;width:20px;height:20px;border-radius:50%;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;font-weight:800;color:#fff;border:1.5px solid #CFC8B0;box-sizing:border-box}
+#ch-root .ic.ok{background:#2B6B4A;border-color:#2B6B4A}#ch-root .ic.warn{background:#C99A2E;border-color:#C99A2E}#ch-root .ic.bad{background:#B3173B;border-color:#B3173B}
+#ch-root .it b{display:block;font-size:13.5px;font-weight:700}#ch-root .it span{display:block;font-size:12px;color:#7A7566;margin-top:1px}
+#ch-root .bars{display:flex;gap:8px;align-items:flex-end;height:150px;border-bottom:1px solid #E3DCC4;padding-top:6px}
+#ch-root .bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+#ch-root .bars i{display:block;width:100%;max-width:34px;background:#CDBF9B;border-radius:3px 3px 0 0;min-height:2px}
+#ch-root .bars .last i{background:#14213D}#ch-root .bars u{text-decoration:none;font-size:11px;font-weight:700;margin-bottom:3px}
+#ch-root .lb{display:flex;gap:8px;margin-top:5px}#ch-root .lb span{flex:1;text-align:center;font-size:10.5px;color:#7A7566}
+html body.page-home #home-page .hp-hero-in,html body.page-home #home-page .hp-photo,html body.page-home #home-page #hp-ai,html body.page-home #home-page .hp-grid4,html body.page-home #home-page > .hp-photo:nth-of-type(n){display:none !important}
+@media (max-width:640px){#ch-root h1{font-size:21px}#ch-root .st b{font-size:23px}#ch-root .st>div{padding:11px 10px}#ch-root .st span{font-size:11px}#ch-root .g2{grid-template-columns:1fr}}
+html body.page-home #home-page #ed-home{background:#14213D !important;background-image:none !important;box-shadow:none !important;color:#F6F2E8 !important}html body.page-home #home-page #ed-home *{color:#F6F2E8 !important}html body.page-home #home-page #ed-home small{color:#E8C872 !important}
+@media print{#ch-root{display:none !important}}
+</style>
+<script id="ch-js">
+(function(){
+  var TH_D=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  var TH_M=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function chip(id){ var e=document.getElementById(id); if(!e) return {b:'0',u:'ราย',i:''}; var b=(e.querySelector('b')||{}).textContent||'0', i=(e.querySelector('i')||{}).textContent||'';
+    var m=/^(.*?)\s*(ราย)?$/.exec(b.trim()); return {b:(m&&m[1])||b,u:'ราย',i:i.replace(/ /g,' ').trim()}; }
+  function chart(){
+    try{ var keys=Object.keys(db).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k)&&k<=currentDate&&db[k]&&db[k].data; }).sort().slice(-7);
+      if(!keys.length) return '<div class="sub">ยังไม่มีข้อมูลย้อนหลัง</div>';
+      var vals=keys.map(function(k){ try{ return getDailyRedemptionTotals(db[k]).amount||0; }catch(e){ return 0; } }), mx=Math.max(1,Math.max.apply(null,vals));
+      var h='<div class="bars">',lb='<div class="lb">';
+      keys.forEach(function(k,i){ var last=i===keys.length-1; h+='<div class="'+(last?'last':'')+'" title="'+esc(k)+' : '+vals[i]+' บาท">'+(last&&vals[i]?'<u>'+(vals[i]/1e6).toFixed(2)+'</u>':'')+'<i style="height:'+Math.max(2,Math.round(vals[i]/mx*100))+'%"></i></div>'; lb+='<span>'+Number(k.slice(8))+' พ.ย.'.replace('พ.ย.',['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][Number(k.slice(5,7))-1])+'</span>'; });
+      return h+'</div>'+lb+'</div>'; }catch(e){ return ''; }
+  }
+  var last='';
+  function render(){
+    var hp=document.getElementById('home-page'); if(!hp||!document.body.classList.contains('page-home')) return;
+    var root=document.getElementById('ch-root');
+    if(!root){ root=document.createElement('div'); root.id='ch-root'; var anchor=hp.querySelector('.hp-hero'); if(anchor&&anchor.parentNode===hp) hp.insertBefore(root,anchor.nextSibling); else hp.insertBefore(root,hp.firstChild); }
+    var p=String(currentDate).split('-'), d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
+    var pl=chip('hb-pl'), rd=chip('hb-rd'), bl=chip('hb-bal'), S=[]; try{ S=(window.__endday&&window.__endday.steps())||[]; }catch(e){}
+    var open=S.filter(function(s){ return s.st!=='ok'; }).length;
+    var h='<div class="cap">วัน'+TH_D[d.getDay()]+'ที่ '+Number(p[2])+' '+TH_M[d.getMonth()]+' '+(Number(p[0])+543)+'</div><h1>สรุปของวันที่ '+Number(p[2])+' '+TH_M[d.getMonth()]+'</h1>'
+     +'<div class="st"><div><small>รับจำนำ</small><b>'+esc(pl.b)+'<em>ราย</em></b><span>'+esc(pl.i)+'</span></div><div><small>ไถ่ถอน</small><b>'+esc(rd.b)+'<em>ราย</em></b><span>'+esc(rd.i)+'</span></div><div class="bal"><small>คงเหลือ</small><b>'+esc(bl.b)+'<em>ราย</em></b><span>'+esc((bl.i||'').split(' / ').pop())+'</span></div></div>'
+     +'<div class="g2"><div class="cd"><h2>ก่อนจบวัน</h2><div class="sub">'+(open?'เหลืออีก '+open+' เรื่อง':'ครบทุกข้อแล้ว')+'</div>';
+    S.forEach(function(s,i){ h+='<button type="button" class="it" data-i="'+i+'"><span class="ic '+s.st+'">'+(s.st==='ok'?'✓':(s.st==='bad'||s.st==='warn'?'!':''))+'</span><div><b>'+esc(s.t)+'</b><span>'+esc(s.d)+'</span></div></button>'; });
+    h+='</div><div class="cd"><h2>ไถ่ถอน 7 วันล่าสุด</h2><div class="sub">ล้านบาทต่อวัน</div>'+chart()+'</div></div>';
+    if(h===last) return; last=h; root.innerHTML=h;
+    [].forEach.call(root.querySelectorAll('button.it'),function(b){ b.onclick=function(){ try{ var s=S[+b.getAttribute('data-i')]; if(s&&s.act&&s.st!=='ok'){ s.act(); } else window.__endday.open(); }catch(e){} }; });
+  }
+  setInterval(render,1500); document.addEventListener('DOMContentLoaded',render); setTimeout(render,300);
+})();
+</script>
