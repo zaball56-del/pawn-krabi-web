@@ -1,0 +1,20 @@
+<style id="calmbtn-css">
+/* ปุ่มสไตล์เรียบหรู (กรมท่า #14213D · ทอง #E8C872 · ครีม #F6F2E8) — หน้าบัญชีแยกประเภท + หน้าเขียนตั๋ว เปลี่ยนเฉพาะสีปุ่ม ไม่แตะการทำงาน */
+html body.app-shell:not(.page-home) #m-bar,#tkw-page .bar{background:rgba(20,33,61,.97) !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;border:1px solid rgba(232,200,114,.3) !important;border-radius:22px !important;box-shadow:0 10px 28px rgba(2,6,23,.4) !important}
+#m-bar button,#tkw-page .bar button{color:#CFCABB !important;border-radius:14px !important}
+#m-bar button:active,#tkw-page .bar button:active,#m-bar button.m-press{background:rgba(232,200,114,.14) !important;transform:none !important}
+#m-bar button.main,#tkw-page .bar button.scan{background:#E8C872 !important;color:#14213D !important;border-radius:15px !important;box-shadow:none !important;font-weight:800 !important}
+#m-bar button.main:active,#tkw-page .bar button.scan:active{background:#DDB955 !important;transform:none !important}
+.tl-btn.on{color:#E8C872 !important}.tl-btn.on b{color:#E8C872 !important}
+/* ปุ่มวันที่ / วันนี้ / ลบทั้งวัน / เพิ่มเดือน / แท็บเดือน */
+html body #tkw-page .dt button,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child > button{background:#F6F2E8 !important;color:#14213D !important;border:0 !important;border-radius:12px !important;box-shadow:none !important}
+html body #tkw-page .dt .td,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child > button[onclick*="goToday"]{background:#E8C872 !important;color:#14213D !important;box-shadow:none !important}
+html body #tkw-page .dt,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child{background:rgba(246,242,232,.06) !important;border:1px solid rgba(246,242,232,.14) !important}
+html body #tkw-page .thd .mb,html body #tkw-page #tkw-addcol{background:transparent !important;color:#E8C872 !important;border:1px solid rgba(232,200,114,.45) !important;border-radius:12px !important;box-shadow:none !important}
+html body #tkw-page #tkw-delday,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > #ledger-delday{background:transparent !important;color:#E3A2A2 !important;border:1px solid rgba(227,162,162,.45) !important;border-radius:12px !important;box-shadow:none !important}
+html body #tkw-page .t,html body.app-shell:not(.page-home) #ledger-page #m-tabs button{background:transparent !important;color:#CFCABB !important;border:1px solid rgba(246,242,232,.2) !important;box-shadow:none !important}
+html body #tkw-page .t.on,html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on{background:#E8C872 !important;color:#14213D !important;border-color:#E8C872 !important;box-shadow:none !important;font-weight:800}
+html body #tkw-page .t em{background:#14213D;color:#E8C872;box-shadow:none;border:1px solid rgba(232,200,114,.6)}
+html body.app-shell:not(.page-home) #ledger-page #m-sum button{box-shadow:none !important}
+html body #tkw-page .dt button:active,html body #tkw-page .thd .mb:active,html body #tkw-page .t:active{transform:none !important;filter:none !important}
+</style>

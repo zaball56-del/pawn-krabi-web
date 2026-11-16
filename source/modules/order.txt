@@ -27,3 +27,4 @@ daydel.html
 dock.html
 compact.html
 endday.html
+calmbtn.html
