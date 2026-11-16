@@ -210,7 +210,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     for(var g=0;g<G;g++){ var opts=''; for(var m=1;m<=12;m++) opts+='<option value="'+m+'"'+(day.m[g]===m?' selected':'')+'>'+MN[m]+'</option>'; h+='<th colspan="2" data-g="'+g+'"><span class="pill">'+MN[day.m[g]]+'<select data-m="'+g+'">'+opts+(wide.matches&&G>1?'<option value="del">🗑 ลบเดือนนี้…</option>':'')+'</select></span></th>'; }
     h+='</tr><tr class="sub">'; for(g=0;g<G;g++){ h+='<th data-g="'+g+'">เลขตั๋ว</th><th data-g="'+g+'">จำนวนเงิน</th>'; }
     h+='</tr></thead><tbody>';
-    for(var i=0;i<n;i++){ h+='<tr><th class="no">'+(i+1)+'<button type="button" data-del="'+i+'">ลบ</button></th>';
+    for(var i=0;i<n;i++){ h+='<tr><th class="no">'+(i+1)+'</th>';
       for(g=0;g<G;g++){ var x=day.r[g][i]||['','']; h+='<td data-g="'+g+'" class="ct"><div class="tw">'+(x[0]&&x[2]?'<span class="bk-tag" aria-hidden="true">เล่ม '+esc(x[2])+'</span>':'')+'<input inputmode="numeric" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="0" value="'+esc(x[0])+'">'+(String(x[0]||'').trim()?'<button type="button" class="cx" data-cx="'+g+','+i+'" tabindex="-1" aria-label="ลบรายการนี้">✕</button>':'')+'</div></td><td data-g="'+g+'" class="ca"><input inputmode="decimal" autocomplete="off" data-g="'+g+'" data-i="'+i+'" data-f="1" value="'+esc(x[1]===''?'':fmt(num(x[1])))+'"></td>'; }
       h+='</tr>'; }
     h+='<tr class="tot"><th class="no">รวม</th>'; for(g=0;g<G;g++){ h+='<td data-g="'+g+'" id="tkw-tc'+g+'"></td><td data-g="'+g+'" id="tkw-ts'+g+'"></td>'; }
