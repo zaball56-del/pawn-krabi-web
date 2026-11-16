@@ -8653,8 +8653,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       if(!pc) return;
       if(!DL.classList.contains('sure')){ DL.classList.add('sure'); DL.textContent='แตะอีกครั้งเพื่อยืนยันลบ'; return; }
       var g=pc.g, i=pc.i, x=(day.r[g]||[])[i]; if(!x){ cls(); return; }
-      var bak=x.slice(); snap(); day.r[g][i]=['','','','']; commit(); cls(); render();
-      snack('ลบตั๋ว '+esc(bak[0])+' (แถว '+(i+1)+' · '+MN[day.m[g]]+') แล้ว',function(){ snap(); ensure(g,i); day.r[g][i]=bak; commit(); render(); });
+      var bak=x.slice(); snap(); var colBak=delShift(g,i); commit(); cls(); render();
+      snack('ลบตั๋ว '+esc(bak[0])+' (แถว '+(i+1)+' · '+MN[day.m[g]]+') แล้ว แถวด้านล่างเลื่อนขึ้นอัตโนมัติ',delUndo(g,colBak));
     };
     $('tkw-tp-x').onclick=cls; $('tkw-tp-o').onclick=ok;
     TP.addEventListener('click',function(e){ if(e.target===TP) cls(); });
@@ -8669,6 +8669,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   $('tkw-delcol').onclick=function(){ delCol(cur); };
   /* เลื่อนแถวว่างขึ้น: เฉพาะคอลัมน์เดือนที่เลือก (cur) เดือนอื่นไม่ขยับ ลำดับเดิมคงเดิม แถวว่างไปอยู่ท้าย เลิกทำได้ */
   function cUsed(x){ return !!(x&&(String(x[0]==null?'':x[0]).trim()!==''||String(x[1]==null?'':x[1]).trim()!=='')); }
+  function delShift(g,i){ var col=JSON.parse(JSON.stringify(day.r[g]||[])); var n=col.length; day.r[g][i]=['','','','']; var keep=day.r[g].filter(cUsed); var out=keep.slice(); while(out.length<n) out.push(['','']); day.r[g]=out; return col; }
+  function delUndo(g,col){ return function(){ snap(); day.r[g]=JSON.parse(JSON.stringify(col)); commit(); render(); }; }
   function compactCol(g){ var col=day.r[g]; if(!col) return 0; var keep=col.filter(cUsed), gaps=0, last=-1; col.forEach(function(x,i){ if(cUsed(x)) last=i; }); gaps=last+1-keep.length; if(gaps<=0) return 0;
     snap(); var out=keep.slice(); while(out.length<col.length) out.push(['','']); day.r[g]=out; commit(); render(); return gaps; }
   window.tkwCompact=function(g){ return compactCol(g==null?cur:g); };
@@ -8717,13 +8719,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     document.body.appendChild(ov);
     document.getElementById('tkw-cx-no').onclick=function(){ ov.remove(); };
     document.getElementById('tkw-cx-yes').onclick=function(){
-      ov.remove(); var bak=x.slice(); snap(); day.r[g][i]=['','','','']; commit(); render();
+      ov.remove(); var bak=x.slice(); snap(); var colBak=delShift(g,i); commit(); render();
       var sn=document.getElementById('tkw-cx-sn'); if(sn) sn.remove();
       sn=document.createElement('div'); sn.id='tkw-cx-sn';
       sn.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100001;background:#0f172a;color:#fff;border-radius:14px;padding:10px 14px;display:flex;gap:12px;align-items:center;font:600 14px Sarabun,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:92vw';
       sn.innerHTML='<span>ลบตั๋ว '+esc(bak[0])+' แล้ว</span><button type="button" style="border:0;border-radius:10px;padding:6px 12px;background:#10b981;color:#fff;font:800 14px Sarabun,sans-serif">↶ กู้คืน</button>';
       document.body.appendChild(sn);
-      sn.querySelector('button').onclick=function(){ sn.remove(); snap(); ensure(g,i); day.r[g][i]=bak; commit(); render(); };
+      sn.querySelector('button').onclick=function(){ sn.remove(); delUndo(g,colBak)(); };
       setTimeout(function(){ if(sn.parentNode) sn.remove(); },15000);
     };
   }
@@ -9381,11 +9383,11 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
     var bak=JSON.parse(JSON.stringify(rec)), tk=rec.ticket;
     var oi=rec.origIdx; Object.keys(rec).forEach(function(k){ delete rec[k]; });
     rec.type=''; rec.ticket=''; rec.amount=''; rec.count=''; rec.origIdx=oi; rec.timestamp='';
+    var colBak=JSON.parse(JSON.stringify(d.data[m])); try{ if(window.__cpk) window.__cpk.compact(d,m); }catch(e){}
     try{ saveDB(); }catch(e){} close();
     try{ renderTable(); }catch(e){}
     snack('ลบตั๋ว '+tk+' (แถว '+(r+1)+' · '+m+') แล้ว',function(){
-      var d2=getCurrentDayData(), rr=(d2.data[m]||[])[r]; if(!rr) return;
-      Object.keys(rr).forEach(function(k){ delete rr[k]; }); Object.keys(bak).forEach(function(k){ rr[k]=bak[k]; });
+      var d2=getCurrentDayData(); if(!d2.data||!d2.data[m]) return; d2.data[m]=JSON.parse(JSON.stringify(colBak));
       try{ saveDB(); }catch(e){} try{ renderTable(); }catch(e){}
     });
   };

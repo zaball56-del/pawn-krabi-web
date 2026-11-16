@@ -43,7 +43,7 @@ let fail=0; const ok=(c,msg)=>{ if(!c){ fail++; console.log('FAIL',msg); } else 
     tap(w,inp(w,5,0,0)); key(w,w.document,'Escape'); ok(!on(w),'5b กด Esc ปิด'); }
   { const w=boot(); tap(w,inp(w,5,0,0)); const dl=$(w,'tkw-tp-del'); dl.click();
     ok(on(w)&&dl.classList.contains('sure')&&cell(w,5,0)[0]==='1234','6 ลบ: แตะครั้งแรกแค่ขอยืนยัน ข้อมูลยังอยู่');
-    dl.click(); await wait(50); ok(!on(w)&&cell(w,5,0)[0]===''&&cell(w,5,1)[0]==='1235','6b แตะครั้งที่สองลบเฉพาะช่องนี้ แถวอื่นไม่ขยับ');
+    dl.click(); await wait(50); ok(!on(w)&&cell(w,5,0)[0]==='1235','6b ลบแล้วแถวล่างเลื่อนขึ้นมาแทนอัตโนมัติ');
     const sn=w.document.getElementById('tkw-tp-sn'); ok(!!sn&&/1234/.test(sn.textContent),'6c มีแถบกู้คืน'); sn.querySelector('button').click(); await wait(50);
     const c=cell(w,5,0); ok(c[0]==='1234'&&c[1]==='5000'&&c[2]==='12'&&c[3]==='2026-11-01','6d กู้คืนได้ครบ ('+JSON.stringify(c)+')');
     $(w,'tkw-undo').click(); await wait(20); ok(true,'6e ปุ่มเลิกทำเดิมยังใช้ได้ ไม่พัง'); }

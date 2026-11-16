@@ -65,11 +65,11 @@
     var bak=JSON.parse(JSON.stringify(rec)), tk=rec.ticket;
     var oi=rec.origIdx; Object.keys(rec).forEach(function(k){ delete rec[k]; });
     rec.type=''; rec.ticket=''; rec.amount=''; rec.count=''; rec.origIdx=oi; rec.timestamp='';
+    var colBak=JSON.parse(JSON.stringify(d.data[m])); try{ if(window.__cpk) window.__cpk.compact(d,m); }catch(e){}
     try{ saveDB(); }catch(e){} close();
     try{ renderTable(); }catch(e){}
     snack('ลบตั๋ว '+tk+' (แถว '+(r+1)+' · '+m+') แล้ว',function(){
-      var d2=getCurrentDayData(), rr=(d2.data[m]||[])[r]; if(!rr) return;
-      Object.keys(rr).forEach(function(k){ delete rr[k]; }); Object.keys(bak).forEach(function(k){ rr[k]=bak[k]; });
+      var d2=getCurrentDayData(); if(!d2.data||!d2.data[m]) return; d2.data[m]=JSON.parse(JSON.stringify(colBak));
       try{ saveDB(); }catch(e){} try{ renderTable(); }catch(e){}
     });
   };
