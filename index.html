@@ -10231,5 +10231,40 @@ html body.page-home #home-page #ed-home{background:#14213D !important;background
 })();
 </script>
 
+<script id="bn-js">
+(function(){
+  /* ปุ่ม "กลับ" ของมือถือ/เบราว์เซอร์: ปิดหน้าต่างที่เปิดอยู่ทีละชั้น แล้วค่อยถอยหน้า (ตาราง → หน้าแรก) ไม่ให้หลุดไปหน้าใส่รหัส
+     ที่หน้าแรกและไม่มีหน้าต่างเปิดอยู่ ปุ่มกลับทำงานตามปกติ (ออกจากเว็บ) */
+  function q(s){ return document.querySelector(s); }
+  function click(s){ var e=q(s); if(e){ try{ e.click(); }catch(x){} return true; } return false; }
+  function shown(s){ var e=q(s); if(!e) return false; var c=getComputedStyle(e); return c.display!=='none'&&c.visibility!=='hidden'; }
+  var layers=[
+    function(){ if(shown('#cam-ov')){ return click('#cam-x'); } },
+    function(){ if(q('#tkw-tp.on')){ return click('#tkw-tp-x'); } },
+    function(){ if(q('#tp-pop.on')){ return click('#tp-x'); } },
+    function(){ if(q('#tkw-page.pv-on')){ return click('#tkw-pv-x'); } },
+    function(){ if(q('#tkw-page.sq-on')){ return click('#tkw-sq-x'); } },
+    function(){ var m=q('#quick-scan-modal'); if(m&&m.style.display==='flex'&&typeof closeQuickScanModal==='function'){ closeQuickScanModal(); return true; } },
+    function(){ if(q('#ds-modal.on')&&typeof closeDataSettings==='function'){ closeDataSettings(); return true; } },
+    function(){ if(q('#ed-modal.on')){ return click('#ed-x'); } },
+    function(){ if(q('#cpk-modal.on')){ return click('#cpk-x'); } },
+    function(){ var m=q('#global-search-modal'); if(m&&!m.classList.contains('hidden')&&typeof closeGlobalSearch==='function'){ closeGlobalSearch(); return true; } },
+    function(){ if(document.body.classList.contains('sb-open')&&typeof sbClose==='function'){ sbClose(); return true; } },
+    function(){ if(document.body.classList.contains('tkw-open')){ return click('#tkw-x'); } },
+    function(){ var b=document.body; if(b.classList.contains('app-shell')&&!b.classList.contains('page-home')&&typeof goPage==='function'){ goPage('home'); return true; } }
+  ];
+  function back(){ for(var i=0;i<layers.length;i++){ try{ if(layers[i]()) return true; }catch(e){} } return false; }
+  function guard(){ try{ history.pushState({bn:1},'',location.href); }catch(e){} }
+  /* เข้าสู่ระบบแล้ว (เห็นแอป) ค่อยวางตัวกันถอย เพื่อไม่กวนหน้าใส่รหัส */
+  var armed=false;
+  function arm(){ if(armed) return; var a=document.getElementById('app-container'); if(a&&!a.classList.contains('hidden')){ armed=true; guard(); } }
+  setInterval(arm,700);
+  window.addEventListener('popstate',function(){
+    if(!armed) return;
+    if(back()){ guard(); }
+  });
+})();
+</script>
+
 </body>
 </html>
