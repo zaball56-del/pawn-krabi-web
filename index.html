@@ -9972,6 +9972,29 @@ html body #tkw-page .t.on,html body.app-shell:not(.page-home) #ledger-page #m-ta
 html body #tkw-page .t em{background:#14213D;color:#E8C872;box-shadow:none;border:1px solid rgba(232,200,114,.6)}
 html body.app-shell:not(.page-home) #ledger-page #m-sum button{box-shadow:none !important}
 html body #tkw-page .dt button:active,html body #tkw-page .thd .mb:active,html body #tkw-page .t:active{transform:none !important;filter:none !important}
+
+/* พื้นตารางโทนกระดาษครีมสว่างแบบเรียบหรู (ตามแบบ "ตารางรักษาของ") — เฉพาะหน้าจอ ไม่กระทบการพิมพ์ */
+@media screen{
+html body #tkw-page .card,html body #ledger-page .ledger-scroll{background:#FBFAF7 !important;border:1px solid #E3DCC4 !important;border-radius:14px !important;box-shadow:0 6px 20px rgba(2,6,23,.25) !important;color:#14213D !important}
+html body #tkw-page th,html body #tkw-page td,html body #ledger-page .ledger-scroll th,html body #ledger-page .ledger-scroll td{border-color:#EDE8D8 !important}
+html body #tkw-page thead th,html body #ledger-page .ledger-scroll thead tr,html body #ledger-page .ledger-scroll thead th{background:#F6F2E8 !important;color:#14213D !important}
+html body #tkw-page thead th *{color:#14213D !important}
+html body #tkw-page thead tr.sub th{background:#FBFAF7 !important;color:#7A7566 !important;font-weight:600 !important}
+html body #tkw-page th.no,html body #ledger-page .ledger-scroll tbody td:first-child,html body #ledger-page .ledger-scroll thead th:first-child{background:#FBFAF7 !important;color:#9A937F !important;font-weight:600 !important}
+html body #tkw-page tbody td,html body #ledger-page .ledger-scroll tbody tr{background:transparent !important}
+html body #tkw-page .tot th,html body #tkw-page .tot td{background:#E8F2EC !important;color:#1E5B3A !important}
+html body #tkw-page tbody input,html body #ledger-page .ledger-scroll tbody input:not([type=hidden]),html body #ledger-page .ledger-scroll tbody select{background:transparent !important;color:#14213D !important;border:0 !important;border-bottom:1px solid transparent !important;border-radius:6px !important;box-shadow:none !important;font-weight:700}
+html body #tkw-page tbody input:focus,html body #ledger-page .ledger-scroll tbody input:focus,html body #ledger-page .ledger-scroll tbody select:focus{background:#fff !important;border-bottom:1px solid #E8C872 !important;box-shadow:0 0 0 2px rgba(232,200,114,.45) !important}
+html body #ledger-page .ledger-scroll thead select{background:#fff !important;color:#14213D !important;border:1px solid #E3DCC4 !important}
+html body #ledger-page .ledger-scroll select.type-red,html body #ledger-page .ledger-scroll input.row-red{color:#B3173B !important}
+html body #ledger-page .ledger-scroll tbody tr:has(.type-red),html body #ledger-page .ledger-scroll tbody tr:has(.row-red){background:#FBE4E6 !important}
+html body #ledger-page .ledger-scroll tbody tr.bg-emerald-50,html body #ledger-page .ledger-scroll .bg-emerald-50\/50,html body #ledger-page .ledger-scroll td.bg-emerald-50{background:#E8F2EC !important}
+html body #ledger-page .ledger-scroll .text-emerald-900,html body #ledger-page .ledger-scroll .text-emerald-800,html body #ledger-page .ledger-scroll tbody tr.bg-emerald-50 input{color:#1E5B3A !important}
+html body #ledger-page .ledger-scroll [class*="bg-amber"],html body #ledger-page .ledger-scroll [class*="bg-yellow"]{background:#FBF1D3 !important}
+html body #ledger-page .ledger-scroll [class*="text-amber"],html body #ledger-page .ledger-scroll [class*="text-yellow"]{color:#8A6A12 !important}
+html body #ledger-page .ledger-scroll tbody tr:nth-child(even){background:transparent}
+html body #ledger-page .ledger-scroll .col-off,html body #ledger-page .ledger-scroll input:disabled,html body #ledger-page .ledger-scroll select:disabled{background:rgba(20,33,61,.04) !important;border:0 !important;color:#9A937F !important}
+}
 </style>
 
 </body>
