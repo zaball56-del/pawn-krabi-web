@@ -20,7 +20,7 @@ html body #tkw-page .dt button:active,html body #tkw-page .thd .mb:active,html b
 
 /* พื้นตารางโทนกระดาษครีมสว่างแบบเรียบหรู (ตามแบบ "ตารางรักษาของ") — เฉพาะหน้าจอ ไม่กระทบการพิมพ์ */
 @media screen{
-html body #tkw-page .card,html body #ledger-page .ledger-scroll{background:#FBFAF7 !important;border:1px solid #E3DCC4 !important;border-radius:14px !important;box-shadow:0 6px 20px rgba(2,6,23,.25) !important;color:#14213D !important}
+html body #tkw-page .card,html body #ledger-page .ledger-scroll{background:#FBFAF7 !important;border:1px solid #E3DCC4 !important;border-radius:14px !important;box-shadow:0 1px 6px rgba(20,33,61,.08) !important;color:#14213D !important}
 html body #tkw-page th,html body #tkw-page td,html body #ledger-page .ledger-scroll th,html body #ledger-page .ledger-scroll td{border-color:#EDE8D8 !important}
 html body #tkw-page thead th,html body #ledger-page .ledger-scroll thead tr,html body #ledger-page .ledger-scroll thead th{background:#F6F2E8 !important;color:#14213D !important}
 html body #tkw-page thead th *{color:#14213D !important}
@@ -39,5 +39,28 @@ html body #ledger-page .ledger-scroll [class*="bg-amber"],html body #ledger-page
 html body #ledger-page .ledger-scroll [class*="text-amber"],html body #ledger-page .ledger-scroll [class*="text-yellow"]{color:#8A6A12 !important}
 html body #ledger-page .ledger-scroll tbody tr:nth-child(even){background:transparent}
 html body #ledger-page .ledger-scroll .col-off,html body #ledger-page .ledger-scroll input:disabled,html body #ledger-page .ledger-scroll select:disabled{background:rgba(20,33,61,.04) !important;border:0 !important;color:#9A937F !important}
+}
+/* พื้นหลังหน้า + แถบหัว + วันที่ + สรุป + แท็บเดือน โทนกระดาษครีมเรียบหรู */
+@media screen{
+html body.app-shell:not(.page-home){background:#F6F2E8 !important;background-image:none !important;color:#14213D}
+html body.app-shell:not(.page-home) header.sticky{background:#14213D !important;background-image:none !important;box-shadow:0 2px 12px rgba(20,33,61,.25) !important;border-bottom:1px solid #E8C872}
+html body.app-shell:not(.page-home) header.sticky h1,html body.app-shell:not(.page-home) header.sticky h2,html body.app-shell:not(.page-home) header.sticky span{color:#F6F2E8 !important}
+html body #tkw-page{background:#F6F2E8 !important;background-image:none !important;color:#14213D !important}
+html body #tkw-page .top{background:#14213D !important;background-image:none !important;border-bottom:1px solid #E8C872}
+html body #tkw-page .top h1{color:#F6F2E8 !important}html body #tkw-page .cloud{color:#E8C872 !important}
+html body #tkw-page .dt,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child{background:#fff !important;border:1px solid #E3DCC4 !important}
+html body #tkw-page .dt input,html body.app-shell:not(.page-home) #ledger-page #doc-date{background:#fff !important;color:#14213D !important;border:1px solid #E3DCC4 !important;box-shadow:none !important;color-scheme:light}
+html body #tkw-page .dt button,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child > button{background:#fff !important;color:#14213D !important;border:1px solid #E3DCC4 !important}
+html body #tkw-page .dt .td,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > div:first-child > button[onclick*="goToday"]{background:#E8C872 !important;border-color:#E8C872 !important}
+html body #tkw-page .thd .mb,html body #tkw-page #tkw-addcol{background:#fff !important;color:#14213D !important;border:1px solid #D9CFA8 !important}
+html body #tkw-page #tkw-delday,html body.app-shell:not(.page-home) #ledger-page > section.no-print > div:first-child > #ledger-delday{background:#fff !important;color:#B3173B !important;border:1px solid #E7B4BC !important}
+html body #tkw-page .t,html body.app-shell:not(.page-home) #ledger-page #m-tabs button{background:#fff !important;color:#5B5646 !important;border:1px solid #E3DCC4 !important}
+html body #tkw-page .t.on,html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on{background:#14213D !important;color:#F6F2E8 !important;border-color:#14213D !important}
+html body #tkw-page .t em{background:#E8C872;color:#14213D;border:0}
+html body #tkw-page #tkw-thd,html body #tkw-page #tkw-thd .dd,html body #tkw-page #tkw-thd *:not(.dn){color:#14213D !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum button,html body.app-shell:not(.page-home) #ledger-page #m-sum > *{background:#fff !important;border:1px solid #E3DCC4 !important;color:#14213D !important;box-shadow:none !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum *{color:#14213D !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum [class*="emerald"],html body.app-shell:not(.page-home) #ledger-page #m-sum [class*="teal"]{color:#1E5B3A !important}
+html body #tkw-page #tkw-thd .dn{background:#E8C872 !important;color:#14213D !important}
 }
 </style>
