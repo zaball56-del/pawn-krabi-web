@@ -1,0 +1,30 @@
+<script id="sessunlock-js">
+/* จำการปลดล็อกไว้ในแท็บนี้ (sessionStorage): รีเฟรชไม่ถาม PIN ซ้ำ · ปิดแท็บ/ล็อกออก/ล็อกอัตโนมัติ = ถามใหม่ */
+(function(){
+  var K='pawn_unlocked_tab';
+  function get(){ try{ return sessionStorage.getItem(K)==='1'; }catch(e){ return false; } }
+  function set(v){ try{ if(v) sessionStorage.setItem(K,'1'); else sessionStorage.removeItem(K); }catch(e){} }
+  try{
+    var prevLogin=window.checkLogin;
+    if(typeof prevLogin==='function') window.checkLogin=function(){
+      var r=prevLogin.apply(this,arguments);
+      setTimeout(function(){ var a=document.getElementById('app-container'); if(a&&a.style.display==='flex') set(true); },900);
+      return r;
+    };
+    var prevOut=window.logout;
+    if(typeof prevOut==='function') window.logout=function(){ set(false); return prevOut.apply(this,arguments); };
+  }catch(e){}
+  if(get()){
+    try{
+      var lm=document.getElementById('login-modal'), app=document.getElementById('app-container');
+      if(lm&&app){
+        lm.style.display='none';
+        app.classList.remove('hidden'); app.style.display='flex';
+        if(typeof applyAppTheme==='function') applyAppTheme();
+        if(typeof initApp==='function') initApp();
+        if(typeof setSaveIndicator==='function') setSaveIndicator('saved','โหมดเครื่องนี้ · บันทึกอัตโนมัติ');
+      }
+    }catch(e){ set(false); try{ console.warn('sessunlock',e); }catch(_){} }
+  }
+})();
+</script>
