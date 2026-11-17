@@ -1,0 +1,19 @@
+<style id="lgsticky-css">
+/* มือถือ: ล็อกหัวตาราง (2 แถว) และท้ายตาราง (รวม/ยกไป) ไว้ขณะเลื่อนสมุดบัญชีรักษาของ */
+@media screen and (max-width:640px){
+/* body เป็นตัวเลื่อนปลอม (overflow:auto) ทำให้ sticky ไม่ติดจอ -> เปลี่ยนเป็น clip */
+html body.app-shell:not(.page-home):not(#_x){overflow:clip !important}
+/* กรอบ section เดิมตั้ง overflow:hidden ทำให้ sticky ไม่ทำงาน -> ใช้ clip (ไม่สร้างตัวเลื่อน) */
+html body.app-shell:not(.page-home) #ledger-page > section:not(#_x){overflow:clip !important;overflow:clip !important}
+html body.app-shell:not(.page-home) #ledger-page .ledger-scroll:not(#_x){overflow:visible !important}
+/* หัวตาราง: ใต้แถบหัวเว็บ (สูง 60px) */
+html body.app-shell:not(.page-home) #ledger-page table thead tr:nth-child(1) th:not(#_x){position:sticky !important;top:60px !important;z-index:6;background:#F1ECDD !important;box-shadow:0 1px 0 #E3DCC4}
+html body.app-shell:not(.page-home) #ledger-page table thead tr:nth-child(2) th:not(#_x){position:sticky !important;top:103px !important;z-index:6;background:#F6F2E8 !important;box-shadow:0 1px 0 #E3DCC4}
+/* แถวยอดยกมา (แถวแรก) ค้างใต้หัวตาราง */
+html body.app-shell:not(.page-home) #ledger-page table tbody tr:first-child > td:not(#_x){position:sticky !important;top:129px !important;z-index:5;background:#E6F1EA !important;box-shadow:0 1px 0 #BFD8C8}
+/* ท้ายตาราง: เหนือแถบเมนูล่าง (สูง 66px + ระยะลอย) */
+html body.app-shell:not(.page-home) #ledger-page #foot-carried-row > td:not(#_x){position:sticky !important;bottom:78px !important;z-index:5;background:#E6F1EA !important;box-shadow:0 -1px 0 #BFD8C8}
+html body.app-shell:not(.page-home) #ledger-page #foot-totals-row > td:not(#_x){position:sticky !important;bottom:129px !important;z-index:5;background:#EEF5F0 !important;box-shadow:0 -1px 0 #BFD8C8}
+}
+@media print{#ledger-page thead th,#ledger-page tbody tr:first-child>td,#ledger-page #foot-carried-row>td,#ledger-page #foot-totals-row>td{position:static !important}}
+</style>

@@ -36,3 +36,4 @@ sessunlock.html
 scanner.html
 sblantern.html
 motion.html
+lgsticky.html
