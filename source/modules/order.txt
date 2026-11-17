@@ -35,3 +35,4 @@ homebg.html
 sessunlock.html
 scanner.html
 sblantern.html
+motion.html

@@ -1,0 +1,30 @@
+<style id="motion-css">
+@media screen and (prefers-reduced-motion:no-preference){
+/* เปลี่ยนหน้า: จางเข้า (ใช้ opacity อย่างเดียว ไม่ให้แถบ fixed เลื่อนเพี้ยน) */
+@keyframes mvIn{from{opacity:0}to{opacity:1}}
+@keyframes mvUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes mvPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.18);opacity:1}100%{transform:scale(1)}}
+@keyframes mvSlide{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+#home-page:not(.hidden),#ledger-page:not(.hidden),#tkw-page{animation:mvIn .28s ease-out}
+/* ปุ่ม: กดแล้วยุบเล็กน้อย */
+html body :is(button,.sb-item,.t):not(:disabled):not(#_x){transition:transform .14s cubic-bezier(.3,1.4,.5,1),background-color .2s,box-shadow .2s,opacity .2s}
+html body :is(button,.sb-item):not(:disabled):not(#_x):active{transform:scale(.95)}
+/* แท็บเดือน: ตัวเลขเด้ง */
+#tkw-page .t em{animation:mvPop .35s cubic-bezier(.3,1.4,.5,1)}
+#tkw-page .tabs .t{transition:background-color .25s,color .25s,transform .14s}
+/* ช่องกรอก: โฟกัสแล้วเรืองนุ่ม */
+#tkw-page td input{transition:box-shadow .2s,background-color .2s}
+/* ป้ายเล่ม: ลอยเข้า */
+#tkw-page .bk-tag{animation:mvUp .3s ease-out}
+/* เมนูข้าง: รายการไหลเข้าทีละบรรทัดตอนเปิด */
+body.sb-open #app-sidebar .sb-item{animation:mvSlide .32s ease-out both}
+body.sb-open #app-sidebar .sb-item:nth-of-type(2){animation-delay:.04s}
+body.sb-open #app-sidebar .sb-item:nth-of-type(3){animation-delay:.08s}
+body.sb-open #app-sidebar .sb-item:nth-of-type(4){animation-delay:.12s}
+body.sb-open #app-sidebar .sb-item:nth-of-type(5){animation-delay:.16s}
+body.sb-open #app-sidebar .sb-item:nth-of-type(n+6){animation-delay:.2s}
+/* แจ้งเตือน: เลื่อนขึ้นนุ่ม */
+#toast:not(.hidden){animation:mvUp .25s ease-out}
+}
+@media print{#home-page,#ledger-page,#tkw-page,#tkw-page *{animation:none !important;transition:none !important}}
+</style>
