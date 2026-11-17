@@ -100,7 +100,7 @@
               else await cloud.col.doc(cid).set(ch.f,{merge:true});
               ch.sets.forEach(function(k){ setLast(k,loc[k]); });
               ch.dels.forEach(function(k){ unsetLast(k); });
-            }catch(e){ failed++; if(e&&e.code==='resource-exhausted') quota=true; console.warn('sync',cid,e); }
+            }catch(e){ failed++; if(e&&e.code==='resource-exhausted'){ quota=true; try{ window.pawnQuotaHit&&pawnQuotaHit('เขียน'); }catch(_){} } console.warn('sync',cid,e); }
           }
         };
         await Promise.all([worker(),worker(),worker(),worker()]);
@@ -210,6 +210,7 @@
         }else applyRemote(snap);
       },function(err){
         var quota=err&&err.code==='resource-exhausted';
+        if(quota){ try{ window.pawnQuotaHit&&pawnQuotaHit('อ่าน'); }catch(_){} }
         console.warn('firestore',err); cloud.on=false; clearTimeout(holdTimer);
         if(first && firstResolve){ var f=firstResolve; firstResolve=null; f(err&&err.code==='permission-denied'?'denied':(quota?'quota':false)); }
         ind('error',err&&err.code==='permission-denied'?'บัญชีนี้ไม่มีสิทธิ์ใช้ข้อมูล':(quota?QUOTA_MSG:'ฐานข้อมูลกลางใช้ไม่ได้ · บันทึกในเครื่องนี้ชั่วคราว'));

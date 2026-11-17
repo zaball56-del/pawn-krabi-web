@@ -6592,7 +6592,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
               else await cloud.col.doc(cid).set(ch.f,{merge:true});
               ch.sets.forEach(function(k){ setLast(k,loc[k]); });
               ch.dels.forEach(function(k){ unsetLast(k); });
-            }catch(e){ failed++; if(e&&e.code==='resource-exhausted') quota=true; console.warn('sync',cid,e); }
+            }catch(e){ failed++; if(e&&e.code==='resource-exhausted'){ quota=true; try{ window.pawnQuotaHit&&pawnQuotaHit('เขียน'); }catch(_){} } console.warn('sync',cid,e); }
           }
         };
         await Promise.all([worker(),worker(),worker(),worker()]);
@@ -6702,6 +6702,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         }else applyRemote(snap);
       },function(err){
         var quota=err&&err.code==='resource-exhausted';
+        if(quota){ try{ window.pawnQuotaHit&&pawnQuotaHit('อ่าน'); }catch(_){} }
         console.warn('firestore',err); cloud.on=false; clearTimeout(holdTimer);
         if(first && firstResolve){ var f=firstResolve; firstResolve=null; f(err&&err.code==='permission-denied'?'denied':(quota?'quota':false)); }
         ind('error',err&&err.code==='permission-denied'?'บัญชีนี้ไม่มีสิทธิ์ใช้ข้อมูล':(quota?QUOTA_MSG:'ฐานข้อมูลกลางใช้ไม่ได้ · บันทึกในเครื่องนี้ชั่วคราว'));
@@ -7426,7 +7427,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
    <div id="st-chips" class="s-chips"></div>
    <div id="st-sum" class="s-sum"></div>
    <div class="s-split"><div class="s-pn"><h4>สัปดาห์ที่ใหญ่ที่สุด (เพดาน 1 MiB ต่อสัปดาห์)</h4><div id="st-weeks"></div></div>
-   <div class="s-pn"><h4>ข้อมูลแยกตามประเภท</h4><div id="st-parts"></div><h4 style="margin-top:14px">ประมาณการ</h4><div id="st-proj" class="s-kv"></div></div></div>
+   <div class="s-pn"><h4>ข้อมูลแยกตามประเภท</h4><div id="st-parts"></div><h4 style="margin-top:14px">ประมาณการ</h4><div id="st-proj" class="s-kv"></div><h4 style="margin-top:14px">โควตา Firebase เต็ม</h4><div id="st-quota" class="s-kv"></div></div></div>
    <div class="s-sm">หมายเหตุ: คำนวณจากข้อมูลที่เครื่องนี้โหลดอยู่ตอนนี้ (นับเป็นไบต์ UTF-8) ขนาดจริงใน Firebase อาจมากกว่าเล็กน้อยจากชื่อฟิลด์ จึงคิดค่าเผื่อไว้ 1.3 เท่า · แผนฟรี: พื้นที่ 1 GiB, อ่าน 50,000 / เขียน 20,000 ครั้งต่อวัน, เอกสารละ 1 MiB</div>
   </div>
   <div class="s-foot"><button type="button" onclick="closeStorageModal()">ปิด</button></div>
@@ -7478,6 +7479,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     var tp=R.total||1;
     $('st-parts').innerHTML=Object.keys(R.parts).map(function(k){var p=R.parts[k]/tp*100;return '<div class="s-bar"><div class="t"><span>'+k+'</span><b>'+fmt(R.parts[k]*FAC)+' · '+p.toFixed(0)+'%</b></div><div class="b"><i style="width:'+p+'%"></i></div></div>'}).join('');
     $('st-proj').innerHTML='<span>เฉลี่ยต่อวันที่มีข้อมูล</span><b>'+fmt(avg*FAC)+'</b><span>วันทำการต่อปี (ประมาณ)</span><b>'+Math.round(perYear)+' วัน</b><span>ข้อมูลที่เพิ่มต่อปี</span><b>'+fmt(perYearB)+'</b><span>ใช้พื้นที่ฟรีหมดใน</span><b>'+(yrs>=100?'100+ ปี':yrs.toFixed(0)+' ปี')+'</b>'+(n<60?'<span class="s-sm" style="grid-column:1/-1">ข้อมูลยังน้อยกว่า 60 วัน จึงสมมติ 250 วันทำการต่อปี</span>':'');
+    try{ $('st-quota').innerHTML=window.pawnQuotaSummary?pawnQuotaSummary():''; }catch(e){}
     $('st-modal').classList.add('on');
   };
   window.closeStorageModal=function(){ $('st-modal').classList.remove('on'); };
@@ -8850,7 +8852,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   function onErr(err,write){ var c=err&&err.code; console.warn('tkw sync',err);
     if(c==='permission-denied'){ CL.denied=true; chip('☁ ซิงก์ไม่ได้: ยังไม่มีสิทธิ์ (บันทึกในเครื่องนี้)','er'); say('ซิงก์หน้าเขียนตั๋วไม่ได้: ต้องเพิ่มกฎ Firestore ให้คอลเลกชัน tkw'); return; }
-    if(c==='resource-exhausted'){ chip('☁ โควตาเต็ม (บันทึกในเครื่องนี้)','er'); return; }
+    if(c==='resource-exhausted'){ try{ window.pawnQuotaHit&&pawnQuotaHit('ตั๋วขาย'); }catch(_){} chip('☁ โควตาเต็ม (บันทึกในเครื่องนี้)','er'); return; }
     chip('☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา','er'); if(write) schedPush(30000); }
   function applyRemote(k,c){
     var l=store[k]; if(l&&(c.u||0)<=(l.u||0)) return;
@@ -10264,6 +10266,31 @@ html body.page-home #home-page #ed-home{background:#14213D !important;background
     if(!armed) return;
     if(back()){ guard(); }
   });
+})();
+</script>
+
+<script>
+/* บันทึกครั้งที่ Firebase แจ้งโควตาเต็ม (เก็บในเครื่อง ไม่แตะตรรกะซิงค์) */
+(function(){
+  var K='pawn_quota_hits', MAX=200;
+  function load(){ try{ var a=JSON.parse(localStorage.getItem(K)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function day(t){ var d=new Date(t); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  var lastAt=0;
+  window.pawnQuotaHit=function(kind){
+    var now=Date.now(); if(now-lastAt<60000) return; lastAt=now;   // ลองซ้ำถี่ ๆ นับเป็นครั้งเดียวต่อนาที
+    var a=load(); a.push({t:now,k:String(kind||'')}); if(a.length>MAX) a=a.slice(-MAX);
+    try{ localStorage.setItem(K,JSON.stringify(a)); }catch(e){}
+  };
+  window.pawnQuotaSummary=function(){
+    var a=load(); if(!a.length) return '<span>ที่เครื่องนี้บันทึกไว้</span><b>ยังไม่เคยเต็ม</b><span class="s-sm" style="grid-column:1/-1">เริ่มนับตั้งแต่อัปเดตนี้ · นับเฉพาะเครื่องนี้</span>';
+    var days={}; a.forEach(function(x){ days[day(x.t)]=1; });
+    var last=a[a.length-1], d=new Date(last.t), since=day(a[0].t);
+    var t30=Date.now()-30*864e5, n30=Object.keys(a.filter(function(x){return x.t>=t30;}).reduce(function(o,x){o[day(x.t)]=1;return o;},{})).length;
+    return '<span>จำนวนวันที่เต็ม (รวม)</span><b>'+Object.keys(days).length+' วัน</b>'
+      +'<span>ใน 30 วันล่าสุด</span><b>'+n30+' วัน</b>'
+      +'<span>ครั้งล่าสุด</span><b>'+day(last.t)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+' ('+last.k+')</b>'
+      +'<span class="s-sm" style="grid-column:1/-1">นับตั้งแต่ '+since+' · นับเฉพาะเครื่องนี้</span>';
+  };
 })();
 </script>
 

@@ -531,7 +531,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   function onErr(err,write){ var c=err&&err.code; console.warn('tkw sync',err);
     if(c==='permission-denied'){ CL.denied=true; chip('☁ ซิงก์ไม่ได้: ยังไม่มีสิทธิ์ (บันทึกในเครื่องนี้)','er'); say('ซิงก์หน้าเขียนตั๋วไม่ได้: ต้องเพิ่มกฎ Firestore ให้คอลเลกชัน tkw'); return; }
-    if(c==='resource-exhausted'){ chip('☁ โควตาเต็ม (บันทึกในเครื่องนี้)','er'); return; }
+    if(c==='resource-exhausted'){ try{ window.pawnQuotaHit&&pawnQuotaHit('ตั๋วขาย'); }catch(_){} chip('☁ โควตาเต็ม (บันทึกในเครื่องนี้)','er'); return; }
     chip('☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา','er'); if(write) schedPush(30000); }
   function applyRemote(k,c){
     var l=store[k]; if(l&&(c.u||0)<=(l.u||0)) return;

@@ -30,3 +30,4 @@ endday.html
 calmbtn.html
 calmhome.html
 backnav.html
+quotalog.html

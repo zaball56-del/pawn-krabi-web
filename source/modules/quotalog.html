@@ -1,0 +1,24 @@
+<script>
+/* บันทึกครั้งที่ Firebase แจ้งโควตาเต็ม (เก็บในเครื่อง ไม่แตะตรรกะซิงค์) */
+(function(){
+  var K='pawn_quota_hits', MAX=200;
+  function load(){ try{ var a=JSON.parse(localStorage.getItem(K)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function day(t){ var d=new Date(t); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  var lastAt=0;
+  window.pawnQuotaHit=function(kind){
+    var now=Date.now(); if(now-lastAt<60000) return; lastAt=now;   // ลองซ้ำถี่ ๆ นับเป็นครั้งเดียวต่อนาที
+    var a=load(); a.push({t:now,k:String(kind||'')}); if(a.length>MAX) a=a.slice(-MAX);
+    try{ localStorage.setItem(K,JSON.stringify(a)); }catch(e){}
+  };
+  window.pawnQuotaSummary=function(){
+    var a=load(); if(!a.length) return '<span>ที่เครื่องนี้บันทึกไว้</span><b>ยังไม่เคยเต็ม</b><span class="s-sm" style="grid-column:1/-1">เริ่มนับตั้งแต่อัปเดตนี้ · นับเฉพาะเครื่องนี้</span>';
+    var days={}; a.forEach(function(x){ days[day(x.t)]=1; });
+    var last=a[a.length-1], d=new Date(last.t), since=day(a[0].t);
+    var t30=Date.now()-30*864e5, n30=Object.keys(a.filter(function(x){return x.t>=t30;}).reduce(function(o,x){o[day(x.t)]=1;return o;},{})).length;
+    return '<span>จำนวนวันที่เต็ม (รวม)</span><b>'+Object.keys(days).length+' วัน</b>'
+      +'<span>ใน 30 วันล่าสุด</span><b>'+n30+' วัน</b>'
+      +'<span>ครั้งล่าสุด</span><b>'+day(last.t)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+' ('+last.k+')</b>'
+      +'<span class="s-sm" style="grid-column:1/-1">นับตั้งแต่ '+since+' · นับเฉพาะเครื่องนี้</span>';
+  };
+})();
+</script>
