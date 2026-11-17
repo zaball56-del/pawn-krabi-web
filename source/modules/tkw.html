@@ -510,6 +510,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       var i=0; while(i<col.length&&(col[i][0]||col[i][1])) i++;
       while(col.length<=i) col.push(['','']);
       col[i]=[t,a===''?'':String(num(a)),b,''];
+      if(d.pen) col[i][4]=d.pen;   /* ตั๋วที่นำเข้าได้สีปากกาปัจจุบันของวันนั้นทันที */
       add++; addedMo[m]=(addedMo[m]||0)+1; });
     if(add||fill){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){}
       if(key===k){ day=d; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } }

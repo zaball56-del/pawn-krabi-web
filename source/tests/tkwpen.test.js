@@ -53,6 +53,10 @@ const type=(w,el,v)=>{ el.value=v; el.dispatchEvent(new w.Event('input',{bubbles
   ok(store(w).cn===2&&store(w).pen==='b'&&$(w,'tkw-pclose').textContent==='ปิดบัญชีครั้งที่ 3','11 ปิดครั้งที่ 2 → น้ำเงิน และปุ่มเปลี่ยนเป็นครั้งที่ 3');
   type(w,inp(w,5,5,0),'6001'); await wait(50);
   ok(pen(5,5)==='b'&&pen(5,3)==='r','12 ตั๋วหลังปิดครั้งที่ 2 เป็นน้ำเงิน แถวแดงเดิมค้าง');
+  // นำเข้า สธ.3 ได้สีปากกาปัจจุบัน (น้ำเงิน) ทันที
+  w.tkwImportS3(DAY,[{month:11,ticket:'7777',book:'12',amount:900}]);
+  const imp=store(w).r[5].find(x=>x[0]==='7777');
+  ok(imp&&imp[4]==='b'&&pen(5,3)==='r','13 นำเข้า สธ.3 ได้สีปากกาปัจจุบัน แถวเดิมไม่เปลี่ยน');
   // โหลดซ้ำ: สียังอยู่
   const raw=w.localStorage.getItem('pawn_tkw_v1'); ok(JSON.parse(raw)[DAY].r[5][3][4]==='r','10 บันทึกลง localStorage');
   console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0);
