@@ -33,3 +33,4 @@ backnav.html
 quotalog.html
 homebg.html
 sessunlock.html
+scanner.html

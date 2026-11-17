@@ -1,0 +1,47 @@
+<script id="scanner-js">
+/* เครื่องยิงบาร์โค้ด/คิวอาร์ (แบบ HID = พิมพ์เหมือนคีย์บอร์ด) — ทำงานเฉพาะตอน "ไม่ได้โฟกัสช่องกรอกอยู่"
+   ยิงแล้วไม่ตรงช่อง → หน้าเขียนตั๋ว: เปิดแผงสแกนแล้วใส่เลขตั๋วให้ · หน้าบัญชีแยก: เปิดคีย์ด่วนแล้วใส่เลขตั๋วให้ (บาร์โค้ด 13 หลักถูกแยกเล่ม/เลขที่โดย barcode.html อยู่แล้ว)
+   ถ้าโฟกัสช่องอยู่แล้ว ปล่อยให้ทำงานเหมือนพิมพ์ปกติ (ไม่แตะ) · พิมพ์มือไม่เข้าเงื่อนไข (ต้องรัวเกิน ~4 ตัวใน <60ms/ตัว) */
+(function(){
+  var buf='', t0=0, tl=0;
+  function editable(el){ if(!el) return false; var n=(el.tagName||'').toLowerCase(); return n==='input'||n==='textarea'||n==='select'||el.isContentEditable; }
+  function toast(m){ try{ if(typeof showToast==='function') showToast(m); }catch(e){} }
+  function vis(el){ return !!(el&&el.offsetParent!==null); }
+  function fire(el,type){ el.dispatchEvent(new Event(type,{bubbles:true})); }
+  function tkwScan(code){
+    var P=document.getElementById('tkw-page'), ST=document.getElementById('tkw-sq-t');
+    if(!P||!ST) return;
+    if(!P.classList.contains('sq-on')){ var sb=P.querySelector('.bar button.scan'); if(!sb){ toast('เปิดแผงสแกนไม่ได้'); return; } sb.click(); }
+    setTimeout(function(){ ST=document.getElementById('tkw-sq-t'); ST.focus(); ST.value=code; fire(ST,'input'); fire(ST,'change'); },80);
+  }
+  function qsScan(code){
+    var m=document.getElementById('quick-scan-modal');
+    if(m&&(m.classList.contains('hidden')||m.style.display==='none')&&typeof window.openQuickScanModal==='function') window.openQuickScanModal();
+    setTimeout(function(){
+      var t=document.getElementById('qs-ticket'); if(!t) return;
+      t.focus(); t.value=code; fire(t,'input');
+      t.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
+    },60);
+  }
+  function route(code){
+    if(document.body.classList.contains('tkw-open')) return tkwScan(code);
+    var lg=document.getElementById('login-modal'); if(lg&&getComputedStyle(lg).display!=='none') return;
+    var app=document.getElementById('app-container'); if(!app||app.style.display==='none'||app.offsetParent===null&&getComputedStyle(app).display==='none') return;
+    qsScan(code);
+  }
+  window.__scannerRoute=route;
+  document.addEventListener('keydown',function(e){
+    if(e.ctrlKey||e.altKey||e.metaKey) return;
+    if(editable(e.target)){ buf=''; return; }
+    var now=Date.now();
+    if(e.key==='Enter'){
+      var n=buf.length, ok=n>=4&&(now-tl)<=120&&((tl-t0)/Math.max(1,n-1))<=60; var code=buf; buf='';
+      if(ok){ e.preventDefault(); e.stopPropagation(); route(code); }
+      return;
+    }
+    if(e.key.length!==1) return;
+    if(!buf||now-tl>80){ buf=''; t0=now; }
+    buf+=e.key; tl=now;
+  },true);
+})();
+</script>
