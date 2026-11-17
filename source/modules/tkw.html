@@ -155,7 +155,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div id="tkw-ph"><div class="t1"></div><div class="t2"></div></div>
   <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb" id="tkw-delday" onclick="dayDelAsk('tkw')" style="color:#fecaca !important;border-color:rgba(248,113,113,.6) !important">🗑 ลบทั้งวัน</button><button type="button" class="mb" id="tkw-compact" title="เลื่อนตั๋วของเดือนที่เลือกขึ้นมาเติมช่องว่าง (เดือนอื่นไม่ขยับ)">⇡ เลื่อนขึ้น</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
   <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
-  <div id="tkw-pen" class="no-print"><span class="pl">🖊 ปากกา</span><button type="button" class="pd k" data-pen="k" aria-label="ปากกาดำ"></button><button type="button" class="pd r" data-pen="r" aria-label="ปากกาแดง"></button><button type="button" class="pd b" data-pen="b" aria-label="ปากกาน้ำเงิน"></button><button type="button" class="pd g" data-pen="g" aria-label="ปากกาเขียว"></button><button type="button" class="pc" id="tkw-pclose">ปิดบัญชีครึ่งวัน</button><span class="pn" id="tkw-pnote"></span></div>
+  <div id="tkw-pen" class="no-print"><span class="pl">🖊 ปากกา</span><button type="button" class="pd k" data-pen="k" aria-label="ปากกาดำ"></button><button type="button" class="pd r" data-pen="r" aria-label="ปากกาแดง"></button><button type="button" class="pd b" data-pen="b" aria-label="ปากกาน้ำเงิน"></button><button type="button" class="pd g" data-pen="g" aria-label="ปากกาเขียว"></button><button type="button" class="pc" id="tkw-pclose">ปิดบัญชีครั้งที่ 1</button><span class="pn" id="tkw-pnote"></span></div>
   <div class="tabs" id="tkw-tabs"></div>
   <div class="card" id="tkw-card"><table id="tkw-table"></table></div>
   <div id="tkw-s3note" class="no-print"></div><div id="tkw-cmp"></div>
@@ -220,9 +220,11 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       el.classList.toggle('pen-r',c==='r'); el.classList.toggle('pen-b',c==='b'); el.classList.toggle('pen-g',c==='g'); }); }
   function penUI(){ var bar=document.getElementById('tkw-pen'); if(!bar||!day) return; var p=day.pen||'k';
     [].forEach.call(bar.querySelectorAll('[data-pen]'),function(b){ b.classList.toggle('on',b.dataset.pen===p); });
-    var n=''; if(day.cl){ var t=new Date(day.cl); n='ปิดบัญชีครึ่งวัน '+('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2)+' น. · '; }
+    var n=''; if(day.cl){ var t=new Date(day.cl); n='ปิดบัญชีครั้งที่ '+penCn()+' เมื่อ '+('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2)+' น. · '; }
+    var pb=document.getElementById('tkw-pclose'); if(pb) pb.textContent='ปิดบัญชีครั้งที่ '+(penCn()+1);
     n+=(day.pen?'กำลังเขียนด้วยปากกา'+PENN[p]:'ยังไม่ได้เลือกสีปากกา (ตัวเลขทั้งหมดเป็นสีดำ)'); bar.querySelector('.pn').textContent=n; }
-  function penSet(p,closing){ if(!day) return; snap(); penStamp(day.pen||'k'); day.pen=p; if(closing) day.cl=Date.now(); commit(); penPaint(); penUI(); }
+  function penCn(){ return day? (day.cn||(day.cl?1:0)) : 0; }
+  function penSet(p,closing){ if(!day) return; snap(); penStamp(day.pen||'k'); day.pen=p; if(closing){ day.cn=penCn()+1; day.cl=Date.now(); (day.cls=day.cls||[]).push(day.cl); } commit(); penPaint(); penUI(); }
   function commit(){ day.u=Date.now(); if(day.pen) penStamp(day.pen); store[key]=day; save(); try{ markDirty(key); }catch(e){} try{ penPaint(); }catch(e){} }
   function num(s){ var v=parseFloat(String(s||'').replace(/,/g,'')); return isNaN(v)?0:v; }
   function fmt(v){ return v?v.toLocaleString('en-US'):'0'; }
@@ -306,7 +308,9 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   $('tkw-next').onclick=function(){ open(shift(key,1)); };
   $('tkw-today').onclick=function(){ open(todayKey()); };
   $('tkw-pen').addEventListener('click',function(e){ var b=e.target.closest('[data-pen]'); if(b){ penSet(b.dataset.pen,false); return; }
-    if(e.target.closest('#tkw-pclose')){ if(day.cl&&day.pen==='r'&&!window.confirm('ปิดบัญชีครึ่งวันไปแล้ว ต้องการกดปิดซ้ำ (บันทึกเวลาใหม่) ใช่ไหม?')) return; penSet('r',true); try{ showToast('ปิดบัญชีครึ่งวันแล้ว · ตัวเลขที่เขียนต่อจากนี้เป็นปากกาสีแดง'); }catch(_){} } });
+    if(e.target.closest('#tkw-pclose')){ var nx=penCn()+1, pc=['k','r','b','g'][Math.min(nx,3)];
+      if(nx>1&&!window.confirm('ปิดบัญชีครั้งที่ '+nx+' ใช่ไหม? ตัวเลขที่เขียนต่อจากนี้จะเป็นปากกาสี'+PENN[pc])) return;
+      penSet(pc,true); try{ showToast('ปิดบัญชีครั้งที่ '+nx+' แล้ว · ตัวเลขที่เขียนต่อจากนี้เป็นปากกาสี'+PENN[pc]); }catch(_){} } });
   $('tkw-tabs').onclick=function(e){ var b=e.target.closest('[data-tab]'); if(b) setCur(+b.dataset.tab); };
   var T=$('tkw-table');
   T.addEventListener('input',function(e){ var el=e.target; if(el.tagName!=='INPUT') return; var g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var k=g+'/'+i+'/'+f; if(undo._k!==k){ snap(); undo._k=k; } ensure(g,i); day.r[g][i][f]=el.value; if(f===0&&(day.r[g][i][2]||day.r[g][i][3])){ day.r[g][i][2]=''; day.r[g][i][3]=''; var sm=el.parentNode.querySelector('small,.bk-tag'); if(sm) sm.remove(); el.classList.remove('hb'); } commit(); tot(); tabs(); });

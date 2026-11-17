@@ -34,7 +34,7 @@ const type=(w,el,v)=>{ el.value=v; el.dispatchEvent(new w.Event('input',{bubbles
   ok(pen(5,2)==='' ,'2 ยังไม่เลือกสี → ไม่ติดสี');
   // กดปิดบัญชีครึ่งวัน
   $(w,'tkw-pclose').click(); await wait(50);
-  ok(store(w).pen==='r'&&!!store(w).cl,'3 ปิดบัญชี → ปากกาแดง + จดเวลา');
+  ok(store(w).pen==='r'&&!!store(w).cl&&store(w).cn===1&&$(w,'tkw-pclose').textContent==='ปิดบัญชีครั้งที่ 2','3 ปิดครั้งที่ 1 → ปากกาแดง + จดเวลา + ปุ่มเป็นครั้งที่ 2');
   ok(pen(5,0)==='k'&&pen(5,1)==='k'&&pen(5,2)==='k','4 แถวรอบเช้าถูกตรึงเป็นสีดำ');
   type(w,inp(w,5,3,0),'3001'); type(w,inp(w,5,3,1),'200'); await wait(50);
   ok(pen(5,3)==='r','5 ตั๋วใหม่หลังปิด = แดง');
@@ -48,6 +48,11 @@ const type=(w,el,v)=>{ el.value=v; el.dispatchEvent(new w.Event('input',{bubbles
   // ลบแล้วเขียนใหม่ได้สีปัจจุบัน
   type(w,inp(w,5,4,0),''); type(w,inp(w,5,4,1),''); await wait(50);
   ok(pen(5,4)==='','9 แถวที่ลบ ไม่เหลือสี');
+  // ปิดบัญชีครั้งที่ 2 → น้ำเงิน, ครั้งที่ 3 → เขียว
+  w.confirm=()=>true; $(w,'tkw-pclose').click(); await wait(50);
+  ok(store(w).cn===2&&store(w).pen==='b'&&$(w,'tkw-pclose').textContent==='ปิดบัญชีครั้งที่ 3','11 ปิดครั้งที่ 2 → น้ำเงิน และปุ่มเปลี่ยนเป็นครั้งที่ 3');
+  type(w,inp(w,5,5,0),'6001'); await wait(50);
+  ok(pen(5,5)==='b'&&pen(5,3)==='r','12 ตั๋วหลังปิดครั้งที่ 2 เป็นน้ำเงิน แถวแดงเดิมค้าง');
   // โหลดซ้ำ: สียังอยู่
   const raw=w.localStorage.getItem('pawn_tkw_v1'); ok(JSON.parse(raw)[DAY].r[5][3][4]==='r','10 บันทึกลง localStorage');
   console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0);
