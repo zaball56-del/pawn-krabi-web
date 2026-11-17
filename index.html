@@ -10517,5 +10517,125 @@ html body #ledger-page::after{content:"";position:fixed;z-index:-1;pointer-event
 })();
 </script>
 
+<style id="sblantern-css">
+/* เมนูซ้ายแบบ "โคมไฟ": โคมห้อยบนเส้นตั้ง เลื่อนไปหาเมนูที่ชี้/เลือก แสงส้มฟุ้งสว่างเมนูใกล้ๆ */
+html body #app-sidebar#app-sidebar:not(#_x){position:fixed;overflow-x:hidden;border-color:rgba(255,170,70,.2) !important;box-shadow:0 22px 50px rgba(0,0,0,.6),inset -1px 0 0 rgba(255,255,255,.04) !important;
+  background:radial-gradient(90% 38% at 8% 22%,rgba(255,140,40,.07),transparent 70%),radial-gradient(130% 70% at 0% 30%,#1b2234,#0b0e17 72%) !important;background-image:radial-gradient(90% 38% at 8% 22%,rgba(255,140,40,.07),transparent 70%),radial-gradient(130% 70% at 0% 30%,#1b2234,#0b0e17 72%) !important}
+html body #app-sidebar:not(#_x)::before{content:"";position:absolute;left:29px;top:100px;bottom:96px;width:2px;border-radius:2px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.2) 10%,rgba(255,255,255,.2) 90%,transparent);pointer-events:none;z-index:0}
+html body #app-sidebar#app-sidebar .sb-brand,html body #app-sidebar#app-sidebar .sb-brand span{color:#f4efe2 !important}
+html body #app-sidebar#app-sidebar .sb-gb:not(#_x){padding-left:34px !important}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y){position:relative;background:transparent !important;border:0 !important;box-shadow:none !important;border-radius:12px !important;color:#e9e4d4 !important;font-weight:500 !important;font-size:14px !important;line-height:1.3 !important;white-space:nowrap;
+  padding-top:11px !important;padding-bottom:11px !important;opacity:var(--lt,.55);transition:opacity .5s ease,color .3s,transform .35s cubic-bezier(.3,1.5,.5,1),background .4s,text-shadow .4s}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y)::before{content:"";position:absolute;left:-25px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:rgba(255,255,255,.28);transition:background .4s,box-shadow .4s,transform .4s}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y):hover{background:transparent !important;transform:translateX(3px)}
+html body #app-sidebar#app-sidebar .sb-item[data-lt]:not(#_x):not(#_y){color:#fff !important;text-shadow:0 0 14px rgba(255,170,60,.55);background:linear-gradient(90deg,rgba(255,160,50,.20),rgba(255,160,50,.06) 55%,transparent) !important}
+html body #app-sidebar#app-sidebar .sb-item[data-lt]:not(#_x)::before{background:#ffb347;box-shadow:0 0 10px 3px rgba(255,160,50,.7);transform:scale(1.25)}
+html body #app-sidebar#app-sidebar .sb-item.on:not(#_x):not(#_y){color:#fff !important;font-weight:600 !important}
+html body #app-sidebar#app-sidebar .sb-item.on *:not(#_x){color:#fff !important}
+html body #app-sidebar#app-sidebar .sb-item.on::after{content:"";position:absolute;right:14px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:#ffc15e;box-shadow:0 0 10px 3px rgba(255,170,60,.85)}
+html body #app-sidebar#app-sidebar .sb-item .sb-ic:not(#_x):not(#_y){background:transparent !important;box-shadow:none !important;color:currentColor !important;--c:currentColor !important;border-radius:0 !important}
+html body #app-sidebar#app-sidebar .sb-item small{color:#9aa0b3 !important}
+html body #app-sidebar#app-sidebar .sb-grp:not(#_x):not(#_y){background:transparent !important;border:0 !important;border-bottom:1px solid rgba(255,255,255,.09) !important;border-radius:0 !important;box-shadow:none !important;color:#ffb347 !important;letter-spacing:.05em;font-weight:700 !important}
+html body #app-sidebar#app-sidebar .sb-grp *:not(#_x){color:#ffb347 !important}
+html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-gb{background:#10141f !important;border:1px solid rgba(255,170,70,.25) !important}
+html body #app-sidebar#app-sidebar .sb-ver:not(#_x){background:rgba(255,255,255,.05) !important;border:1px solid rgba(255,255,255,.12) !important;color:#9aa0b3 !important}
+html body #app-sidebar#app-sidebar .sb-ver b{color:#f4efe2 !important}
+.lt-lamp{position:absolute;left:30px;top:0;width:0;height:0;z-index:3;pointer-events:none;transition:transform .8s cubic-bezier(.34,1.4,.5,1);will-change:transform}
+.lt-lamp .lt-glow{position:absolute;left:-40px;top:-135px;width:360px;height:270px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,160,50,.5),rgba(255,120,20,.2) 48%,transparent);mix-blend-mode:screen;animation:ltFlick 3.4s ease-in-out infinite}
+.lt-lamp .lt-sw{position:absolute;left:-20px;top:-44px;width:40px;height:58px;transform-origin:50% 4px}
+.lt-lamp.swing .lt-sw{animation:ltSwing 1.5s ease-out}
+.lt-lamp svg{display:block;width:40px;height:58px;overflow:visible;filter:drop-shadow(0 0 7px rgba(255,150,40,.55))}
+.lt-lamp i{position:absolute;left:-1px;top:-14px;width:3px;height:3px;border-radius:50%;background:#ffc45e;box-shadow:0 0 6px 2px rgba(255,170,60,.8);opacity:0;animation:ltEmber 3.6s ease-out infinite}
+.lt-lamp i:nth-of-type(2){left:5px;animation-delay:1.2s;animation-duration:4.2s}.lt-lamp i:nth-of-type(3){left:-7px;animation-delay:2.3s;animation-duration:3.9s}
+@keyframes ltSwing{0%{transform:rotate(0)}16%{transform:rotate(10deg)}40%{transform:rotate(-7deg)}64%{transform:rotate(4deg)}84%{transform:rotate(-1.8deg)}100%{transform:rotate(0)}}
+@keyframes ltFlick{0%,100%{opacity:.92}40%{opacity:1}58%{opacity:.82}75%{opacity:.97}}
+@keyframes ltEmber{0%{opacity:0;transform:translate(0,0) scale(1)}12%{opacity:.95}100%{opacity:0;transform:translate(6px,-34px) scale(.3)}}
+/* --- ธีมสว่าง เข้ากับหน้าแรก: ครีม + กรมท่า + ทอง --- */
+html body #app-sidebar#app-sidebar:not(#_x){border-color:#CDE6E6 !important;box-shadow:0 18px 44px rgba(20,33,61,.22),inset -1px 0 0 rgba(255,255,255,.6) !important;-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);
+  background:radial-gradient(90% 38% at 8% 22%,rgba(79,209,226,.30),transparent 70%),linear-gradient(180deg,rgba(246,252,252,.985),rgba(236,246,246,.975)) !important;background-image:radial-gradient(90% 38% at 8% 22%,rgba(79,209,226,.30),transparent 70%),linear-gradient(180deg,rgba(246,252,252,.985),rgba(236,246,246,.975)) !important}
+html body #app-sidebar:not(#_x)::before{background:linear-gradient(180deg,transparent,rgba(20,33,61,.22) 10%,rgba(20,33,61,.22) 90%,transparent)}
+html body #app-sidebar#app-sidebar .sb-brand,html body #app-sidebar#app-sidebar .sb-brand span{color:#14213D !important}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y){color:#14213D !important;opacity:var(--lt,.6)}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y) .sb-ic{opacity:1}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y)::before{background:rgba(20,33,61,.22)}
+html body #app-sidebar#app-sidebar .sb-item[data-lt]:not(#_x):not(#_y){color:#14213D !important;text-shadow:none;background:linear-gradient(90deg,rgba(57,197,187,.38),rgba(79,209,226,.14) 60%,transparent) !important}
+html body #app-sidebar#app-sidebar .sb-item[data-lt]:not(#_x)::before{background:#1AB3AA;box-shadow:0 0 9px 3px rgba(79,209,226,.95)}
+html body #app-sidebar#app-sidebar .sb-item.on:not(#_x):not(#_y){color:#14213D !important}
+html body #app-sidebar#app-sidebar .sb-item.on *:not(#_x){color:#14213D !important}
+html body #app-sidebar#app-sidebar .sb-item.on::after{background:#1AB3AA;box-shadow:0 0 9px 3px rgba(79,209,226,.95)}
+html body #app-sidebar#app-sidebar .sb-item small{color:#7A7566 !important}
+html body #app-sidebar#app-sidebar .sb-grp:not(#_x):not(#_y){color:#0B7A80 !important;border-bottom:1px solid #CDE6E6 !important}
+html body #app-sidebar#app-sidebar .sb-grp *:not(#_x){color:#0B7A80 !important}
+html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-gb{background:#F2FAFA !important;border:1px solid #CDE6E6 !important}
+html body #app-sidebar#app-sidebar .sb-ver:not(#_x){background:rgba(255,255,255,.7) !important;border:1px solid #CDE6E6 !important;color:#7A7566 !important}
+html body #app-sidebar#app-sidebar .sb-ver b{color:#14213D !important}
+.lt-lamp .lt-glow{background:radial-gradient(closest-side,rgba(79,209,226,.7),rgba(57,197,187,.28) 50%,transparent);mix-blend-mode:normal}
+.lt-lamp svg{filter:drop-shadow(0 3px 5px rgba(20,33,61,.3)) drop-shadow(0 0 6px rgba(79,209,226,.85))}
+.lt-lamp i{background:none;box-shadow:none;width:auto;height:auto;font:700 14px/1 "Segoe UI Symbol","Noto Sans Symbols2",sans-serif;color:#17B9C8;text-shadow:0 0 6px rgba(79,209,226,.9),0 0 2px #fff}
+.lt-lamp i::before{content:"\266A"}.lt-lamp i:nth-of-type(2)::before{content:"\266B"}.lt-lamp i:nth-of-type(3)::before{content:"\266C"}
+/* --- ตัวเลื่อนทางเลือก (data-ltv) --- */
+#app-sidebar[data-ltv]:not([data-ltv=lantern]) .lt-lamp .lt-glow{left:-70px;top:-60px;width:260px;height:120px;background:radial-gradient(closest-side,rgba(57,197,187,.5),rgba(79,209,226,.18) 55%,transparent)}
+html body #app-sidebar[data-ltv=fader]:not(#_x)::before{left:26px;width:8px;border-radius:4px;background:linear-gradient(90deg,#b9c9c9,#eaf5f5 50%,#b9c9c9);box-shadow:inset 0 1px 3px rgba(20,33,61,.35)}
+.lt-knob{position:absolute;left:-15px;top:-20px;width:30px;height:40px;border-radius:9px;background:linear-gradient(180deg,#4b5463,#272d38 52%,#3a4250);border:1px solid #1b212b;box-shadow:0 7px 14px rgba(20,33,61,.45),0 0 14px rgba(57,197,187,.55),inset 0 1px 0 rgba(255,255,255,.35)}
+.lt-knob::before{content:"";position:absolute;left:5px;right:5px;top:18px;height:4px;border-radius:2px;background:#7ff3f6;box-shadow:0 0 8px 2px rgba(79,209,226,.95)}
+.lt-knob::after{content:"";position:absolute;left:6px;right:6px;top:5px;bottom:5px;border-radius:4px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.14) 0 1px,transparent 1px 5px);-webkit-mask:linear-gradient(180deg,#000 0 26%,transparent 26% 74%,#000 74%);mask:linear-gradient(180deg,#000 0 26%,transparent 26% 74%,#000 74%)}
+.lt-tag{position:absolute;left:-17px;top:-12px;width:34px;height:24px;border-radius:7px;background:linear-gradient(180deg,#f0414a,#cf1f2a);color:#fff;font:800 14px/24px "Sarabun",sans-serif;letter-spacing:.06em;text-align:center;box-shadow:0 6px 12px rgba(207,31,42,.45),inset 0 1px 0 rgba(255,255,255,.5),inset 0 0 0 1px rgba(255,255,255,.25);text-shadow:0 1px 1px rgba(0,0,0,.25)}
+.lt-eq{position:absolute;left:-16px;top:-13px;display:flex;align-items:flex-end;gap:3px;height:26px;padding:3px 5px;border-radius:8px;background:rgba(20,33,61,.82);box-shadow:0 6px 12px rgba(20,33,61,.35),0 0 12px rgba(57,197,187,.5)}
+.lt-eq b{display:block;width:4px;height:20px;border-radius:2px;background:linear-gradient(180deg,#7ff3f6,#19B3AA);transform-origin:bottom;animation:ltEq .9s ease-in-out infinite}
+.lt-eq b:nth-child(2){animation-delay:-.25s;animation-duration:.7s}.lt-eq b:nth-child(3){animation-delay:-.5s;animation-duration:1.05s}.lt-eq b:nth-child(4){animation-delay:-.15s;animation-duration:.8s}.lt-eq b:nth-child(5){animation-delay:-.6s}
+@keyframes ltEq{0%,100%{transform:scaleY(.25)}35%{transform:scaleY(1)}65%{transform:scaleY(.5)}}
+@media (prefers-reduced-motion:reduce){.lt-eq b{animation:none !important}}
+@media (prefers-reduced-motion:reduce){.lt-lamp,.lt-lamp .lt-glow,.lt-lamp i,.lt-lamp.swing .lt-sw{transition:none !important;animation:none !important}}
+</style>
+<script id="sblantern-js">
+(function(){
+  var A=document.getElementById('app-sidebar'); if(!A) return;
+  var L=document.createElement('div'); L.className='lt-lamp';
+  var V={}; V.lantern='<div class="lt-glow"></div><div class="lt-sw"><svg viewBox="0 0 40 58" aria-hidden="true"><defs>'+
+   '<linearGradient id="ltm" x1="0" x2="1"><stop offset="0" stop-color="#14213D"/><stop offset=".45" stop-color="#3b4d78"/><stop offset="1" stop-color="#101a31"/></linearGradient>'+
+   '<linearGradient id="ltgl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9fbff" stop-opacity=".8"/><stop offset=".55" stop-color="#4fd1e2" stop-opacity=".62"/><stop offset="1" stop-color="#0f9aa8" stop-opacity=".78"/></linearGradient>'+
+   '<radialGradient id="ltfl" cx=".5" cy=".62" r=".55"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#8ff0f4"/><stop offset="1" stop-color="#2bc4d4" stop-opacity="0"/></radialGradient></defs>'+
+   '<path d="M20 0v8" stroke="#14213D" stroke-width="1.6" stroke-linecap="round"/><circle cx="20" cy="3.6" r="3" fill="none" stroke="#1AB3AA" stroke-width="1.5"/>'+
+   '<path d="M20 8 L31 18 H9 Z" fill="url(#ltm)" stroke="#1AB3AA" stroke-width=".9" stroke-linejoin="round"/><circle cx="20" cy="8.4" r="1.6" fill="#E8C872"/>'+
+   '<rect x="9.5" y="18" width="21" height="25" rx="3" fill="url(#ltgl)" stroke="#1AB3AA" stroke-opacity=".9" stroke-width="1.2"/>'+
+   '<path d="M15 18v25M25 18v25" stroke="#14213D" stroke-opacity=".8" stroke-width="1.3"/>'+
+   '<ellipse cx="20" cy="31.5" rx="8" ry="10.5" fill="url(#ltfl)"/><path d="M20 22c3.6 3.6 4.4 7 0 11.5-4.4-4.5-3.6-7.9 0-11.5z" fill="#f2ffff"/><ellipse cx="20" cy="33.5" rx="1.6" ry="2.6" fill="#b8f6fa"/>'+
+   '<path d="M12 21v10" stroke="#fff" stroke-opacity=".45" stroke-width="1.4" stroke-linecap="round"/>'+
+   '<path d="M8.5 43h23l-2.4 6H10.9z" fill="url(#ltm)" stroke="#1AB3AA" stroke-width=".9" stroke-linejoin="round"/><rect x="15" y="49" width="10" height="3.6" rx="1.4" fill="#14213D" stroke="#1AB3AA" stroke-width=".7"/></svg></div><i></i><i></i><i></i>';
+  A.appendChild(L);
+  var cur=null, tmr=null;
+  V.fader='<div class="lt-glow"></div><div class="lt-knob"></div>';
+  V.tag='<div class="lt-glow"></div><div class="lt-tag">01</div>';
+  V.eq='<div class="lt-glow"></div><div class="lt-eq"><b></b><b></b><b></b><b></b><b></b></div>';
+  function setV(v){ if(!V[v]) v='lantern'; A.setAttribute('data-ltv',v); L.innerHTML=V[v]; cur=null; try{ rest(false); }catch(e){} }
+  window.__ltSet=setV;
+  A.setAttribute('data-ltv','eq'); L.innerHTML=V.eq;
+  function vis(el){ return el.offsetParent!==null; }
+  function items(){ return [].slice.call(A.querySelectorAll('.sb-item')).filter(vis); }
+  function yOf(el){ var a=A.getBoundingClientRect(), b=el.getBoundingClientRect(); return b.top-a.top+A.scrollTop+b.height/2; }
+  function go(el,swing){
+    if(!el) return; var y=yOf(el); if(cur===el&&!swing){ shade(y,el); return; }
+    cur=el; L.style.transform='translateY('+Math.round(y)+'px)';
+    if(swing!==false){ L.classList.remove('swing'); void L.offsetWidth; L.classList.add('swing'); }
+    shade(y,el);
+  }
+  function shade(y,el){
+    items().forEach(function(it){ var d=Math.abs(yOf(it)-y), v=Math.max(.5,Math.min(1,1-d/260)); it.style.setProperty('--lt',v.toFixed(2)); if(it===el) it.setAttribute('data-lt','1'); else it.removeAttribute('data-lt'); });
+  }
+  function rest(sw){ var on=A.querySelector('.sb-item.on'); on=(on&&vis(on))?on:items()[0]; cur=null; go(on,sw); }
+  A.addEventListener('mouseover',function(e){ var it=e.target.closest&&e.target.closest('.sb-item'); if(it) go(it); },true);
+  A.addEventListener('focusin',function(e){ var it=e.target.closest&&e.target.closest('.sb-item'); if(it) go(it); });
+  A.addEventListener('touchstart',function(e){ var it=e.target.closest&&e.target.closest('.sb-item'); if(it) go(it); },{passive:true});
+  A.addEventListener('click',function(e){ var it=e.target.closest&&e.target.closest('.sb-item'); if(it) go(it); clearTimeout(tmr); tmr=setTimeout(function(){ rest(false); },400); });
+  A.addEventListener('mouseleave',function(){ rest(); });
+  var mo=new MutationObserver(function(recs){ if(recs.every(function(r){ return L.contains(r.target); })) return; clearTimeout(tmr); tmr=setTimeout(function(){ rest(false); },120); });
+  mo.observe(A,{attributes:true,attributeFilter:['class'],subtree:true});
+  new MutationObserver(function(){ clearTimeout(tmr); tmr=setTimeout(function(){ rest(true); },420); }).observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('resize',function(){ rest(false); });
+  window.__lt=function(){ return {A:A,cur:cur}; };
+  setTimeout(function(){ rest(false); },300);
+})();
+</script>
+
 </body>
 </html>
