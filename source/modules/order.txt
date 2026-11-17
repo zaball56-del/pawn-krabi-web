@@ -31,3 +31,4 @@ calmbtn.html
 calmhome.html
 backnav.html
 quotalog.html
+homebg.html
