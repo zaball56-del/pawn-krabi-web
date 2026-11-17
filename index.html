@@ -10367,6 +10367,10 @@ html body #ledger-page::before,html body #tkw-page::before{content:"";position:f
 <style id="tkglass-css">
 @media screen{
 html body #tkw-page::after{content:"";position:fixed;z-index:-1;pointer-events:none;inset:0;background:radial-gradient(closest-side at 70% 55%,rgba(79,209,226,.45),rgba(79,209,226,0) 100%)}
+html body #tkw-page .dt:not(#_x),html body #tkw-page #tkw-pen:not(#_x){background:rgba(255,255,255,.34) !important;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+html body #tkw-page .dt button:not(#_x):not(.td),html body #tkw-page .dt input:not(#_x),html body #tkw-page .thd .mb:not(#_x),html body #tkw-page #tkw-addcol:not(#_x),html body #tkw-page #tkw-delday:not(#_x),html body #tkw-page #tkw-pclose:not(#_x),html body #tkw-page .t:not(.on):not(#_x){background:rgba(255,255,255,.42) !important;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+html body #tkw-page #tkw-pen,html body #tkw-page #tkw-pen *:not(.pd):not(#_x){color:#000 !important}
+html body #tkw-page .t:not(.on):not(#_x),html body #tkw-page .thd:not(#_x){color:#000 !important}
 html body #tkw-page .card:not(#_x){background:rgba(255,255,255,.34) !important;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 html body #tkw-page thead th:not(#_x),html body #tkw-page thead tr.sub th:not(#_x){background:rgba(246,242,232,.45) !important}
 html body #tkw-page th.no:not(#_x){background:rgba(251,250,247,.8) !important;color:#000 !important}
