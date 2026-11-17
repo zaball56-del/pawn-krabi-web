@@ -8459,13 +8459,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 @media print{#tkw-tp{display:none !important}}#tkw-cmp .cmphd .bad{color:#fbbf24;font-weight:800}#tkw-cmp .cmpr{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-top:1px solid rgba(255,255,255,.08)}#tkw-cmp .cmpr em{font-style:normal;color:#fcd34d;text-align:right}#tkw-page input.cmpbad{box-shadow:none !important}#tkw-page .cx{display:none !important}@media (max-width:899px){html #tkw-page th.no button{min-width:28px;min-height:36px;padding:0 3px}}@media (max-width:899px){html body.tkw-open #sb-toggle{width:36px !important;height:36px !important;top:7px !important;left:8px !important;font-size:18px !important;border-radius:11px !important}}html #tkw-page .tabs{padding-top:14px !important;padding-bottom:4px !important}html #tkw-page .t em{top:-9px;right:-1px}@media (max-width:899px){#tkw-page td .tw:has(.bk-tag) input{padding:13px 10px 0 !important;line-height:1.1}#tkw-page .bk-tag{top:-3px !important;right:8px !important;font-size:11px !important;padding:1px 7px !important}}
 </style>
 <style id="tkw-pen-css">
-#tkw-pen{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 10px 6px;padding:6px 10px;border-radius:12px;background:rgba(246,242,232,.06);border:1px solid rgba(246,242,232,.14);font-family:Sarabun,sans-serif}
-#tkw-pen .pl{color:#CFCABB;font-weight:700;font-size:13px}
+#tkw-pen{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 10px 6px;padding:6px 10px;border-radius:12px;background:#fff;border:1px solid #E3DCC4;font-family:Sarabun,sans-serif}
+#tkw-pen .pl{color:#5B5646;font-weight:700;font-size:13px}
 #tkw-pen .pd{width:34px;height:34px;border-radius:50%;border:3px solid transparent;padding:0;cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
 #tkw-pen .pd.k{background:#111827}#tkw-pen .pd.r{background:#C8102E}#tkw-pen .pd.b{background:#1D4ED8}#tkw-pen .pd.g{background:#15803D}
-#tkw-pen .pd.on{border-color:#E8C872;transform:scale(1.12)}
-#tkw-pen .pc{margin-left:auto;height:36px;padding:0 12px;border-radius:12px;border:1px solid rgba(232,200,114,.5);background:transparent;color:#E8C872;font:700 13px Sarabun,sans-serif;cursor:pointer}
-#tkw-pen .pn{flex-basis:100%;color:#CFCABB;font-size:12px}#tkw-pen .pn:empty{display:none}
+#tkw-pen .pd.on{border-color:#C99A2E;transform:scale(1.12)}
+#tkw-pen .pc{margin-left:auto;height:36px;padding:0 12px;border-radius:12px;border:1px solid #D9CFA8;background:#F6F2E8;color:#14213D;font:700 13px Sarabun,sans-serif;cursor:pointer}
+#tkw-pen .pn{flex-basis:100%;color:#7A7566;font-size:12px}#tkw-pen .pn:empty{display:none}
 #tkw-page td input.pen-r{color:#C8102E !important}#tkw-page td input.pen-b{color:#1D4ED8 !important}#tkw-page td input.pen-g{color:#15803D !important}
 #tkw-page td input.pen-r,#tkw-page td input.pen-b,#tkw-page td input.pen-g{-webkit-text-fill-color:currentColor}
 @media print{#tkw-pen{display:none !important}#tkw-page,#tkw-page *,#tkw-pv *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
@@ -10191,6 +10191,20 @@ html body #ds-modal #ds-box button:not(.ds-btn):not([onclick*="closeDataSettings
 html body #ds-modal #ds-box #ds-tabs button{background:transparent !important;border:0 !important;color:#5B5646 !important}
 html body #ds-modal #ds-box #ds-tabs button.on{background:#14213D !important;color:#F6F2E8 !important}
 html body #ds-modal #ds-box .ds-btn.pri{background:#14213D !important;color:#F6F2E8 !important;border-color:#14213D !important}
+}
+@media screen and (min-width:900px){
+html body #tkw-page .top{position:relative;z-index:3;border-bottom:0 !important}
+html body #tkw-page .top::before,html body #tkw-page .top::after{content:"";position:absolute;bottom:-14px;width:14px;height:14px;pointer-events:none}
+html body #tkw-page .top::before{left:0;background:radial-gradient(circle at 100% 100%,transparent 13.5px,#14213D 14.5px)}
+html body #tkw-page .top::after{right:0;background:radial-gradient(circle at 0 100%,transparent 13.5px,#14213D 14.5px)}
+html #tkw-page .dt{margin-top:14px}
+}
+@media screen{
+html body.tkw-open #sb-toggle{width:38px !important;height:38px !important;top:6px !important;left:8px !important;font-size:17px !important;border-radius:12px !important;line-height:1 !important}
+}
+@media screen and (min-width:900px){
+html body.tkw-open #sb-toggle{width:36px !important;height:36px !important;top:8px !important;left:12px !important}
+html body #tkw-page .top .x{width:36px;height:36px;top:8px;right:12px;font-size:19px;border-radius:12px}
 }
 </style>
 

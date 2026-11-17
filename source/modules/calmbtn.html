@@ -207,4 +207,18 @@ html body #ds-modal #ds-box #ds-tabs button{background:transparent !important;bo
 html body #ds-modal #ds-box #ds-tabs button.on{background:#14213D !important;color:#F6F2E8 !important}
 html body #ds-modal #ds-box .ds-btn.pri{background:#14213D !important;color:#F6F2E8 !important;border-color:#14213D !important}
 }
+@media screen and (min-width:900px){
+html body #tkw-page .top{position:relative;z-index:3;border-bottom:0 !important}
+html body #tkw-page .top::before,html body #tkw-page .top::after{content:"";position:absolute;bottom:-14px;width:14px;height:14px;pointer-events:none}
+html body #tkw-page .top::before{left:0;background:radial-gradient(circle at 100% 100%,transparent 13.5px,#14213D 14.5px)}
+html body #tkw-page .top::after{right:0;background:radial-gradient(circle at 0 100%,transparent 13.5px,#14213D 14.5px)}
+html #tkw-page .dt{margin-top:14px}
+}
+@media screen{
+html body.tkw-open #sb-toggle{width:38px !important;height:38px !important;top:6px !important;left:8px !important;font-size:17px !important;border-radius:12px !important;line-height:1 !important}
+}
+@media screen and (min-width:900px){
+html body.tkw-open #sb-toggle{width:36px !important;height:36px !important;top:8px !important;left:12px !important}
+html body #tkw-page .top .x{width:36px;height:36px;top:8px;right:12px;font-size:19px;border-radius:12px}
+}
 </style>
