@@ -10935,5 +10935,51 @@ html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on em:not(#_x):n
 }catch(e){} })();
 </script>
 
+<style id="xcheck-css">
+.xck{display:none;margin:6px 0 0;padding:7px 12px;border-radius:12px;font:700 13.5px/1.35 Sarabun,sans-serif}
+.xck.on{display:block}
+.xck.yes{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+.xck.no{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
+.xck b{font-weight:800}
+#qs-xck{grid-column:1/-1}
+@media print{.xck{display:none !important}}
+</style>
+<script id="xcheck-js">
+/* เช็กข้ามตารางตอนสแกน: สแกนในตารางหนึ่ง บอกทันทีว่าอีกตาราง (วันเดียวกัน) มีตั๋วใบนี้แล้วหรือยัง · แค่บอก ไม่ห้ามบันทึก ไม่แก้ข้อมูล */
+(function(){ try{
+  function nz(v){ try{ return String(normalizeCompareTicket(v)); }catch(e){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); } }
+  function nb(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); }
+  var THM=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  /* ในสมุดบัญชี (ตั๋วเดิมของวันนั้น) */
+  function inLedger(k,t,b){ var out=[]; try{ var d=(typeof db!=='undefined')?db[k]:null; if(!d||!d.months||!d.data) return out;
+    d.months.forEach(function(m){ (d.data[m]||[]).forEach(function(r){ if(!r||!r.ticket) return; if(nz(r.ticket)!==t) return; if(b&&r.book&&nb(r.book)!==b) return; out.push({m:m,b:r.book||''}); }); }); }catch(e){} return out; }
+  /* ในตารางเขียนตั๋ว (วันนั้น) */
+  function inTkw(k,t,b){ var out=[]; try{ if(typeof window.tkwReadDay!=='function') return out; var d=window.tkwReadDay(k); if(!d||!d.m||!d.r) return out;
+    d.m.forEach(function(mm,g){ (d.r[g]||[]).forEach(function(x){ if(!x||!String(x[0]||'').trim()) return; if(nz(x[0])!==t) return; if(b&&x[2]&&nb(x[2])!==b) return; out.push({m:THM[mm]||mm,b:x[2]||''}); }); }); }catch(e){} return out; }
+  function badge(after,id){ var el=document.getElementById(id); if(el) return el; if(!after||!after.parentNode) return null;
+    el=document.createElement('div'); el.id=id; el.className='xck'; el.setAttribute('role','status'); after.parentNode.insertBefore(el,after.nextSibling); return el; }
+  function dm(k){ var p=String(k).split('-'); return p.length===3?(+p[2])+'/'+(+p[1]):''; }
+  function show(el,L,name,k){ if(!el) return; if(L===null){ el.className='xck'; el.innerHTML=''; return; }
+    if(L.length){ var x=L[0]; el.className='xck on yes'; el.innerHTML='✓ มีใน<b>'+name+'</b>แล้ว (วันที่ '+dm(k)+')'+(x.m?' · '+x.m:'')+(x.b?' · เล่ม '+String(x.b).replace(/[<>&"]/g,''):'')+(L.length>1?' ('+L.length+' แถว)':''); }
+    else { el.className='xck on no'; el.innerHTML='ยังไม่มีใน<b>'+name+'</b> (วันที่ '+dm(k)+')'; } }
+  var sigA='', sigB='';
+  function tick(){
+    /* หน้าเขียนตั๋ว → ดูสมุดบัญชี */
+    var P=document.getElementById('tkw-page'), ST=document.getElementById('tkw-sq-t');
+    if(P&&ST&&P.classList.contains('sq-on')){ var k=(document.getElementById('tkw-date')||{}).value||'', t=ST.value.trim();
+      var s=k+'|'+t+'|'+((typeof db!=='undefined'&&db[k]&&db[k].months)?JSON.stringify(db[k].months)+(window.__dv||0):''); if(s!==sigA){ sigA=s;
+        var el=badge(document.getElementById('tkw-sq-hint'),'tkw-sq-xck');
+        show(el,(/^\d{1,9}$/.test(t)&&k)?inLedger(k,nz(t),''):null,'สมุดบัญชี',k); } }
+    /* คีย์ด่วนสมุดบัญชี → ดูตารางเขียนตั๋ว */
+    var QT=document.getElementById('qs-ticket'), QB=document.getElementById('qs-book'), M=document.getElementById('quick-scan-modal');
+    if(QT&&M&&!M.classList.contains('hidden')&&getComputedStyle(M).display!=='none'){ var k2=(typeof currentDate==='string')?currentDate:'', t2=QT.value.trim(), b2=QB?nb(QB.value):'';
+      var s2=k2+'|'+t2+'|'+b2+'|'+(window.__dv||0); if(s2!==sigB){ sigB=s2;
+        var anchor=QT.closest('div')||QT; var el2=badge(anchor,'qs-xck');
+        show(el2,(/^\d{1,9}$/.test(t2)&&k2)?inTkw(k2,nz(t2),b2):null,'ตารางเขียนตั๋ว',k2); } }
+  }
+  setInterval(tick,400);
+}catch(e){} })();
+</script>
+
 </body>
 </html>

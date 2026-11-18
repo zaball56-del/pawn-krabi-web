@@ -41,3 +41,4 @@ scanfx.html
 menubtn.html
 sbmenu.html
 ledtop.html
+xcheck.html
