@@ -12,3 +12,18 @@
   watch('qs-msg',/^บันทึกแล้ว/,function(e){ return /\berr\b/.test(e.className); });
 }catch(e){ try{console.error(e)}catch(_){} } })();
 </script>
+<script id="scanwake-js">
+/* กันจอดับระหว่างสแกน: เปิดหน้าสแกน (เขียนตั๋ว/คีย์ด่วน) หรือกล้องอยู่ = ขอให้จอติดค้าง · ปิดแล้วปล่อยคืน */
+(function(){ try{
+  if(!('wakeLock' in navigator)) return;
+  var lock=null, want=false, asking=false;
+  function on(){ var q=function(s){ return document.querySelector(s); };
+    return !!(q('#tkw-page.sq-on')&&document.body.classList.contains('tkw-open')) || (function(m){ return !!m&&!m.classList.contains('hidden')&&getComputedStyle(m).display!=='none'; })(q('#quick-scan-modal')) || !!q('#cam-ov.on'); }
+  async function get(){ if(lock||asking||document.visibilityState!=='visible') return; asking=true;
+    try{ lock=await navigator.wakeLock.request('screen'); lock.addEventListener('release',function(){ lock=null; }); }catch(e){ lock=null; } asking=false; }
+  function rel(){ if(lock){ try{ lock.release(); }catch(e){} lock=null; } }
+  function tick(){ want=on(); if(want) get(); else rel(); }
+  setInterval(tick,1000);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') tick(); });
+}catch(e){} })();
+</script>
