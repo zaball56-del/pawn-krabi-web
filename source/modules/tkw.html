@@ -171,7 +171,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div id="tkw-sq" role="dialog" aria-label="สแกนตั๋วเดิม">
     <div class="h"><b>สแกนตั๋วเดิม</b><button type="button" id="tkw-sq-x">ปิด ✕</button></div>
     <div class="b">
-      <div class="cnt"><span>วันนี้บันทึกแล้ว <strong id="tkw-sq-n">0</strong> ใบ</span><label><input type="checkbox" id="tkw-sq-cont"> สแกนต่อเนื่อง</label></div>
+      <div class="cnt"><span>วันนี้บันทึกแล้ว <strong id="tkw-sq-n">0</strong> ใบ</span><div style="display:flex;flex-direction:column;gap:2px"><label><input type="checkbox" id="tkw-sq-cont"> สแกนต่อเนื่อง</label><label><input type="checkbox" id="tkw-sq-auto"> บันทึกอัตโนมัติเมื่อข้อมูลครบ</label></div></div>
       <button type="button" class="big" id="tkw-sq-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกนตั๋วเดิม</span></button>
       <div class="row"><div><label class="l" for="tkw-sq-m">เดือน (รหัส 1–12)</label><input class="i" id="tkw-sq-m" type="number" inputmode="numeric" min="1" max="12"></div><div class="mn" id="tkw-sq-mn"></div></div>
       <div><label class="l" for="tkw-sq-t">เลขตั๋วเดิม (ยิงบาร์โค้ดช่องนี้)</label><input class="i" id="tkw-sq-t" type="text" inputmode="numeric" autocomplete="off"></div>
@@ -459,9 +459,11 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var mo=0; if(r.base) mo=+r.base.month; else { var ix=MN.indexOf(String(r.month||'').trim()); if(ix>0) mo=ix; }
     if((!SM.value||r.monthFallback)&&mo>=1&&mo<=12){ SM.value=String(mo); mhint(); }
     if(SA.value.trim()===''||autoAmt){ SA.value=fmt(num(r.amount)); SA.classList.add('auto'); autoAmt=true;
-      hint('ดึงยอดจาก'+(r.base?'ทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+')':(r.manual?(r.src==='ตารางเขียนตั๋ว'?'ตารางเขียนตั๋ว':'ข้อมูลที่คีย์เอง'):'ข้อมูลเดิม')+' ('+dth(r.date)+' · '+r.month+')')+(r.manual?' · คีย์เอง ยังไม่ยืนยันกับ สธ.3 ตรวจก่อนบันทึก':' แก้ไขได้'),!!(r.differs||r.manual)); }
+      hint('ดึงยอดจาก'+(r.base?'ทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+')':(r.manual?(r.src==='ตารางเขียนตั๋ว'?'ตารางเขียนตั๋ว':'ข้อมูลที่คีย์เอง'):'ข้อมูลเดิม')+' ('+dth(r.date)+' · '+r.month+')')+(r.manual?' · คีย์เอง ยังไม่ยืนยันกับ สธ.3 ตรวจก่อนบันทึก':' แก้ไขได้'),!!(r.differs||r.manual)); autoSaveMaybe(r); }
     else hint('พบในข้อมูลเดิม ยอด '+fmt(num(r.amount))+(r.manual?' (คีย์เอง ยังไม่ยืนยันกับ สธ.3)':'')+' (ยอดที่ใส่ไว้ไม่ถูกเปลี่ยน)',!!r.manual);
   }
+  var AK='pawn_tkw_auto', tmA=null;
+  function autoSaveMaybe(r){ clearTimeout(tmA); if(!$('tkw-sq-auto').checked||!r||r.manual||r.differs) return; var m=+SM.value; if(!(m>=1&&m<=12)||!ST.value.trim()||!lastBook||!(num(SA.value.replace(/,/g,''))>0)) return; tmA=setTimeout(function(){ if(P.classList.contains('sq-on')&&$('tkw-sq-auto').checked) sqSave(); },800); }
   function schedL(){ clearTimeout(tmL); tmL=setTimeout(lookup,120); }
   ST.addEventListener('input',function(){ if(!/^\d{12,13}$/.test(ST.value.trim())){ lastBook=''; lastYY=''; } schedL(); });
   SM.addEventListener('input',schedL);
@@ -539,6 +541,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   SA.addEventListener('focus',function(){ SA.value=SA.value.replace(/,/g,''); });
   SA.addEventListener('blur',function(){ if(SA.value.trim()) SA.value=fmt(num(SA.value)); });
   $('tkw-sq-save').onclick=sqSave; $('tkw-sq-cam').onclick=camOpen; $('tkw-sq-x').onclick=sqClose;
+  $('tkw-sq-auto').checked=ls(AK)==='1'; $('tkw-sq-auto').onchange=function(){ ls(AK,this.checked?'1':'0'); if(!this.checked) clearTimeout(tmA); };
+  SA.addEventListener('input',function(){ clearTimeout(tmA); }); SM.addEventListener('input',function(){ clearTimeout(tmA); });
   $('tkw-sq-cont').onchange=function(){ ls(KC,this.checked?'1':'0'); };
   $('tkw-scan-btn').onclick=sqOpen;
 

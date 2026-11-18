@@ -8097,7 +8097,7 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
   var bar=document.createElement('div'); bar.id='qs-mode';
   bar.innerHTML='<button type="button" data-m="full">สแกน<small>ตั๋วเดิม + ตั๋วใหม่</small></button><button type="button" data-m="single">สแกน<small>ตั๋วเดิมอย่างเดียว</small></button>';
-  var cnt=document.createElement('div'); cnt.id='qs-count'; cnt.innerHTML='<span>วันนี้บันทึกแล้ว <b id="qs-count-n">0</b> ใบ</span><label><input type="checkbox" id="qs-cont"> สแกนต่อเนื่อง</label>';
+  var cnt=document.createElement('div'); cnt.id='qs-count'; cnt.innerHTML='<span>วันนี้บันทึกแล้ว <b id="qs-count-n">0</b> ใบ</span><span style="display:flex;flex-direction:column;gap:2px"><label><input type="checkbox" id="qs-cont"> สแกนต่อเนื่อง</label><label><input type="checkbox" id="qs-auto"> บันทึกอัตโนมัติเมื่อข้อมูลครบ</label></span>';
   var anchor=M.querySelector('.qs-types')||h2.nextElementSibling; (anchor?anchor.parentNode:h2.parentNode).insertBefore(bar,anchor||null);
   anchor.parentNode.insertBefore(cnt,anchor);
   var big=document.createElement('button'); big.type='button'; big.id='qs-bigscan'; big.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกน</span>';
@@ -8107,6 +8107,14 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   function count(){ var n=0, k=(typeof currentDate!=='undefined')?currentDate:''; try{ var d=db[k]; if(d&&d.months) d.months.forEach(function(m){ (d.data[m]||[]).forEach(function(r){ if(r&&r.ticket&&r.type) n++; }); }); }catch(e){} var e=document.getElementById('qs-count-n'); if(e) e.textContent=n; }
   function apply(){ var s=mode()==='single'; M.classList.toggle('qs-single',s); bar.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===(s?'single':'full')); }); count(); }
   bar.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; ls(KEY,b.dataset.m); apply(); });
+  /* บันทึกอัตโนมัติ (โหมดตั๋วเดิมอย่างเดียว): ประเภท+เดือน+เลขตั๋ว+เล่ม และยอดที่ดึงมาเอง (qs-auto) ครบ -> รอ .8 วิ แล้วบันทึก */
+  var AK='pawn_qs_auto', ca=cnt.querySelector('#qs-auto'), tmA=null; ca.checked=ls(AK)==='1';
+  ca.addEventListener('change',function(){ ls(AK,ca.checked?'1':'0'); if(!ca.checked) clearTimeout(tmA); });
+  var A=document.getElementById('qs-amount');
+  function ready(){ var g=function(i){ var e=document.getElementById(i); return e?e.value.trim():''; }; var m=parseInt(g('qs-month'),10);
+    return ca.checked&&mode()==='single'&&M.classList.contains('qs-single')&&!M.classList.contains('hidden')&&g('qs-type')&&m>=1&&m<=12&&g('qs-ticket')&&g('qs-book')&&!g('qs-new-ticket')&&A&&A.classList.contains('qs-auto')&&A.value.trim(); }
+  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(function(){ if(ready()&&typeof window.submitQuickScan==='function') window.submitQuickScan(); },800); }
+  if(A){ new MutationObserver(sched).observe(A,{attributes:true,attributeFilter:['class']}); ['qs-ticket','qs-book','qs-month'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('input',function(){ clearTimeout(tmA); setTimeout(sched,200); }); }); A.addEventListener('input',function(){ clearTimeout(tmA); }); }
   var cc=cnt.querySelector('#qs-cont'); cc.checked=ls(KC)==='1'; cc.addEventListener('change',function(){ ls(KC,cc.checked?'1':'0'); });
   new MutationObserver(function(){ if(M.classList.contains('on')||!M.classList.contains('hidden')) count(); }).observe(M,{attributes:true,attributeFilter:['class']});
   var msg=document.getElementById('qs-msg');
@@ -8492,7 +8500,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div id="tkw-sq" role="dialog" aria-label="สแกนตั๋วเดิม">
     <div class="h"><b>สแกนตั๋วเดิม</b><button type="button" id="tkw-sq-x">ปิด ✕</button></div>
     <div class="b">
-      <div class="cnt"><span>วันนี้บันทึกแล้ว <strong id="tkw-sq-n">0</strong> ใบ</span><label><input type="checkbox" id="tkw-sq-cont"> สแกนต่อเนื่อง</label></div>
+      <div class="cnt"><span>วันนี้บันทึกแล้ว <strong id="tkw-sq-n">0</strong> ใบ</span><div style="display:flex;flex-direction:column;gap:2px"><label><input type="checkbox" id="tkw-sq-cont"> สแกนต่อเนื่อง</label><label><input type="checkbox" id="tkw-sq-auto"> บันทึกอัตโนมัติเมื่อข้อมูลครบ</label></div></div>
       <button type="button" class="big" id="tkw-sq-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกนตั๋วเดิม</span></button>
       <div class="row"><div><label class="l" for="tkw-sq-m">เดือน (รหัส 1–12)</label><input class="i" id="tkw-sq-m" type="number" inputmode="numeric" min="1" max="12"></div><div class="mn" id="tkw-sq-mn"></div></div>
       <div><label class="l" for="tkw-sq-t">เลขตั๋วเดิม (ยิงบาร์โค้ดช่องนี้)</label><input class="i" id="tkw-sq-t" type="text" inputmode="numeric" autocomplete="off"></div>
@@ -8780,9 +8788,11 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var mo=0; if(r.base) mo=+r.base.month; else { var ix=MN.indexOf(String(r.month||'').trim()); if(ix>0) mo=ix; }
     if((!SM.value||r.monthFallback)&&mo>=1&&mo<=12){ SM.value=String(mo); mhint(); }
     if(SA.value.trim()===''||autoAmt){ SA.value=fmt(num(r.amount)); SA.classList.add('auto'); autoAmt=true;
-      hint('ดึงยอดจาก'+(r.base?'ทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+')':(r.manual?(r.src==='ตารางเขียนตั๋ว'?'ตารางเขียนตั๋ว':'ข้อมูลที่คีย์เอง'):'ข้อมูลเดิม')+' ('+dth(r.date)+' · '+r.month+')')+(r.manual?' · คีย์เอง ยังไม่ยืนยันกับ สธ.3 ตรวจก่อนบันทึก':' แก้ไขได้'),!!(r.differs||r.manual)); }
+      hint('ดึงยอดจาก'+(r.base?'ทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+')':(r.manual?(r.src==='ตารางเขียนตั๋ว'?'ตารางเขียนตั๋ว':'ข้อมูลที่คีย์เอง'):'ข้อมูลเดิม')+' ('+dth(r.date)+' · '+r.month+')')+(r.manual?' · คีย์เอง ยังไม่ยืนยันกับ สธ.3 ตรวจก่อนบันทึก':' แก้ไขได้'),!!(r.differs||r.manual)); autoSaveMaybe(r); }
     else hint('พบในข้อมูลเดิม ยอด '+fmt(num(r.amount))+(r.manual?' (คีย์เอง ยังไม่ยืนยันกับ สธ.3)':'')+' (ยอดที่ใส่ไว้ไม่ถูกเปลี่ยน)',!!r.manual);
   }
+  var AK='pawn_tkw_auto', tmA=null;
+  function autoSaveMaybe(r){ clearTimeout(tmA); if(!$('tkw-sq-auto').checked||!r||r.manual||r.differs) return; var m=+SM.value; if(!(m>=1&&m<=12)||!ST.value.trim()||!lastBook||!(num(SA.value.replace(/,/g,''))>0)) return; tmA=setTimeout(function(){ if(P.classList.contains('sq-on')&&$('tkw-sq-auto').checked) sqSave(); },800); }
   function schedL(){ clearTimeout(tmL); tmL=setTimeout(lookup,120); }
   ST.addEventListener('input',function(){ if(!/^\d{12,13}$/.test(ST.value.trim())){ lastBook=''; lastYY=''; } schedL(); });
   SM.addEventListener('input',schedL);
@@ -8860,6 +8870,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   SA.addEventListener('focus',function(){ SA.value=SA.value.replace(/,/g,''); });
   SA.addEventListener('blur',function(){ if(SA.value.trim()) SA.value=fmt(num(SA.value)); });
   $('tkw-sq-save').onclick=sqSave; $('tkw-sq-cam').onclick=camOpen; $('tkw-sq-x').onclick=sqClose;
+  $('tkw-sq-auto').checked=ls(AK)==='1'; $('tkw-sq-auto').onchange=function(){ ls(AK,this.checked?'1':'0'); if(!this.checked) clearTimeout(tmA); };
+  SA.addEventListener('input',function(){ clearTimeout(tmA); }); SM.addEventListener('input',function(){ clearTimeout(tmA); });
   $('tkw-sq-cont').onchange=function(){ ls(KC,this.checked?'1':'0'); };
   $('tkw-scan-btn').onclick=sqOpen;
 
