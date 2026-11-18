@@ -11,6 +11,8 @@ html body.app-shell:not(.page-home) #ledger-page table thead tr:nth-child(1) th:
 html body.app-shell:not(.page-home) #ledger-page table thead tr:nth-child(2) th:not(#_x){position:sticky !important;top:103px !important;z-index:6;background:#F6F2E8 !important;box-shadow:0 1px 0 #E3DCC4}
 /* แถวยอดยกมา (แถวแรก) ค้างใต้หัวตาราง */
 html body.app-shell:not(.page-home) #ledger-page table tbody tr:first-child > td:not(#_x){position:sticky !important;top:129px !important;z-index:5;background:#E6F1EA !important;box-shadow:0 1px 0 #BFD8C8}
+/* ป้าย "เล่ม" เดิมยื่นขึ้นไปทับขอบแถวบน (top:-5px) -> แถวแรกโดนแถวยกมาที่ค้างไว้บังครึ่งป้าย: ย้ายป้ายให้อยู่ในช่องตัวเอง */
+html body.app-shell:not(.page-home) #ledger-page table tbody .bk-tag:not(#_x){top:2px !important}
 /* ท้ายตาราง: เหนือแถบเมนูล่าง (สูง 66px + ระยะลอย) */
 html body.app-shell:not(.page-home) #ledger-page #foot-carried-row > td:not(#_x){position:sticky !important;bottom:78px !important;z-index:5;background:#E6F1EA !important;box-shadow:0 -1px 0 #BFD8C8}
 html body.app-shell:not(.page-home) #ledger-page #foot-totals-row > td:not(#_x){position:sticky !important;bottom:129px !important;z-index:5;background:#EEF5F0 !important;box-shadow:0 -1px 0 #BFD8C8}
