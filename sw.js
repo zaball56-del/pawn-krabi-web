@@ -3,14 +3,11 @@
    - หน้าเว็บ/ไฟล์ของเราเอง: ดึงจากเน็ตก่อนเสมอ (ข้ามแคช HTTP) ถ้าเน็ตล่มค่อยใช้ที่จำไว้
    - ไลบรารีภายนอก (Tailwind, ไอคอน, ฟอนต์, Firebase SDK): ใช้ที่จำไว้ก่อน แล้วอัปเดตเบื้องหลัง
    - คำสั่งคุยกับ Firebase (Firestore/Auth) ไม่แตะเลย ปล่อยผ่านตามปกติ */
-var VERSION = 'v1';
+var VERSION = 'v2';
 var SHELL = 'pawn-shell-' + VERSION;
 var LIBS  = 'pawn-libs-' + VERSION;
 var LIB_HOSTS = ['cdn.tailwindcss.com', 'cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 var LIB_URLS = [
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'

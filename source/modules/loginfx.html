@@ -39,7 +39,9 @@
   v.addEventListener('canplay',function(){ ok=true; v.style.opacity='1'; m.classList.add('lfx-on'); });
   v.addEventListener('timeupdate',function(){ if(!v.duration) return; var left=v.duration-v.currentTime; v.style.opacity=(left<FADE?Math.max(0,left/FADE):1)*(ok?1:0); });   /* จางลงตรงรอยต่อก่อนวนใหม่ */
   v.addEventListener('ended',function(){ v.style.opacity='0'; setTimeout(function(){ try{ v.currentTime=0; v.play(); v.style.opacity='1'; }catch(e){} },150); });
-  v.src='earth-4k.mp4';
+  /* จอมือถือ/แท็บเล็ตใช้ไฟล์ 720p (~0.9MB) แทน 4K (~19MB) ไม่แย่งเน็ตกับการดึงข้อมูลตอนเปิดเว็บ */
+  var small=Math.min(screen.width||0,screen.height||0)<900||(window.matchMedia&&matchMedia('(max-width:1024px)').matches);
+  v.src=small?'earth-720.mp4':'earth-4k.mp4';
   function visible(){ var cs=getComputedStyle(m); return cs.display!=='none'&&cs.visibility!=='hidden'; }
   function sync(){ try{ if(document.hidden||!visible()){ v.pause(); } else { var pr=v.play(); if(pr&&pr.catch) pr.catch(function(){}); } }catch(e){} }
   /* โหมดประหยัดแบต/นโยบายเบราว์เซอร์อาจบล็อกเล่นอัตโนมัติ: แตะครั้งแรกบนหน้าจอแล้วสั่งเล่นอีกครั้ง */
