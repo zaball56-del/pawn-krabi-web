@@ -48,7 +48,7 @@
   var A=document.getElementById('qs-amount');
   function ready(){ var g=function(i){ var e=document.getElementById(i); return e?e.value.trim():''; }; var m=parseInt(g('qs-month'),10);
     return ca.checked&&mode()==='single'&&M.classList.contains('qs-single')&&!M.classList.contains('hidden')&&g('qs-type')&&m>=1&&m<=12&&g('qs-ticket')&&g('qs-book')&&!g('qs-new-ticket')&&A&&A.classList.contains('qs-auto')&&A.value.trim(); }
-  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(function(){ if(ready()&&typeof window.submitQuickScan==='function') window.submitQuickScan(); },800); }
+  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(function(){ if(ready()&&typeof window.submitQuickScan==='function'){ window.__qsAutoSave=true; try{ window.submitQuickScan(); } finally{ window.__qsAutoSave=false; } } },800); }
   if(A){ new MutationObserver(sched).observe(A,{attributes:true,attributeFilter:['class']}); ['qs-ticket','qs-book','qs-month'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('input',function(){ clearTimeout(tmA); setTimeout(sched,200); }); }); A.addEventListener('input',function(){ clearTimeout(tmA); }); }
   var cc=cnt.querySelector('#qs-cont'); cc.checked=ls(KC)==='1'; cc.addEventListener('change',function(){ ls(KC,cc.checked?'1':'0'); });
   new MutationObserver(function(){ if(M.classList.contains('on')||!M.classList.contains('hidden')) count(); }).observe(M,{attributes:true,attributeFilter:['class']});
