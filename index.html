@@ -3980,24 +3980,27 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { alert('กรุณาระบุวันที่ทำรายการจากหัวรายงานประจำวันที่'); return ''; }
             return date;
         }
+        function pdfBookKey(v) { const s = String(v == null ? '' : v).trim(); return s ? String(Number(s) || s) : ''; }
+        function pdfBookClash(list, bk) { return !!list && list.some(b => !b || !bk || b === bk); }
         function preparePDFImport() {
             if (!pdfImportParsedRecords.length) return;
             const dateKey = getPDFImportTargetDate(); if (!dateKey) return;
             const day = db[dateKey];
-            const existing = new Set();
+            /* ซ้ำ = เดือนเดียวกัน + เลขตั๋วเดียวกัน + เล่มไม่ขัดกัน (ถ้าทั้งสองฝั่งมีเล่มและต่างกัน = คนละใบ เช่น เดือนเดียวกันคนละปี) */
+            const existing = new Map();
             if (day && day.data) {
                 (day.months || []).forEach(monthName => {
                     const m = thaiMonths.indexOf(monthName) + 1;
-                    (day.data[monthName] || []).forEach(row => { if (row && String(row.ticket || '').trim()) existing.add(`${m}|${normalizeCompareTicket(row.ticket)}`); });
+                    (day.data[monthName] || []).forEach(row => { if (row && String(row.ticket || '').trim()) { const k = `${m}|${normalizeCompareTicket(row.ticket)}`; if (!existing.has(k)) existing.set(k, []); existing.get(k).push(pdfBookKey(row.book || row.importBook)); } });
                 });
             }
-            const seen = new Set();
+            const seen = new Map();
             pdfImportReadyRecords = pdfImportParsedRecords.map((row,index) => {
-                const key = `${row.month}|${normalizeCompareTicket(row.ticket)}`;
+                const key = `${row.month}|${normalizeCompareTicket(row.ticket)}`, bk = pdfBookKey(row.book);
                 let reason = '';
-                if (seen.has(key)) reason = 'เลขตั๋วซ้ำใน PDF';
-                else if (existing.has(key)) reason = 'มีเลขตั๋วนี้ในตารางแล้ว';
-                seen.add(key);
+                if (pdfBookClash(seen.get(key), bk)) reason = 'เลขตั๋วซ้ำใน PDF';
+                else if (pdfBookClash(existing.get(key), bk)) reason = 'มีเลขตั๋วนี้ในตารางแล้ว';
+                if (!seen.has(key)) seen.set(key, []); seen.get(key).push(bk);
                 return { ...row, index, duplicate:!!reason, reason, selected:!reason };
             });
             renderPDFImportPreview();
@@ -4039,8 +4042,16 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             }
             return day.data[monthName];
         }
+        /* ยืนยันวันที่ก่อนนำเข้า สธ.3: อ่านวันที่หัวรายงานไม่ได้ หรือไม่ตรงกับที่เลือก = ถามก่อน (ใช้ทั้งปลายทางรักษาของและเขียนตั๋ว) */
+        function pdfImportDateOk(dateKey) {
+            const thD = k => { const p = String(k).split('-'); return p.length === 3 ? `${+p[2]}/${+p[1]}/${+p[0] + 543}` : k; };
+            if (!pdfImportDetectedDate) return confirm(`⚠ อ่านวันที่จากหัวรายงาน PDF ไม่ได้\nจะนำเข้าเป็นวันที่ ${thD(dateKey)}\n\nตรวจแล้วว่าตรงกับวันที่ในรายงาน ใช่ไหม?`);
+            if (dateKey !== pdfImportDetectedDate) return confirm(`⚠ วันที่ที่เลือก (${thD(dateKey)}) ไม่ตรงกับหัวรายงาน PDF (${thD(pdfImportDetectedDate)})\n\nต้องการนำเข้าเป็นวันที่ ${thD(dateKey)} จริงหรือไม่?`);
+            return true;
+        }
         function commitPDFImport() {
             const dateKey = getPDFImportTargetDate(); if (!dateKey) return;
+            if (!pdfImportDateOk(dateKey)) return;
             const selected = pdfImportReadyRecords.filter(row=>row.selected && !row.duplicate);
             if (!selected.length) { alert('กรุณาเลือกรายการที่จะนำเข้า'); return; }
             const total = selected.reduce((sum,row)=>sum+row.amount,0);
@@ -4052,7 +4063,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             for (const record of selected) {
                 const monthName = thaiMonths[record.month-1];
                 const rows = ensurePDFImportMonth(day, monthName);
-                const duplicateNow = rows.some(row=>row && normalizeCompareTicket(row.ticket)===normalizeCompareTicket(record.ticket));
+                const duplicateNow = rows.some(row=>row && String(row.ticket||'').trim() && normalizeCompareTicket(row.ticket)===normalizeCompareTicket(record.ticket) && pdfBookClash([pdfBookKey(row.book || row.importBook)], pdfBookKey(record.book)));
                 if (duplicateNow) continue;
                 let index = rows.findIndex(row => !row || (!String(row.ticket||'').trim() && !String(row.amount??'').trim()));
                 while (index < 0) {
@@ -7240,7 +7251,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
       a.forEach(function(r){ if(r&&String(r.ticket==null?'':r.ticket).trim()!==''&&!String(r.type||'').trim()&&skip.indexOf(r)<0) out.push(r); }); });
     return out;
   }
-  window.sor2FillT=function(v){S.fillT=!!v};
+  window.sor2FillT=function(v){S.fillT=!!v&&!S.fillLock};
   function matchedCount(P,dk){ try{ var a=analyze(P,dk); return a.res.filter(function(o){return o.kind!=='new'&&o.kind!=='nofound'}).length; }catch(e){return 0} }
   function suggest(){
     var box=$('s2-sug'); box.style.display='none'; box.innerHTML='';
@@ -7272,10 +7283,12 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     var curC=num(srow.count),curA=num(srow.amount);
     var diff=(curC||curA)&&(curC!==n||Math.abs(curA-sum)>0.009);
     S.setSummary=S.setSummary===undefined?true:S.setSummary; if(S.fillT===undefined) S.fillT=true;
+    /* อ่านได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน) = ห้ามเติม ถ อัตโนมัติ กันแถวที่จริงเป็น ส/พ/ผ กลายเป็น ถ */
+    var badTot=(okN===false||okA===false); S.fillLock=badTot; if(badTot) S.fillT=false;
     $('s2-sum').innerHTML='<b>หมวดจำนำ</b> · จำนำใหม่ '+fmt0(cnt.new)+' ราย ('+fmt(amt.new)+') + ต่อตั๋ว '+fmt0(n-cnt.new)+' ราย ('+fmt(amt.renew)+') = <b>'+fmt0(n)+' ราย / '+fmt(sum)+' บาท</b>'
       +'<br>สรุปประจำวัน แถว "รับจำนำ" ตอนนี้: '+(curC||curA?fmt0(curC)+' ราย / '+fmt(curA)+' บาท'+(diff?' <b style="color:#b45309">⚠ ไม่ตรงกับ สธ.2</b>':' ✓ ตรงกับ สธ.2'):'ยังว่าง')
       +'<label class="chk"><input type="checkbox" id="s2-setsum" '+(S.setSummary?'checked':'')+' onchange="sor2SetSum(this.checked)"> ตั้งยอด "รับจำนำ" ในสรุปประจำวันเป็น '+fmt0(n)+' ราย / '+fmt(sum)+' บาท</label>'
-      +(function(){ var nb=blankRows(day,S.res).length; return nb?'<label class="chk"><input type="checkbox" id="s2-fillt" '+(S.fillT?'checked':'')+' onchange="sor2FillT(this.checked)"> เติมประเภท <b>ถ</b> (ไถ่ถอน) ให้แถวที่มีเลขตั๋วแต่ไม่อยู่ใน สธ.2 อีก <b>'+fmt0(nb)+'</b> แถว</label>':''; })();
+      +(function(){ var nb=blankRows(day,S.res).length; return nb?'<label class="chk"'+(S.fillLock?' style="opacity:.55"':'')+'><input type="checkbox" id="s2-fillt" '+(S.fillT?'checked':'')+(S.fillLock?' disabled':'')+' onchange="sor2FillT(this.checked)"> เติมประเภท <b>ถ</b> (ไถ่ถอน) ให้แถวที่มีเลขตั๋วแต่ไม่อยู่ใน สธ.2 อีก <b>'+fmt0(nb)+'</b> แถว'+(S.fillLock?' <b style="color:#b91c1c">· ปิดไว้ เพราะอ่านไฟล์ได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน)</b>':'')+'</label>':''; })();
     var ex=$('s2-extra'); if(S.extra.length){ex.style.display='block';ex.innerHTML='<b>⚠ ในบัญชีมีตั๋วใหม่ที่ไม่อยู่ใน สธ.2 ('+S.extra.length+')</b><br>'+S.extra.map(function(e){return 'ตั๋วเดิม '+esc(e.type||'')+' '+esc(e.old)+' ('+esc(e.mn)+') → ตั๋วใหม่ '+esc(e.tk)+(e.book?'/'+esc(e.book):'')}).join('<br>');} else ex.style.display='none';
     var tabs=[['all','ทั้งหมด',n],['new','จำนำใหม่',cnt.new],['renew','ต่อตั๋ว',n-cnt.new],['warn','เตือน',cnt.conflict+cnt.nofound]];
     $('s2-tabs').innerHTML=tabs.map(function(t){return '<button type="button" class="s2-tab'+(S.filter===t[0]?' on':'')+'" onclick="sor2Filter(\''+t[0]+'\')">'+t[1]+' ('+t[2]+')</button>'}).join('');
@@ -7315,7 +7328,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     return items.length;
   }
   window.sor2Read=async function(ev){
-    var f=ev.target.files&&ev.target.files[0]; if(!f) return; S.file=f.name; S.parsed=null; $('s2-go').disabled=true; $('s2-main').style.display='none';
+    var f=ev.target.files&&ev.target.files[0]; if(!f) return; S.file=f.name; S.parsed=null; S.fillT=undefined; S.fillLock=false; $('s2-go').disabled=true; $('s2-main').style.display='none';
     $('s2-st').textContent='กำลังอ่าน PDF...';
     try{
       var P=await parse(await f.arrayBuffer());
@@ -7348,7 +7361,7 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
       if(!String(lr.newBook||'').trim()||fix) lr.newBook=String(r.book);
       if(String(lr.newAmount==null?'':lr.newAmount).trim()===''||fix) lr.newAmount=String(r.amount);
     });
-    var tN=0; if(S.fillT){ blankRows(day,a.res).forEach(function(r){ r.type='ถ'; tN++; }); }
+    var tN=0; if(S.fillT&&!S.fillLock){ blankRows(day,a.res).forEach(function(r){ r.type='ถ'; tN++; }); }
     day.sor2={v:1,file:S.file,at:Date.now(),mn:(['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(dk.slice(5,7))-1]),n:n,amt:sum,newN:nNew.length,newAmt:newAmt,month:P.month,goldBuy:P.goldBuy,goldSell:P.goldSell,
       tN:tN,rows:P.rows.map(function(r){return [r.type,r.oldT,r.oldM,r.ticket,r.book,r.weight,r.amount]})};
     if(S.setSummary){ var sr=day.data&&day.data['สรุปประจำวัน']; if(sr&&sr[1]){sr[1].count=n;sr[1].amount=sum;} }
@@ -9545,6 +9558,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
         return;
       }
       if(toT&&forT.length){
+        if(typeof pdfImportDateOk==='function'&&!pdfImportDateOk(dk)) return;
         if(!window.confirm('ลงตารางเขียนตั๋ว '+forT.length+' รายการ วันที่ '+dk+' ?')) return;
         var r=doT(); try{ closePDFImportModal(); }catch(e){}
         return;

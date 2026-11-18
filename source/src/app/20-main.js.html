@@ -2292,24 +2292,27 @@
             if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { alert('กรุณาระบุวันที่ทำรายการจากหัวรายงานประจำวันที่'); return ''; }
             return date;
         }
+        function pdfBookKey(v) { const s = String(v == null ? '' : v).trim(); return s ? String(Number(s) || s) : ''; }
+        function pdfBookClash(list, bk) { return !!list && list.some(b => !b || !bk || b === bk); }
         function preparePDFImport() {
             if (!pdfImportParsedRecords.length) return;
             const dateKey = getPDFImportTargetDate(); if (!dateKey) return;
             const day = db[dateKey];
-            const existing = new Set();
+            /* ซ้ำ = เดือนเดียวกัน + เลขตั๋วเดียวกัน + เล่มไม่ขัดกัน (ถ้าทั้งสองฝั่งมีเล่มและต่างกัน = คนละใบ เช่น เดือนเดียวกันคนละปี) */
+            const existing = new Map();
             if (day && day.data) {
                 (day.months || []).forEach(monthName => {
                     const m = thaiMonths.indexOf(monthName) + 1;
-                    (day.data[monthName] || []).forEach(row => { if (row && String(row.ticket || '').trim()) existing.add(`${m}|${normalizeCompareTicket(row.ticket)}`); });
+                    (day.data[monthName] || []).forEach(row => { if (row && String(row.ticket || '').trim()) { const k = `${m}|${normalizeCompareTicket(row.ticket)}`; if (!existing.has(k)) existing.set(k, []); existing.get(k).push(pdfBookKey(row.book || row.importBook)); } });
                 });
             }
-            const seen = new Set();
+            const seen = new Map();
             pdfImportReadyRecords = pdfImportParsedRecords.map((row,index) => {
-                const key = `${row.month}|${normalizeCompareTicket(row.ticket)}`;
+                const key = `${row.month}|${normalizeCompareTicket(row.ticket)}`, bk = pdfBookKey(row.book);
                 let reason = '';
-                if (seen.has(key)) reason = 'เลขตั๋วซ้ำใน PDF';
-                else if (existing.has(key)) reason = 'มีเลขตั๋วนี้ในตารางแล้ว';
-                seen.add(key);
+                if (pdfBookClash(seen.get(key), bk)) reason = 'เลขตั๋วซ้ำใน PDF';
+                else if (pdfBookClash(existing.get(key), bk)) reason = 'มีเลขตั๋วนี้ในตารางแล้ว';
+                if (!seen.has(key)) seen.set(key, []); seen.get(key).push(bk);
                 return { ...row, index, duplicate:!!reason, reason, selected:!reason };
             });
             renderPDFImportPreview();
@@ -2351,8 +2354,16 @@
             }
             return day.data[monthName];
         }
+        /* ยืนยันวันที่ก่อนนำเข้า สธ.3: อ่านวันที่หัวรายงานไม่ได้ หรือไม่ตรงกับที่เลือก = ถามก่อน (ใช้ทั้งปลายทางรักษาของและเขียนตั๋ว) */
+        function pdfImportDateOk(dateKey) {
+            const thD = k => { const p = String(k).split('-'); return p.length === 3 ? `${+p[2]}/${+p[1]}/${+p[0] + 543}` : k; };
+            if (!pdfImportDetectedDate) return confirm(`⚠ อ่านวันที่จากหัวรายงาน PDF ไม่ได้\nจะนำเข้าเป็นวันที่ ${thD(dateKey)}\n\nตรวจแล้วว่าตรงกับวันที่ในรายงาน ใช่ไหม?`);
+            if (dateKey !== pdfImportDetectedDate) return confirm(`⚠ วันที่ที่เลือก (${thD(dateKey)}) ไม่ตรงกับหัวรายงาน PDF (${thD(pdfImportDetectedDate)})\n\nต้องการนำเข้าเป็นวันที่ ${thD(dateKey)} จริงหรือไม่?`);
+            return true;
+        }
         function commitPDFImport() {
             const dateKey = getPDFImportTargetDate(); if (!dateKey) return;
+            if (!pdfImportDateOk(dateKey)) return;
             const selected = pdfImportReadyRecords.filter(row=>row.selected && !row.duplicate);
             if (!selected.length) { alert('กรุณาเลือกรายการที่จะนำเข้า'); return; }
             const total = selected.reduce((sum,row)=>sum+row.amount,0);
@@ -2364,7 +2375,7 @@
             for (const record of selected) {
                 const monthName = thaiMonths[record.month-1];
                 const rows = ensurePDFImportMonth(day, monthName);
-                const duplicateNow = rows.some(row=>row && normalizeCompareTicket(row.ticket)===normalizeCompareTicket(record.ticket));
+                const duplicateNow = rows.some(row=>row && String(row.ticket||'').trim() && normalizeCompareTicket(row.ticket)===normalizeCompareTicket(record.ticket) && pdfBookClash([pdfBookKey(row.book || row.importBook)], pdfBookKey(record.book)));
                 if (duplicateNow) continue;
                 let index = rows.findIndex(row => !row || (!String(row.ticket||'').trim() && !String(row.amount??'').trim()));
                 while (index < 0) {

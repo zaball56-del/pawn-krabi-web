@@ -21,6 +21,7 @@
         return;
       }
       if(toT&&forT.length){
+        if(typeof pdfImportDateOk==='function'&&!pdfImportDateOk(dk)) return;
         if(!window.confirm('ลงตารางเขียนตั๋ว '+forT.length+' รายการ วันที่ '+dk+' ?')) return;
         var r=doT(); try{ closePDFImportModal(); }catch(e){}
         return;
