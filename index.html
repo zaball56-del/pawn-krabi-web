@@ -10470,11 +10470,29 @@ html body #ledger-page::after{content:"";position:fixed;z-index:-1;pointer-event
   function bootWait(){
     try{
       if(typeof currentDate==='string'&&currentDate) return;
+      var im=document.querySelector('.sb-brand img,#login-modal img'), sc=im?im.src:'';
       var o=document.createElement('div'); o.id='boot-wait';
-      o.style.cssText='position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;background:#F6F2E8;color:#14213D;font:700 17px Sarabun,sans-serif';
-      o.innerHTML='<div style="text-align:center"><div style="width:38px;height:38px;margin:0 auto 12px;border:4px solid #E3DCC4;border-top-color:#14213D;border-radius:50%;animation:bwspin .9s linear infinite"></div>กำลังโหลดข้อมูล…</div><style>@keyframes bwspin{to{transform:rotate(360deg)}}</style>';
+      o.innerHTML='<style>'
+      +'#boot-wait{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;font-family:Sarabun,sans-serif;color:#14213D;'
+      +'background:radial-gradient(ellipse 80% 55% at 50% 38%,#FFFFFF 0%,#F6F2E8 55%,#E9E2CC 100%);transition:opacity .25s}'
+      +'#boot-wait .bw{text-align:center;padding:0 24px;animation:bwin .5s ease both}'
+      +'#boot-wait .bw-seal{position:relative;width:116px;height:116px;margin:0 auto 22px}'
+      +'#boot-wait .bw-seal i{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(20,33,61,.10);border-top-color:#B8923A;border-right-color:#B8923A;animation:bwspin 1.1s cubic-bezier(.5,.1,.5,.9) infinite}'
+      +'#boot-wait .bw-seal em{position:absolute;inset:-9px;border-radius:50%;border:1px dashed rgba(184,146,58,.45);animation:bwspin 9s linear infinite reverse}'
+      +'#boot-wait .bw-seal img{position:absolute;inset:11px;width:94px;height:94px;border-radius:50%;object-fit:cover;box-shadow:0 6px 18px rgba(20,33,61,.22);animation:bwpulse 2.2s ease-in-out infinite}'
+      +'#boot-wait .bw-t{font-weight:800;font-size:19px;letter-spacing:.2px}'
+      +'#boot-wait .bw-s{margin-top:3px;font-size:12.5px;font-weight:600;color:#8a7a4c;letter-spacing:.14em}'
+      +'#boot-wait .bw-bar{position:relative;width:168px;height:4px;margin:20px auto 9px;border-radius:4px;background:rgba(20,33,61,.10);overflow:hidden}'
+      +'#boot-wait .bw-bar:after{content:"";position:absolute;top:0;bottom:0;width:42%;border-radius:4px;background:linear-gradient(90deg,#B8923A,#E2C36B,#B8923A);animation:bwbar 1.3s ease-in-out infinite}'
+      +'#boot-wait .bw-m{font-size:14px;font-weight:600;color:#4b5a78}'
+      +'@keyframes bwspin{to{transform:rotate(360deg)}}@keyframes bwbar{0%{left:-45%}100%{left:103%}}'
+      +'@keyframes bwpulse{50%{transform:scale(.965)}}@keyframes bwin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}'
+      +'@media (prefers-reduced-motion:reduce){#boot-wait *{animation:none !important}}@media print{#boot-wait{display:none !important}}'
+      +'</style><div class="bw"><div class="bw-seal"><em></em><i></i>'+(sc?'<img src="'+sc+'" alt="">':'')+'</div>'
+      +'<div class="bw-t">สถานธนานุบาลเทศบาลเมืองกระบี่</div><div class="bw-s">KRABI MUNICIPAL PAWNSHOP</div>'
+      +'<div class="bw-bar"></div><div class="bw-m">กำลังโหลดข้อมูล…</div></div>';
       document.body.appendChild(o);
-      var n=0, t=setInterval(function(){ n++; if((typeof currentDate==='string'&&currentDate)||n>200){ clearInterval(t); setTimeout(function(){ if(o.parentNode) o.remove(); },150); } },100);
+      var n=0, t=setInterval(function(){ n++; if((typeof currentDate==='string'&&currentDate)||n>200){ clearInterval(t); o.style.opacity='0'; setTimeout(function(){ if(o.parentNode) o.remove(); },260); } },100);
     }catch(e){}
   }
   window.__bootWait=bootWait;
