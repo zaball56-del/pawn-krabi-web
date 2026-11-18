@@ -37,3 +37,4 @@ scanner.html
 sblantern.html
 motion.html
 lgsticky.html
+scanfx.html
