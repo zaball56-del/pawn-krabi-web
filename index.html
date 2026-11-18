@@ -5087,7 +5087,6 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
           +'<div class="ds-note">ธีมมืดและขนาดตัวอักษรมีผลทั้งโปรแกรม ไม่มีผลกับการพิมพ์</div></div>'
           +'<div class="ds-sec"><h3>รายชื่อผู้เบิกทรัพย์จำนำ</h3><div id="ds-cu-names">'+cuNamesHtml()+'</div><div class="ds-note">ชื่อที่เพิ่มไว้จะขึ้นให้เลือกในหน้า "เบิก-คืนทรัพย์จำนำ" (เก็บไว้ในเครื่องนี้)</div></div>'
           +'<div class="ds-sec"><h3>การใช้งาน</h3>'+ck('ds-sound','เปิดเสียงเตือน (ตอนเข้าระบบ/รหัสผิด)','',s.sound!==false)
-          +ck('ds-qsc','ยืนยันก่อนบันทึกทุกครั้งในคีย์ด่วน','แสดงสรุปตั๋วเดิม/ตั๋วใหม่ให้เทียบกับตัวตั๋ว (ถ้าพบความผิดปกติจะเตือนเสมอ แม้ปิดข้อนี้)',s.qsConfirm!==false)
           +ck('ds-warn','แสดงแถบเตือนเมื่อไม่ได้สำรองข้อมูลเกิน 7 วัน','ปิดไว้เป็นค่าเริ่มต้น',s.warnBackup)+'</div>'
           +'<div class="ds-sec"><h3>รีเซ็ต</h3><div class="ds-row" style="margin-top:0"><button type="button" class="ds-btn warn" id="ds-reset">รีเซ็ตการตั้งค่าทั้งหมด</button></div>'
           +'<div class="ds-note">รีเซ็ตเฉพาะการตั้งค่าในหน้านี้ (รวมถึง PIN กลับเป็นค่าเริ่มต้น) ข้อมูลบัญชีไม่ถูกลบ การล้างข้อมูลรายวันใช้ปุ่ม "ล้างข้อมูลวันนี้" ในเมนู ข้อมูล</div></div>';
@@ -5135,7 +5134,6 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         if(tab==='use'){
             q('ds-theme').addEventListener('change',function(){ set('theme',this.value); });
             q('ds-font').addEventListener('change',function(){ set('fontScale',Number(this.value)); });
-            q('ds-qsc').addEventListener('change',function(){ set('qsConfirm',this.checked); });
             q('ds-sound').addEventListener('change',function(){ set('sound',this.checked); });
             q('ds-warn').addEventListener('change',function(){ set('warnBackup',this.checked); if(this.checked&&typeof checkBackupReminder==='function') try{checkBackupReminder();}catch(e){} });
             q('ds-reset').addEventListener('click',function(){ uiConfirm('รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น (รวมถึง PIN)?\nข้อมูลบัญชีจะไม่ถูกลบ').then(function(ok){ if(!ok) return; try{ localStorage.removeItem(KEY); }catch(e){} applyAll(); toast('รีเซ็ตการตั้งค่าแล้ว'); render(); }); });
