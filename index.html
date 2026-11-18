@@ -8108,7 +8108,7 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   function apply(){ var s=mode()==='single'; M.classList.toggle('qs-single',s); bar.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===(s?'single':'full')); }); count(); }
   bar.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; ls(KEY,b.dataset.m); apply(); });
   /* บันทึกอัตโนมัติ (โหมดตั๋วเดิมอย่างเดียว): ประเภท+เดือน+เลขตั๋ว+เล่ม และยอดที่ดึงมาเอง (qs-auto) ครบ -> รอ .8 วิ แล้วบันทึก */
-  var AK='pawn_qs_auto', ca=cnt.querySelector('#qs-auto'), tmA=null; ca.checked=ls(AK)==='1';
+  var AK='pawn_qs_auto', ca=cnt.querySelector('#qs-auto'), tmA=null; ca.checked=ls(AK)!=='0';
   ca.addEventListener('change',function(){ ls(AK,ca.checked?'1':'0'); if(!ca.checked) clearTimeout(tmA); });
   var A=document.getElementById('qs-amount');
   function ready(){ var g=function(i){ var e=document.getElementById(i); return e?e.value.trim():''; }; var m=parseInt(g('qs-month'),10);
@@ -8870,7 +8870,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   SA.addEventListener('focus',function(){ SA.value=SA.value.replace(/,/g,''); });
   SA.addEventListener('blur',function(){ if(SA.value.trim()) SA.value=fmt(num(SA.value)); });
   $('tkw-sq-save').onclick=sqSave; $('tkw-sq-cam').onclick=camOpen; $('tkw-sq-x').onclick=sqClose;
-  $('tkw-sq-auto').checked=ls(AK)==='1'; $('tkw-sq-auto').onchange=function(){ ls(AK,this.checked?'1':'0'); if(!this.checked) clearTimeout(tmA); };
+  $('tkw-sq-auto').checked=ls(AK)!=='0'; $('tkw-sq-auto').onchange=function(){ ls(AK,this.checked?'1':'0'); if(!this.checked) clearTimeout(tmA); };
   SA.addEventListener('input',function(){ clearTimeout(tmA); }); SM.addEventListener('input',function(){ clearTimeout(tmA); });
   $('tkw-sq-cont').onchange=function(){ ls(KC,this.checked?'1':'0'); };
   $('tkw-scan-btn').onclick=sqOpen;

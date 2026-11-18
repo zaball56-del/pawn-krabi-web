@@ -541,7 +541,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   SA.addEventListener('focus',function(){ SA.value=SA.value.replace(/,/g,''); });
   SA.addEventListener('blur',function(){ if(SA.value.trim()) SA.value=fmt(num(SA.value)); });
   $('tkw-sq-save').onclick=sqSave; $('tkw-sq-cam').onclick=camOpen; $('tkw-sq-x').onclick=sqClose;
-  $('tkw-sq-auto').checked=ls(AK)==='1'; $('tkw-sq-auto').onchange=function(){ ls(AK,this.checked?'1':'0'); if(!this.checked) clearTimeout(tmA); };
+  $('tkw-sq-auto').checked=ls(AK)!=='0'; $('tkw-sq-auto').onchange=function(){ ls(AK,this.checked?'1':'0'); if(!this.checked) clearTimeout(tmA); };
   SA.addEventListener('input',function(){ clearTimeout(tmA); }); SM.addEventListener('input',function(){ clearTimeout(tmA); });
   $('tkw-sq-cont').onchange=function(){ ls(KC,this.checked?'1':'0'); };
   $('tkw-scan-btn').onclick=sqOpen;

@@ -43,7 +43,7 @@
   function apply(){ var s=mode()==='single'; M.classList.toggle('qs-single',s); bar.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===(s?'single':'full')); }); count(); }
   bar.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; ls(KEY,b.dataset.m); apply(); });
   /* บันทึกอัตโนมัติ (โหมดตั๋วเดิมอย่างเดียว): ประเภท+เดือน+เลขตั๋ว+เล่ม และยอดที่ดึงมาเอง (qs-auto) ครบ -> รอ .8 วิ แล้วบันทึก */
-  var AK='pawn_qs_auto', ca=cnt.querySelector('#qs-auto'), tmA=null; ca.checked=ls(AK)==='1';
+  var AK='pawn_qs_auto', ca=cnt.querySelector('#qs-auto'), tmA=null; ca.checked=ls(AK)!=='0';
   ca.addEventListener('change',function(){ ls(AK,ca.checked?'1':'0'); if(!ca.checked) clearTimeout(tmA); });
   var A=document.getElementById('qs-amount');
   function ready(){ var g=function(i){ var e=document.getElementById(i); return e?e.value.trim():''; }; var m=parseInt(g('qs-month'),10);
