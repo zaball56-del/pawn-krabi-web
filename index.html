@@ -3926,6 +3926,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         let pdfImportReadyRecords = [];
         let pdfImportFileName = '';
         let pdfImportDetectedDate = '';
+        let pdfImportReportTotal = null;
 
         function openPDFImportModal() {
             const modal = document.getElementById('pdf-import-modal');
@@ -3935,7 +3936,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             document.getElementById('pdf-import-confirm').disabled = true;
             document.getElementById('pdf-import-status').textContent = 'เลือกไฟล์ PDF เพื่อเริ่มต้น ระบบจะยังไม่บันทึกข้อมูลจนกว่าจะกดยืนยัน';
             document.getElementById('pdf-import-preview-wrap').classList.add('hidden');
-            pdfImportParsedRecords = []; pdfImportReadyRecords = []; pdfImportFileName = ''; pdfImportDetectedDate = '';
+            pdfImportParsedRecords = []; pdfImportReadyRecords = []; pdfImportFileName = ''; pdfImportDetectedDate = ''; pdfImportReportTotal = null;
             modal.classList.remove('hidden'); modal.style.display = 'flex';
         }
         function closePDFImportModal() {
@@ -3946,7 +3947,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             const status = document.getElementById('pdf-import-status');
             const readButton = document.getElementById('pdf-import-read');
             readButton.disabled = true; document.getElementById('pdf-import-confirm').disabled = true;
-            pdfImportParsedRecords = []; pdfImportReadyRecords = []; pdfImportFileName = file.name;
+            pdfImportParsedRecords = []; pdfImportReadyRecords = []; pdfImportFileName = file.name; pdfImportReportTotal = null;
+            const repTot = { n:null, amt:null, months:{} }, TM = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
             status.textContent = 'กำลังอ่านข้อความจาก PDF...';
             try {
                 if (!window.pdfjsLib) throw new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ กรุณาเชื่อมต่ออินเทอร์เน็ตแล้วเปิดไฟล์ใหม่');
@@ -3958,6 +3960,11 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     const page = await pdf.getPage(pageNo); const content = await page.getTextContent();
                     const lines = getPDFTextLines(content); allText += '\n' + lines.join('\n');
                     for (const line of lines) {
+                        // ยอดรวมท้ายรายงาน: รายเดือน และรวมทั้งหมด (ใช้เทียบว่าอ่านครบทุกบรรทัด)
+                        const tm = line.match(/ไถ่ถอนทรัพย์\S*เดือน\s+(\S+)\s+รวม\s+([\d,]+)\s*ราย\s+([\d,]+(?:\.\d{1,2})?)/);
+                        if (tm) { const mi = TM.indexOf(tm[1]) + 1; if (mi) repTot.months[mi] = { n:Number(tm[2].replace(/,/g,'')), amt:Number(tm[3].replace(/,/g,'')) }; continue; }
+                        const tg = line.match(/รวมไถ่ถอน\S*\s+([\d,]+)\s*ราย\s+([\d,]+(?:\.\d{1,2})?)/);
+                        if (tg) { repTot.n = Number(tg[1].replace(/,/g,'')); repTot.amt = Number(tg[2].replace(/,/g,'')); continue; }
                         const match = line.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,6})\s*\/\s*(\d{1,4})\s+(\d{1,6})\s*\/\s*(\d{1,4})\s+([\d,]+(?:\.\d{1,2})?)/);
                         if (!match) continue;
                         const dateParts = parsePDFDateParts(match[1]); if (!dateParts) continue;
@@ -3969,7 +3976,16 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 if (!parsed.length) throw new Error('ไม่พบรายการตั๋วใน PDF อาจเป็น PDF ภาพสแกนหรือรูปแบบไม่ตรงกับตัวอย่าง');
                 pdfImportParsedRecords = parsed; readButton.disabled = false;
                 const total = parsed.reduce((sum,row)=>sum+row.amount,0);
-                status.innerHTML = `<b class="text-emerald-800">อ่าน PDF สำเร็จ ${parsed.length} รายการ</b><div>ไฟล์: ${escapeHtml(file.name)} · เงินต้นรวม ${formatNumber(total)} บาท</div><div class="text-amber-700">${pdfImportDetectedDate ? `พบวันที่ประจำวันที่ ${escapeHtml(pdfImportDetectedDate)}` : 'ไม่พบวันที่ประจำวันที่ กรุณาตรวจ/เลือกวันที่ก่อนเตรียมนำเข้า'}</div><div class="mt-1">กด “อ่าน / เตรียมรายการ” เพื่อดูรายการซ้ำและตรวจสอบก่อนบันทึก</div>`;
+                // เทียบกับยอดท้ายรายงาน
+                const bad = [];
+                if (repTot.n !== null) { if (repTot.n !== parsed.length || Math.abs(repTot.amt - total) > 0.009) bad.push(`รวมทั้งหมด: รายงาน ${formatNumber(repTot.n)} ราย / ${formatNumber(repTot.amt)} บาท · อ่านได้ ${formatNumber(parsed.length)} ราย / ${formatNumber(total)} บาท`); }
+                Object.keys(repTot.months).forEach(mi => { const r = repTot.months[mi], got = parsed.filter(x => x.month === Number(mi)); const ga = got.reduce((s2,x)=>s2+x.amount,0);
+                    if (r.n !== got.length || Math.abs(r.amt - ga) > 0.009) bad.push(`เดือน ${TM[mi-1]}: รายงาน ${formatNumber(r.n)} ราย / ${formatNumber(r.amt)} · อ่านได้ ${formatNumber(got.length)} ราย / ${formatNumber(ga)}`); });
+                pdfImportReportTotal = { found: repTot.n !== null || Object.keys(repTot.months).length > 0, ok: !bad.length, bad, n: repTot.n, amt: repTot.amt };
+                const totNote = !pdfImportReportTotal.found ? '<div class="text-amber-700 font-bold">⚠ ไม่พบยอดรวมท้ายรายงาน — ตรวจจำนวนรายการเองก่อนนำเข้า</div>'
+                    : (pdfImportReportTotal.ok ? `<div class="text-emerald-700 font-bold">✓ ตรงกับยอดรวมท้ายรายงาน${repTot.n !== null ? ` (${formatNumber(repTot.n)} ราย / ${formatNumber(repTot.amt)} บาท)` : ''}</div>`
+                    : `<div class="text-rose-700 font-bold">✗ อ่านได้ไม่ตรงกับยอดท้ายรายงาน — อาจมีบรรทัดที่อ่านไม่ออก</div>${bad.map(x=>`<div class="text-rose-700">${escapeHtml(x)}</div>`).join('')}`);
+                status.innerHTML = `<b class="text-emerald-800">อ่าน PDF สำเร็จ ${parsed.length} รายการ</b><div>ไฟล์: ${escapeHtml(file.name)} · เงินต้นรวม ${formatNumber(total)} บาท</div>${totNote}<div class="text-amber-700">${pdfImportDetectedDate ? `พบวันที่ประจำวันที่ ${escapeHtml(pdfImportDetectedDate)}` : 'ไม่พบวันที่ประจำวันที่ กรุณาตรวจ/เลือกวันที่ก่อนเตรียมนำเข้า'}</div><div class="mt-1">กด “อ่าน / เตรียมรายการ” เพื่อดูรายการซ้ำและตรวจสอบก่อนบันทึก</div>`;
             } catch (error) {
                 console.error('PDF import read error:', error);
                 status.innerHTML = `<b class="text-rose-700">อ่าน PDF ไม่สำเร็จ</b><div>${escapeHtml(error.message || 'เกิดข้อผิดพลาด')}</div>`;
@@ -4045,6 +4061,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         /* ยืนยันวันที่ก่อนนำเข้า สธ.3: อ่านวันที่หัวรายงานไม่ได้ หรือไม่ตรงกับที่เลือก = ถามก่อน (ใช้ทั้งปลายทางรักษาของและเขียนตั๋ว) */
         function pdfImportDateOk(dateKey) {
             const thD = k => { const p = String(k).split('-'); return p.length === 3 ? `${+p[2]}/${+p[1]}/${+p[0] + 543}` : k; };
+            const T = pdfImportReportTotal;
+            if (T && T.found && !T.ok && !confirm(`✗ รายการที่อ่านได้ไม่ตรงกับยอดรวมท้ายรายงาน\n${T.bad.slice(0,4).join('\n')}\n\nอาจมีบรรทัดที่อ่านไม่ออก ต้องการนำเข้าต่อหรือไม่?`)) return false;
             if (!pdfImportDetectedDate) return confirm(`⚠ อ่านวันที่จากหัวรายงาน PDF ไม่ได้\nจะนำเข้าเป็นวันที่ ${thD(dateKey)}\n\nตรวจแล้วว่าตรงกับวันที่ในรายงาน ใช่ไหม?`);
             if (dateKey !== pdfImportDetectedDate) return confirm(`⚠ วันที่ที่เลือก (${thD(dateKey)}) ไม่ตรงกับหัวรายงาน PDF (${thD(pdfImportDetectedDate)})\n\nต้องการนำเข้าเป็นวันที่ ${thD(dateKey)} จริงหรือไม่?`);
             return true;
@@ -4144,7 +4162,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
 
         function normalizePDFDigits(value) {
             const thai = '๐๑๒๓๔๕๖๗๘๙';
-            return String(value || '').replace(/[๐-๙]/g, ch => String(thai.indexOf(ch)));
+            // รายงาน สธ. (Crystal Reports) บางช่องใช้ฟอนต์ที่ตัวเลขออกมาเป็นอักษร U+0158–U+0161 (เช่น "řŞ/řř/ŚŝŞš" = 16/11/2569)
+            return String(value || '').replace(/[๐-๙]/g, ch => String(thai.indexOf(ch))).replace(/[\u0158-\u0161]/g, ch => String(ch.charCodeAt(0) - 0x158));
         }
 
         function parseThaiReportDate(text) {
@@ -7284,11 +7303,11 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
     var diff=(curC||curA)&&(curC!==n||Math.abs(curA-sum)>0.009);
     S.setSummary=S.setSummary===undefined?true:S.setSummary; if(S.fillT===undefined) S.fillT=true;
     /* อ่านได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน) = ห้ามเติม ถ อัตโนมัติ กันแถวที่จริงเป็น ส/พ/ผ กลายเป็น ถ */
-    var badTot=(okN===false||okA===false); S.fillLock=badTot; if(badTot) S.fillT=false;
+    var badTot=!(okN===true&&okA===true); S.fillLock=badTot; if(badTot) S.fillT=false;
     $('s2-sum').innerHTML='<b>หมวดจำนำ</b> · จำนำใหม่ '+fmt0(cnt.new)+' ราย ('+fmt(amt.new)+') + ต่อตั๋ว '+fmt0(n-cnt.new)+' ราย ('+fmt(amt.renew)+') = <b>'+fmt0(n)+' ราย / '+fmt(sum)+' บาท</b>'
       +'<br>สรุปประจำวัน แถว "รับจำนำ" ตอนนี้: '+(curC||curA?fmt0(curC)+' ราย / '+fmt(curA)+' บาท'+(diff?' <b style="color:#b45309">⚠ ไม่ตรงกับ สธ.2</b>':' ✓ ตรงกับ สธ.2'):'ยังว่าง')
       +'<label class="chk"><input type="checkbox" id="s2-setsum" '+(S.setSummary?'checked':'')+' onchange="sor2SetSum(this.checked)"> ตั้งยอด "รับจำนำ" ในสรุปประจำวันเป็น '+fmt0(n)+' ราย / '+fmt(sum)+' บาท</label>'
-      +(function(){ var nb=blankRows(day,S.res).length; return nb?'<label class="chk"'+(S.fillLock?' style="opacity:.55"':'')+'><input type="checkbox" id="s2-fillt" '+(S.fillT?'checked':'')+(S.fillLock?' disabled':'')+' onchange="sor2FillT(this.checked)"> เติมประเภท <b>ถ</b> (ไถ่ถอน) ให้แถวที่มีเลขตั๋วแต่ไม่อยู่ใน สธ.2 อีก <b>'+fmt0(nb)+'</b> แถว'+(S.fillLock?' <b style="color:#b91c1c">· ปิดไว้ เพราะอ่านไฟล์ได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน)</b>':'')+'</label>':''; })();
+      +(function(){ var nb=blankRows(day,S.res).length; return nb?'<label class="chk"'+(S.fillLock?' style="opacity:.55"':'')+'><input type="checkbox" id="s2-fillt" '+(S.fillT?'checked':'')+(S.fillLock?' disabled':'')+' onchange="sor2FillT(this.checked)"> เติมประเภท <b>ถ</b> (ไถ่ถอน) ให้แถวที่มีเลขตั๋วแต่ไม่อยู่ใน สธ.2 อีก <b>'+fmt0(nb)+'</b> แถว'+(S.fillLock?' <b style="color:#b91c1c">· ปิดไว้ เพราะ'+(okN===null?'ไม่พบยอดรวมท้ายรายงานให้เทียบ':'อ่านไฟล์ได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน)')+'</b>':'')+'</label>':''; })();
     var ex=$('s2-extra'); if(S.extra.length){ex.style.display='block';ex.innerHTML='<b>⚠ ในบัญชีมีตั๋วใหม่ที่ไม่อยู่ใน สธ.2 ('+S.extra.length+')</b><br>'+S.extra.map(function(e){return 'ตั๋วเดิม '+esc(e.type||'')+' '+esc(e.old)+' ('+esc(e.mn)+') → ตั๋วใหม่ '+esc(e.tk)+(e.book?'/'+esc(e.book):'')}).join('<br>');} else ex.style.display='none';
     var tabs=[['all','ทั้งหมด',n],['new','จำนำใหม่',cnt.new],['renew','ต่อตั๋ว',n-cnt.new],['warn','เตือน',cnt.conflict+cnt.nofound]];
     $('s2-tabs').innerHTML=tabs.map(function(t){return '<button type="button" class="s2-tab'+(S.filter===t[0]?' on':'')+'" onclick="sor2Filter(\''+t[0]+'\')">'+t[1]+' ('+t[2]+')</button>'}).join('');

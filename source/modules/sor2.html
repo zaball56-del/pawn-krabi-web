@@ -210,11 +210,11 @@
     var diff=(curC||curA)&&(curC!==n||Math.abs(curA-sum)>0.009);
     S.setSummary=S.setSummary===undefined?true:S.setSummary; if(S.fillT===undefined) S.fillT=true;
     /* อ่านได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน) = ห้ามเติม ถ อัตโนมัติ กันแถวที่จริงเป็น ส/พ/ผ กลายเป็น ถ */
-    var badTot=(okN===false||okA===false); S.fillLock=badTot; if(badTot) S.fillT=false;
+    var badTot=!(okN===true&&okA===true); S.fillLock=badTot; if(badTot) S.fillT=false;
     $('s2-sum').innerHTML='<b>หมวดจำนำ</b> · จำนำใหม่ '+fmt0(cnt.new)+' ราย ('+fmt(amt.new)+') + ต่อตั๋ว '+fmt0(n-cnt.new)+' ราย ('+fmt(amt.renew)+') = <b>'+fmt0(n)+' ราย / '+fmt(sum)+' บาท</b>'
       +'<br>สรุปประจำวัน แถว "รับจำนำ" ตอนนี้: '+(curC||curA?fmt0(curC)+' ราย / '+fmt(curA)+' บาท'+(diff?' <b style="color:#b45309">⚠ ไม่ตรงกับ สธ.2</b>':' ✓ ตรงกับ สธ.2'):'ยังว่าง')
       +'<label class="chk"><input type="checkbox" id="s2-setsum" '+(S.setSummary?'checked':'')+' onchange="sor2SetSum(this.checked)"> ตั้งยอด "รับจำนำ" ในสรุปประจำวันเป็น '+fmt0(n)+' ราย / '+fmt(sum)+' บาท</label>'
-      +(function(){ var nb=blankRows(day,S.res).length; return nb?'<label class="chk"'+(S.fillLock?' style="opacity:.55"':'')+'><input type="checkbox" id="s2-fillt" '+(S.fillT?'checked':'')+(S.fillLock?' disabled':'')+' onchange="sor2FillT(this.checked)"> เติมประเภท <b>ถ</b> (ไถ่ถอน) ให้แถวที่มีเลขตั๋วแต่ไม่อยู่ใน สธ.2 อีก <b>'+fmt0(nb)+'</b> แถว'+(S.fillLock?' <b style="color:#b91c1c">· ปิดไว้ เพราะอ่านไฟล์ได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน)</b>':'')+'</label>':''; })();
+      +(function(){ var nb=blankRows(day,S.res).length; return nb?'<label class="chk"'+(S.fillLock?' style="opacity:.55"':'')+'><input type="checkbox" id="s2-fillt" '+(S.fillT?'checked':'')+(S.fillLock?' disabled':'')+' onchange="sor2FillT(this.checked)"> เติมประเภท <b>ถ</b> (ไถ่ถอน) ให้แถวที่มีเลขตั๋วแต่ไม่อยู่ใน สธ.2 อีก <b>'+fmt0(nb)+'</b> แถว'+(S.fillLock?' <b style="color:#b91c1c">· ปิดไว้ เพราะ'+(okN===null?'ไม่พบยอดรวมท้ายรายงานให้เทียบ':'อ่านไฟล์ได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน)')+'</b>':'')+'</label>':''; })();
     var ex=$('s2-extra'); if(S.extra.length){ex.style.display='block';ex.innerHTML='<b>⚠ ในบัญชีมีตั๋วใหม่ที่ไม่อยู่ใน สธ.2 ('+S.extra.length+')</b><br>'+S.extra.map(function(e){return 'ตั๋วเดิม '+esc(e.type||'')+' '+esc(e.old)+' ('+esc(e.mn)+') → ตั๋วใหม่ '+esc(e.tk)+(e.book?'/'+esc(e.book):'')}).join('<br>');} else ex.style.display='none';
     var tabs=[['all','ทั้งหมด',n],['new','จำนำใหม่',cnt.new],['renew','ต่อตั๋ว',n-cnt.new],['warn','เตือน',cnt.conflict+cnt.nofound]];
     $('s2-tabs').innerHTML=tabs.map(function(t){return '<button type="button" class="s2-tab'+(S.filter===t[0]?' on':'')+'" onclick="sor2Filter(\''+t[0]+'\')">'+t[1]+' ('+t[2]+')</button>'}).join('');
