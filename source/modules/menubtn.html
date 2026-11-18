@@ -1,0 +1,28 @@
+<style id="menubtn-css">
+/* ปุ่มเมนูซ้ายบน (#sb-toggle) แบบใหม่: พื้นครีมทอง ขีด 3 เส้นวาดด้วย CSS (เส้นกลางสีทอง สั้นกว่า)
+   ไม่แตะขนาด/ตำแหน่งเดิมของแต่ละหน้า (กำหนดไว้ในโมดูลอื่น) เปลี่ยนเฉพาะหน้าตา */
+html body #sb-toggle:not(#_x){
+  background:linear-gradient(160deg,#FFFDF6 0%,#F4E9CC 100%) !important;
+  border:1px solid #D8C28A !important;color:#14213D !important;
+  box-shadow:0 2px 6px rgba(20,33,61,.18),inset 0 1px 0 rgba(255,255,255,.9) !important;
+  display:flex;align-items:center;justify-content:center;padding:0 !important;
+  transition:transform .15s ease,box-shadow .15s ease,background .2s ease !important;
+  -webkit-tap-highlight-color:transparent;
+}
+html body #sb-toggle:not(#_x):hover{box-shadow:0 4px 12px rgba(20,33,61,.24),inset 0 1px 0 rgba(255,255,255,.9) !important}
+html body #sb-toggle:not(#_x):active{transform:scale(.93)}
+html body #sb-toggle:not(#_x):focus-visible{outline:2px solid #B8923A;outline-offset:2px}
+/* ขีดกลาง = ตัว span (ซ่อนตัวอักษร ☰ เดิม) · ขีดบน/ล่าง = ::before/::after */
+html body #sb-toggle:not(#_x) > span{position:relative;display:block;width:46%;height:2.5px;border-radius:2px;font-size:0 !important;line-height:0;color:transparent;
+  background:#B8923A;transform-origin:center;transition:background .2s ease,width .2s ease}
+html body #sb-toggle:not(#_x) > span::before,html body #sb-toggle:not(#_x) > span::after{content:"";position:absolute;left:0;width:100%;height:2.5px;border-radius:2px;background:#14213D;
+  transition:transform .25s cubic-bezier(.5,.1,.3,1.3),top .25s ease,width .2s ease}
+html body #sb-toggle:not(#_x) > span::before{top:-6.5px;width:100%}
+html body #sb-toggle:not(#_x) > span::after{top:6.5px;width:70%}
+html body #sb-toggle:not(#_x):hover > span::after{width:100%}
+/* เปิดเมนูอยู่: หน้าตาเหมือนตอนปิด (สีเดียวกัน) */
+/* หน้าแรกโหมดกลางคืน: ปุ่มกระจกเข้ม */
+html body.page-home.hp-night #sb-toggle:not(#_x){background:rgba(255,255,255,.12) !important;border-color:rgba(255,255,255,.28) !important;box-shadow:none !important}
+html body.page-home.hp-night #sb-toggle:not(#_x) > span::before,html body.page-home.hp-night #sb-toggle:not(#_x) > span::after{background:#fff}
+@media (prefers-reduced-motion:reduce){html body #sb-toggle:not(#_x),html body #sb-toggle:not(#_x) > span,html body #sb-toggle:not(#_x) > span::before,html body #sb-toggle:not(#_x) > span::after{transition:none !important}}
+</style>

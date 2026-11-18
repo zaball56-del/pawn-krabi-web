@@ -38,3 +38,5 @@ sblantern.html
 motion.html
 lgsticky.html
 scanfx.html
+menubtn.html
+sbmenu.html

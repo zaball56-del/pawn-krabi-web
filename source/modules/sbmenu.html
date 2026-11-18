@@ -1,0 +1,48 @@
+<style id="sbmenu-css">
+/* แผงเมนูซ้ายแบบใหม่ (เข้าชุดกับปุ่มเมนูครีมทอง): พื้นครีม ตัวหนังสือกรมท่า ไอคอนในกรอบสี่เหลี่ยมมน
+   เมนูที่เปิดอยู่ = แถบกรมท่า + ขีดทองด้านซ้าย · ปิดตัวชี้แบบอีควอไลเซอร์/โคมไฟเดิม (ตัวชี้ลอยบังข้อความ) */
+html body #app-sidebar#app-sidebar:not(#_x):not(#_y){
+  background:linear-gradient(180deg,#FFFDF7 0%,#F7F1E2 100%) !important;background-image:linear-gradient(180deg,#FFFDF7 0%,#F7F1E2 100%) !important;
+  border-right:1px solid #E3DCC4 !important;box-shadow:8px 0 30px rgba(20,33,61,.16) !important;color:#14213D !important}
+html body #app-sidebar#app-sidebar:not(#_x)::before{display:none !important}
+html body #app-sidebar#app-sidebar .lt-lamp{display:none !important}
+/* หัวแผง: ตรา + ชื่อ */
+html body #app-sidebar#app-sidebar .sb-brand:not(#_x){position:relative;padding-bottom:16px !important;margin-bottom:8px !important;border-bottom:0 !important}
+html body #app-sidebar#app-sidebar .sb-brand:not(#_x)::after{content:"";position:absolute;left:4px;right:4px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#D8C28A 20%,#D8C28A 80%,transparent)}
+html body #app-sidebar#app-sidebar .sb-brand:not(#_x),html body #app-sidebar#app-sidebar .sb-brand span:not(#_x){color:#14213D !important;font-weight:800 !important}
+html body #app-sidebar#app-sidebar .sb-brand img{box-shadow:0 3px 10px rgba(20,33,61,.18);border-radius:50%}
+/* หัวกลุ่ม */
+html body #app-sidebar#app-sidebar .sb-grp:not(#_x):not(#_y):not(#_z){background:transparent !important;border:0 !important;border-radius:10px !important;box-shadow:none !important;
+  color:#8A7238 !important;font-size:12.5px !important;font-weight:800 !important;letter-spacing:.06em !important;padding:12px 10px 6px !important;margin-top:4px !important}
+html body #app-sidebar#app-sidebar .sb-grp *:not(#_x):not(#_y){color:#8A7238 !important}
+html body #app-sidebar#app-sidebar .sb-grp .ch:not(#_x){font-size:9px !important;display:inline-block;transition:transform .2s ease}
+html body #app-sidebar#app-sidebar .sb-grp.shut .ch:not(#_x){transform:rotate(-90deg)}
+html body #app-sidebar#app-sidebar .sb-grp .n:not(#_x):not(#_y){margin-left:auto;min-width:22px;padding:1px 7px;border-radius:999px;background:#F1E6C6 !important;color:#7A6430 !important;font-size:11px !important;text-align:center;letter-spacing:0}
+html body #app-sidebar#app-sidebar .sb-grp:not(#_x):not(#_y):hover{background:rgba(184,146,58,.08) !important}
+html body #app-sidebar#app-sidebar .sb-gb:not(#_x):not(#_y){padding-left:0 !important;background:transparent !important;border:0 !important;box-shadow:none !important}
+html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-gb:not(#_x):not(#_y){background:transparent !important;border:0 !important}
+/* รายการเมนู */
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y):not(#_z){position:relative;display:flex !important;align-items:center;gap:12px;opacity:1 !important;
+  background:transparent !important;border:0 !important;box-shadow:none !important;border-radius:12px !important;margin:2px 0 !important;padding:8px 10px !important;
+  color:#14213D !important;font-size:15px !important;font-weight:600 !important;line-height:1.3 !important;white-space:normal !important;text-align:left;text-shadow:none !important;transform:none !important;
+  transition:background .15s ease,color .15s ease !important}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y):not(#_z)::before,html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y):not(#_z)::after{display:none !important;content:none !important}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y):not(#_z):hover{background:rgba(184,146,58,.12) !important}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y):not(#_z):active{background:rgba(184,146,58,.2) !important}
+html body #app-sidebar#app-sidebar .sb-item:not(#_x):not(#_y):not(#_z):focus-visible{outline:2px solid #B8923A;outline-offset:1px}
+html body #app-sidebar#app-sidebar .sb-item[disabled]:not(#_x):not(#_y):not(#_z){opacity:.45 !important}
+html body #app-sidebar#app-sidebar .sb-item .sb-ic:not(#_x):not(#_y):not(#_z){flex:none;display:flex;align-items:center;justify-content:center;width:34px !important;height:34px !important;border-radius:10px !important;
+  background:#fff !important;border:1px solid #E7DDC2 !important;box-shadow:0 1px 2px rgba(20,33,61,.06) !important;color:#14213D !important}
+html body #app-sidebar#app-sidebar .sb-item small:not(#_x){color:#7c8598 !important}
+/* เมนูที่เปิดอยู่ */
+html body #app-sidebar#app-sidebar .sb-item.on:not(#_x):not(#_y):not(#_z){background:linear-gradient(135deg,#1F3260,#14213D) !important;color:#FFF8E6 !important;box-shadow:0 4px 12px rgba(20,33,61,.25) !important}
+html body #app-sidebar#app-sidebar .sb-item.on:not(#_x):not(#_y):not(#_z)::before{display:block !important;content:"" !important;position:absolute;left:5px;top:14px;bottom:14px;height:auto !important;width:3px !important;border-radius:3px;background:#E2C36B;box-shadow:none;transform:none;margin:0}
+html body #app-sidebar#app-sidebar .sb-item.on *:not(#_x):not(#_y){color:#FFF8E6 !important}
+html body #app-sidebar#app-sidebar .sb-item.on .sb-ic:not(#_x):not(#_y):not(#_z){background:#E2C36B !important;border-color:#E2C36B !important;color:#14213D !important}
+html body #app-sidebar#app-sidebar .sb-item.on .sb-ic *:not(#_x):not(#_y){color:#14213D !important}
+/* กล่องเวอร์ชัน */
+html body #app-sidebar#app-sidebar .sb-ver:not(#_x):not(#_y){background:#fff !important;border:1px solid #E7DDC2 !important;border-radius:14px !important;color:#7c8598 !important;box-shadow:none !important}
+html body #app-sidebar#app-sidebar .sb-ver b:not(#_x){color:#14213D !important}
+@media (min-width:1024px){html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-grp .ch:not(#_x){display:none !important}}
+@media (prefers-reduced-motion:reduce){html body #app-sidebar#app-sidebar *{transition:none !important}}
+</style>
