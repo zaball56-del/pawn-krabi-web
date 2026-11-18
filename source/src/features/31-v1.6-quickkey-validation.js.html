@@ -40,7 +40,7 @@
             try{ if(window.__isLocked&&window.__isLocked(currentDate)) return orig.apply(self,args); }catch(e){}
             var a; try{ a=analyse(); }catch(e){ console.error('qs analyse',e); return orig.apply(self,args); }
             if(!a.ok) return orig.apply(self,args);
-            if(!a.warn.length&&(!setting()||window.__qsAutoSave)) return orig.apply(self,args);
+            if(!a.warn.length) return orig.apply(self,args); /* ไม่มีคำเตือน = บันทึกเลย ไม่ถามซ้ำ (ผู้ใช้ไม่ต้องการหน้าต่างสรุป) */
             var lines=['ตรวจก่อนบันทึก','',
               'ตั๋วเดิม   เล่มที่ '+(a.oldB||'-')+'   เลขที่ '+a.oldT+'   ยอด '+(a.oldA?fmt(a.oldA):(a.exactRow?fmt(a.exactRow.amount):'-')),
               a.newT?('ตั๋วใหม่  เล่มที่ '+(a.newB||'-')+'   เลขที่ '+a.newT+'   ยอด '+(a.newA?fmt(a.newA):'-')):'ตั๋วใหม่  (ไม่มี)',
