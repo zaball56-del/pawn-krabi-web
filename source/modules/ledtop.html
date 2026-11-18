@@ -1,0 +1,64 @@
+<style id="ledtop-css">
+/* มือถือ: ส่วนบนของหน้าสมุดบัญชี (แถบเลือกวัน · หัววันที่ · สรุป 4 ช่อง · แถบเดือน) แบบใหม่ เข้าชุดเมนูครีม/กรมท่า/ทอง */
+@media screen and (max-width:640px){
+/* --- แถบเลือกวัน: แถวเดียว กะทัดรัด --- */
+html body.app-shell #ledger-page section:has(#doc-date):not(#_x){background:transparent !important;border:0 !important;box-shadow:none !important;padding:0 !important;margin:0 0 10px !important}
+html body.app-shell #ledger-page section:has(#doc-date) > div:first-child:not(#_x){display:flex !important;flex-wrap:nowrap !important;align-items:center !important;gap:8px !important;width:100% !important}
+html body.app-shell #ledger-page section:has(#doc-date) div:has(> div > #doc-date):not(#_x){flex:1 1 auto !important;min-width:0 !important;display:flex !important;align-items:center !important;gap:4px !important;
+  background:#fff !important;border:1px solid #E7DDC2 !important;border-radius:16px !important;padding:4px !important;box-shadow:0 2px 8px rgba(20,33,61,.07) !important}
+html body.app-shell #ledger-page section:has(#doc-date) div:has(> #doc-date):not(#_x){flex:1 1 auto !important;min-width:0 !important;padding:0 !important;margin:0 !important}
+html body.app-shell #ledger-page section #doc-date:not(#_x):not(#_y){width:100% !important;min-width:0 !important;height:40px !important;border:0 !important;background:transparent !important;box-shadow:none !important;
+  text-align:center !important;font:800 16px Sarabun,sans-serif !important;color:#14213D !important;padding:0 4px !important}
+html body.app-shell #ledger-page section:has(#doc-date) div:has(> div > #doc-date) > button:not(#_x):not(#_y){flex:none !important;width:40px !important;height:40px !important;min-width:0 !important;padding:0 !important;margin:0 !important;
+  border-radius:12px !important;border:0 !important;background:#F6F0E0 !important;color:#14213D !important;font:800 20px/1 Sarabun,sans-serif !important;box-shadow:none !important;display:flex !important;align-items:center !important;justify-content:center !important}
+html body.app-shell #ledger-page section:has(#doc-date) div:has(> div > #doc-date) > button[onclick*="goToday"]:not(#_x):not(#_y){width:auto !important;padding:0 14px !important;background:#14213D !important;color:#F4E3B0 !important;font:800 14px Sarabun,sans-serif !important}
+html body.app-shell #ledger-page #ledger-delday:not(#_x):not(#_y){flex:none !important;width:48px !important;height:48px !important;padding:0 !important;margin:0 !important;border-radius:16px !important;font-size:0 !important;color:transparent !important;
+  background:#fff !important;border:1px solid #F1C9CF !important;box-shadow:0 2px 8px rgba(20,33,61,.07) !important;position:relative;overflow:hidden}
+html body.app-shell #ledger-page #ledger-delday:not(#_x):not(#_y) *{display:none !important}
+html body.app-shell #ledger-page #ledger-delday:not(#_x):not(#_y)::after{content:"";position:absolute;inset:0;margin:auto;width:20px;height:20px;background:#B4233A;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6'/%3E%3C/svg%3E") center/contain no-repeat}
+html body.app-shell #ledger-page #ledger-delday:not(#_x):not(#_y):active{background:#FDECEF !important}
+
+/* --- การ์ดวัน: หัววันที่ + สรุป 4 ช่องในการ์ดเดียว --- */
+html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x){background:transparent !important;border:0 !important;box-shadow:none !important;padding:0 !important}
+html body.app-shell:not(.page-home) #ledger-page #m-date:not(#_x){display:flex !important;align-items:baseline !important;gap:8px !important;margin:0 !important;padding:14px 16px 10px !important;
+  background:#fff !important;border:1px solid #E7DDC2 !important;border-bottom:0 !important;border-radius:20px 20px 0 0 !important;color:#14213D !important}
+html body.app-shell:not(.page-home) #ledger-page #m-date .ic:not(#_x){display:none !important}
+html body.app-shell:not(.page-home) #ledger-page #m-date .dn:not(#_x){background:none !important;padding:0 !important;border-radius:0 !important;color:#A07F2C !important;font:800 14px Sarabun,sans-serif !important;box-shadow:none !important}
+html body.app-shell:not(.page-home) #ledger-page #m-date .dd:not(#_x){color:#14213D !important;font:700 15px Sarabun,sans-serif !important}
+html body.app-shell:not(.page-home) #ledger-page #m-date .dd b:not(#_x){font-size:22px !important;font-weight:800 !important;margin:0 2px}
+html body.app-shell:not(.page-home) #ledger-page #m-sum:not(#_x){display:grid !important;grid-template-columns:repeat(4,1fr) !important;gap:0 !important;margin:0 0 12px !important;padding:0 8px 10px !important;
+  background:#fff !important;border:1px solid #E7DDC2 !important;border-top:0 !important;border-radius:0 0 20px 20px !important;box-shadow:0 6px 16px rgba(20,33,61,.08) !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum button:not(#_x):not(#_y){position:relative;background:transparent !important;border:0 !important;border-radius:14px !important;box-shadow:none !important;padding:8px 8px 6px !important;text-align:left;min-width:0;
+  -webkit-backdrop-filter:none !important;backdrop-filter:none !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum button:not(.k):not(:first-child):not(#_x)::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:1px;background:#EFE7D2}
+html body.app-shell:not(.page-home) #ledger-page #m-sum small:not(#_x){color:#8A8371 !important;font:600 12px Sarabun,sans-serif !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum b:not(#_x){color:#14213D !important;font:800 19px/1.25 Sarabun,sans-serif !important;font-variant-numeric:tabular-nums;white-space:nowrap}
+html body.app-shell:not(.page-home) #ledger-page #m-sum i:not(#_x){color:#8A8371 !important;font:600 11.5px Sarabun,sans-serif !important;font-style:normal !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum button.k:not(#_x):not(#_y){background:linear-gradient(150deg,#1F3260,#14213D) !important;box-shadow:0 4px 10px rgba(20,33,61,.22) !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum button.k small:not(#_x),html body.app-shell:not(.page-home) #ledger-page #m-sum button.k i:not(#_x){color:#C9C3AE !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum button.k b:not(#_x){color:#F4E3B0 !important}
+html body.app-shell:not(.page-home) #ledger-page #m-sum button:active{transform:scale(.97)}
+
+/* --- แถบเดือน: เม็ดยา จำนวนอยู่ในเม็ด ไม่ลอยทับ · ซ่อนแถบเลื่อน --- */
+html body.app-shell:not(.page-home) #ledger-page #m-tabs:not(#_x){gap:6px !important;padding:2px 2px 12px !important;scrollbar-width:none;scroll-behavior:smooth}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs::-webkit-scrollbar{display:none}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs button:not(#_x):not(#_y){display:inline-flex !important;align-items:center !important;gap:5px !important;height:38px !important;padding:0 8px 0 11px !important;border-radius:999px !important;
+  background:#fff !important;border:1px solid #E7DDC2 !important;color:#4A4636 !important;font:800 14px Sarabun,sans-serif !important;box-shadow:0 1px 3px rgba(20,33,61,.06) !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs button em:not(#_x):not(#_y){position:static !important;display:inline-block;min-width:20px;padding:0 5px !important;border-radius:999px !important;line-height:19px !important;text-align:center;
+  background:#F4E9CC !important;color:#7A6430 !important;font:800 11px/19px Sarabun,sans-serif !important;font-style:normal !important;box-shadow:none !important}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on:not(#_x):not(#_y){background:#14213D !important;border-color:#14213D !important;color:#FFF8E6 !important;box-shadow:0 4px 10px rgba(20,33,61,.25) !important}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on em:not(#_x):not(#_y){background:#E2C36B !important;color:#14213D !important}
+}
+</style>
+<script id="ledtop-js">
+/* มือถือ: เลื่อนแถบเดือนให้เห็นเดือนที่เลือกอยู่เสมอ */
+(function(){ try{
+  var last='';
+  function fix(){ var t=document.getElementById('m-tabs'); if(!t||!t.offsetParent) return; var on=t.querySelector('button.on'); if(!on) return;
+    var k=on.textContent+'|'+t.children.length; if(k===last) return; last=k;
+    var l=on.offsetLeft-t.offsetLeft, r=l+on.offsetWidth; if(l<t.scrollLeft||r>t.scrollLeft+t.clientWidth) t.scrollLeft=Math.max(0,l-(t.clientWidth-on.offsetWidth)/2); }
+  setInterval(fix,600);
+}catch(e){} })();
+</script>
