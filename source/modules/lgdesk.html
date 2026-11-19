@@ -1,0 +1,39 @@
+<style id="lgdesk-css">
+/* คอม (≥1024px): สมุดบัญชี ย้ายหัว "คำนวณคงเหลือ" มาอยู่แถวเดียวกับแถบเลือกวัน · กล่องรายละเอียดแสดงเฉพาะตอนกด "แสดงรายละเอียด" */
+@media screen and (min-width:1024px){
+html body #ledger-page section.lg-onerow:not(#_x):not(#_y){display:flex !important;flex-wrap:wrap !important;align-items:center !important;gap:8px 12px !important}
+html body #ledger-page section.lg-onerow > div:not(#_x):not(#_y){width:auto !important;flex:none !important;margin:0 !important}
+html body #ledger-page section.lg-onerow > #lg-calchd:not(#_x):not(#_y){flex:1 1 auto !important;min-width:0;display:flex !important;align-items:center !important;justify-content:center !important;gap:8px !important;flex-wrap:nowrap !important}
+html body #ledger-page #lg-calchd h2 > span:not(#_x){display:none !important}
+html body #ledger-page #lg-calchd h2:not(#_x){white-space:nowrap;margin:0 !important}
+html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x){white-space:nowrap}
+html body #ledger-page #lg-calchd #calc-toggle:not(#_x):not(#_y){margin-left:0 !important;white-space:nowrap}
+html body #ledger-page #daily-balance-calculator.lg-moved.calc-collapsed:not(#_x){display:none !important}
+}
+@media screen and (min-width:1024px) and (max-width:1499px){
+html body #ledger-page section.lg-onerow:not(#_x):not(#_y){gap:6px 8px !important}
+html body #ledger-page section.lg-onerow #search-ticket:not(#_x):not(#_y){width:150px !important}
+html body #ledger-page section.lg-onerow div:has(> #search-ticket):not(#_x):not(#_y){width:150px !important}
+html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:none !important}
+}
+</style>
+<script id="lgdesk-js">
+(function(){ try{
+  var mq=window.matchMedia('(min-width:1024px)'), mark=null, mark2=null, hd=null, sec=null, cal=null;
+  function apply(){
+    cal=document.getElementById('daily-balance-calculator'); var d=document.getElementById('doc-date');
+    sec=d?d.closest('section'):null; if(!cal||!sec) return;
+    if(mq.matches){ if(hd) return; var h=cal.querySelector(':scope > div:first-child'); if(!h||!h.querySelector('#calc-toggle')) return;
+      mark=document.createComment('lg-calchd-slot'); cal.insertBefore(mark,h);
+      h.id='lg-calchd'; var first=sec.querySelector(':scope > div:first-child'); sec.insertBefore(h,first?first.nextSibling:null);
+      sec.classList.add('lg-onerow'); cal.classList.add('lg-moved'); hd=h;
+      /* กล่องรายละเอียดคำนวณ ย้ายไปอยู่ใต้แถบเลือกวัน (กดแสดงแล้วขยายลงด้านล่าง) */
+      mark2=document.createComment('lg-calc-slot'); cal.parentNode.insertBefore(mark2,cal); sec.parentNode.insertBefore(cal,sec.nextSibling);
+    } else if(hd){ if(mark2&&mark2.parentNode){ mark2.parentNode.insertBefore(cal,mark2); mark2.remove(); mark2=null; }
+      if(mark&&mark.parentNode){ mark.parentNode.insertBefore(hd,mark); mark.remove(); } hd.removeAttribute('id'); sec.classList.remove('lg-onerow'); cal.classList.remove('lg-moved'); hd=null; mark=null; }
+  }
+  (mq.addEventListener?mq.addEventListener('change',apply):mq.addListener(apply));
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply); else apply();
+  setTimeout(apply,1500);
+}catch(e){} })();
+</script>
