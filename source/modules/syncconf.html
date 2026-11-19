@@ -1,0 +1,43 @@
+<style id="sc-css">
+#sc-card{padding:16px 20px;border-bottom:1px solid #EEF1F6}
+#sc-card h3{margin:0 0 6px;font-size:15px;color:inherit !important}
+#sc-card .sc-sm{font-size:12.5px;color:#64748b;line-height:1.55;margin-bottom:8px}
+#sc-card .sc-it{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:9px 12px;border:1px solid #E1E7F0;border-radius:12px;background:#F8FAFC;margin-bottom:6px;font-size:13px}
+#sc-card .sc-it b{color:#0B2244}#sc-card .sc-it small{display:block;color:#64748b;margin-top:2px;line-height:1.45}
+#sc-card .sc-it button,#sc-card .sc-clr{border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:7px 12px;font:600 12.5px Sarabun,sans-serif;cursor:pointer;white-space:nowrap}
+#sc-card .sc-none{font-size:13px;color:#047857}
+</style>
+<script id="sc-js">
+/* ดูสำเนาที่เก็บไว้เมื่อ 2 เครื่องแก้ช่องเดียวกัน (localStorage pawn_sync_conflicts) — อ่าน/ดาวน์โหลดอย่างเดียว ไม่แก้ข้อมูล */
+(function(){ try{
+  var KEY='pawn_sync_conflicts';
+  var KIND={push:'สมุดบัญชี · ตอนส่ง',live:'สมุดบัญชี · ระหว่างใช้งาน',startup:'สมุดบัญชี · ตอนเปิดเว็บ',old:'สมุดบัญชี · วันเก่า',
+    'tkw-push':'เขียนตั๋ว · ตอนส่ง','tkw-live':'เขียนตั๋ว · ระหว่างใช้งาน','tkw-startup':'เขียนตั๋ว · ตอนเปิดเว็บ','tkw-startup-local':'เขียนตั๋ว · สำเนาของเครื่องนี้'};
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function list(){ try{ var a=JSON.parse(localStorage.getItem(KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function th(k){ var p=String(k).split('-'); return p.length===3?(+p[2])+'/'+(+p[1])+'/'+(+p[0]+543):k; }
+  function dt(s){ try{ return new Date(s).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}); }catch(e){ return s; } }
+  function dl(x){ var blob=new Blob([JSON.stringify({kind:x.kind,date:x.k,at:x.at,notes:x.notes,copy:(function(){ try{ return JSON.parse(x.remote); }catch(e){ return x.remote; } })()},null,2)],{type:'application/json'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='pawn-sync-copy-'+x.k+'_'+String(x.at||'').slice(0,16).replace(/[:T]/g,'')+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); },1500); }
+  function render(){
+    var c=document.getElementById('sc-card'); if(!c) return; var a=list();
+    var h='<h3>สำเนาที่เก็บไว้เมื่อ 2 เครื่องแก้ตรงกัน</h3><div class="sc-sm">เมื่อ 2 เครื่องแก้ช่องเดียวกันเป็นค่าต่างกัน ระบบเลือกใช้ค่าหนึ่ง และเก็บฉบับที่ไม่ได้ใช้ไว้ที่นี่ (ล่าสุด 8 รายการ เฉพาะเครื่องนี้) · ดาวน์โหลดไว้ตรวจได้ ไม่แก้ข้อมูลในสมุด</div>';
+    if(!a.length) h+='<div class="sc-none">✓ ยังไม่มีรายการ</div>';
+    a.forEach(function(x,i){ h+='<div class="sc-it"><div><b>'+esc(th(x.k))+'</b> · '+esc(KIND[x.kind]||x.kind)+'<small>'+esc(dt(x.at))+(x.notes&&x.notes.length?' · '+esc(x.notes.slice(0,3).join(', '))+(x.notes.length>3?' …':''):'')+'</small></div><button type="button" data-sc="'+i+'">ดาวน์โหลด</button></div>'; });
+    if(a.length) h+='<button type="button" class="sc-clr" id="sc-clr">ล้างรายการ</button>';
+    c.innerHTML=h;
+    c.querySelectorAll('[data-sc]').forEach(function(b){ b.onclick=function(){ var x=list()[+b.getAttribute('data-sc')]; if(x) dl(x); }; });
+    var cl=document.getElementById('sc-clr'); if(cl) cl.onclick=function(){ (window.uiConfirm?window.uiConfirm('ล้างรายการสำเนาทั้งหมดในเครื่องนี้?',{ok:'ล้าง'}):Promise.resolve(confirm('ล้างรายการ?'))).then(function(ok){ if(!ok) return; try{ localStorage.removeItem(KEY); }catch(e){} render(); }); };
+  }
+  function inject(){
+    var m=document.getElementById('ds-modal'); if(!m||document.getElementById('sc-card')) return;
+    var after=document.getElementById('bk-card');
+    if(!after){ var secs=[].slice.call(m.querySelectorAll('.ds-sec')); after=secs.filter(function(s){ var h=s.querySelector('h3'); return h&&/สำรอง \/ นำเข้า/.test(h.textContent); })[0]; }
+    if(!after) return; var c=document.createElement('div'); c.id='sc-card'; after.parentNode.insertBefore(c,after.nextSibling); render();
+  }
+  window.__syncConflictsRender=function(){ inject(); render(); };
+  var mo=null, o0=window.openDataSettings;
+  if(typeof o0==='function') window.openDataSettings=function(){ var r=o0.apply(this,arguments);
+    setTimeout(function(){ var m=document.getElementById('ds-modal'); if(m&&!mo){ mo=new MutationObserver(function(){ if(!document.getElementById('sc-card')) inject(); }); mo.observe(m,{childList:true,subtree:true}); } inject(); },60); return r; };
+}catch(e){ try{ console.error('sc',e); }catch(_){} } })();
+</script>

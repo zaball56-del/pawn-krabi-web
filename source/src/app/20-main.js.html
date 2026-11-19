@@ -1026,6 +1026,9 @@
             if (typeof indexedDB !== 'undefined') {
                 if (indexedDBSaveTimer) clearTimeout(indexedDBSaveTimer);
                 writeIndexedDBSnapshot(serialized).then(() => {
+                    /* สำเนาเก่าใน Local Storage ล้าสมัยแล้ว (ข้อมูลล่าสุดอยู่ใน IndexedDB) → ลบทิ้ง คืนพื้นที่ให้ตารางเขียนตั๋วและส่วนอื่น
+                       ตอนเปิดเว็บ ถ้า Local Storage ไม่มีข้อมูล ระบบกู้จาก IndexedDB อยู่แล้ว */
+                    try { localStorage.removeItem('pawn_krabi_master_db'); localStorage.removeItem('pawn_krabi_saved_at'); } catch (_) {}
                     setSaveIndicator('saved', 'บันทึกในที่เก็บสำรองของเบราว์เซอร์แล้ว (พื้นที่หลักเต็ม)');
                 }).catch(error => {
                     console.warn('IndexedDB บันทึกไม่สำเร็จ:', error);

@@ -13,9 +13,10 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 /* ---------- Firestore จำลอง (ใช้ร่วมทุกเครื่อง) ---------- */
 function makeServer(){
   const docs={}, subs=[];
-  const snapOf=()=>({docs:Object.keys(docs).map(id=>({id,data:()=>Object.assign({},docs[id])})),metadata:{fromCache:false}});
-  const notify=()=>subs.forEach(s=>{ if(s.alive()) setTimeout(()=>{ if(s.alive()) s.cb(snapOf()); },5); });
-  const write=(id,o)=>{ docs[id]=Object.assign({},docs[id]||{},o); notify(); };
+  const D=id=>({id,data:()=>Object.assign({},docs[id])});
+  const snapOf=ch=>{ const all=Object.keys(docs).map(D); return {docs:all,metadata:{fromCache:false},docChanges:()=>(ch?[ch]:Object.keys(docs)).map(id=>({type:'modified',doc:D(id)}))}; };
+  const notify=id=>subs.forEach(s=>{ if(s.alive()) setTimeout(()=>{ if(s.alive()) s.cb(snapOf(id)); },5); });
+  const write=(id,o)=>{ docs[id]=Object.assign({},docs[id]||{},o); notify(id); };
   return {docs,write,
     client(dev){
       const col={ onSnapshot(opt,cb){ const s={cb,alive:()=>!dev.dead}; subs.push(s); setTimeout(()=>{ if(s.alive()) cb(snapOf()); },5); return ()=>{}; },

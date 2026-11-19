@@ -212,8 +212,20 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var ls={}; try{ ls=JSON.parse(raw||'{}')||{}; }catch(e){ ls={}; } var ch=false;
     Object.keys(ls).forEach(function(k){ var l=ls[k], m=store[k]; if(!l) return; if(!m||(l.u||0)>(m.u||0)){ store[k]=l; ch=true; } });
     if(ch) window.__dv=(window.__dv||0)+1; } load();
-  function save(){ window.__dv=(window.__dv||0)+1; var s=JSON.stringify(store);
-    try{ localStorage.setItem(KEY,s); lastRaw=s; }catch(e){ lastRaw=null; try{ console.warn('tkw save',e); }catch(_){} try{ chip('⚠ บันทึกในเครื่องไม่ได้ (พื้นที่เก็บเต็ม) · ข้อมูลยังอยู่ในหน้านี้จนกว่าจะรีเฟรช','er'); }catch(_){} } }
+  /* สำเนาใน IndexedDB (พื้นที่ใหญ่กว่า localStorage มาก): เขียนตามทุกครั้งที่บันทึก และรวมกลับตอนเปิดเว็บ (วันที่ใหม่กว่าชนะ)
+     → ถ้า localStorage เต็ม ข้อมูลเขียนตั๋วไม่หายเมื่อรีเฟรช */
+  var IDBN='pawn_tkw_store', idbT=null, idbOK=true;
+  function idbOpen(){ return new Promise(function(res,rej){ try{ var q=indexedDB.open(IDBN,1); q.onupgradeneeded=function(){ q.result.createObjectStore('kv'); }; q.onsuccess=function(){ res(q.result); }; q.onerror=function(){ rej(q.error); }; }catch(e){ rej(e); } }); }
+  function idbPut(s){ return idbOpen().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction('kv','readwrite'); t.objectStore('kv').put(s,'store'); t.oncomplete=function(){ d.close(); res(true); }; t.onerror=function(){ d.close(); rej(t.error); }; }); }); }
+  function idbGet(){ return idbOpen().then(function(d){ return new Promise(function(res){ var q=d.transaction('kv').objectStore('kv').get('store'); q.onsuccess=function(){ d.close(); res(q.result); }; q.onerror=function(){ d.close(); res(undefined); }; }); }); }
+  function idbMirror(s){ if(typeof indexedDB==='undefined') return; clearTimeout(idbT); idbT=setTimeout(function(){ idbPut(s).then(function(){ idbOK=true; }).catch(function(e){ idbOK=false; try{ console.warn('tkw idb',e); }catch(_){} }); },400); }
+  function save(){ window.__dv=(window.__dv||0)+1; var s=JSON.stringify(store); idbMirror(s);
+    try{ localStorage.setItem(KEY,s); lastRaw=s; }catch(e){ lastRaw=null; try{ console.warn('tkw save',e); }catch(_){} try{ chip(idbOK?'⚠ พื้นที่ localStorage เต็ม · บันทึกในที่เก็บสำรองของเบราว์เซอร์แทน':'⚠ บันทึกในเครื่องไม่ได้ (พื้นที่เก็บเต็ม) · ข้อมูลยังอยู่ในหน้านี้จนกว่าจะรีเฟรช','er'); }catch(_){} } }
+  /* รวมสำเนาจาก IndexedDB (ใช้เมื่อ localStorage เต็ม/ถูกล้าง) — วันที่ใหม่กว่า (u) ชนะ */
+  window.__tkwIdbReady=(typeof indexedDB==='undefined')?Promise.resolve(0):idbGet().then(function(raw){ var o={}, n=0; try{ o=JSON.parse(raw||'{}')||{}; }catch(e){ o={}; }
+      Object.keys(o).forEach(function(k){ var l=o[k], m=store[k]; if(!l) return; if(!m||(l.u||0)>(m.u||0)){ store[k]=l; n++; } });
+      if(n){ try{ restoreSync(); }catch(e){} save(); try{ if(key&&store[key]&&document.body.classList.contains('tkw-open')){ day=store[key]; render(); } }catch(e){} }
+      return n; }).catch(function(){ return 0; });
   function pad(n){return (n<10?'0':'')+n}
   function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function shift(k,n){ var p=k.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]+n); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
@@ -624,11 +636,12 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   function persistSync(){ clearTimeout(skTimer); skTimer=setTimeout(function(){ var h={}, b={};
       Object.keys(CL.base).forEach(function(k){ var j=CL.base[k]; if(typeof j!=='string') return; h[k]=th(j); if(!store[k]||JSON.stringify(store[k])!==j) b[k]=j; });
       try{ localStorage.setItem(SK,JSON.stringify({h:h,b:b})); }catch(e){ try{ localStorage.setItem(SK,JSON.stringify({h:h,b:{}})); }catch(_){} } },300); }
-  (function restoreSync(){ var s=null; try{ s=JSON.parse(localStorage.getItem(SK)||'null'); }catch(e){} if(!s||!s.h) return; var b=s.b||{};
-    Object.keys(s.h).forEach(function(k){ var d=store[k]; if(!d) return; var cur=JSON.stringify(d);
+  function restoreSync(){ var s=null; try{ s=JSON.parse(localStorage.getItem(SK)||'null'); }catch(e){} if(!s||!s.h) return; var b=s.b||{};
+    Object.keys(s.h).forEach(function(k){ var d=store[k]; if(!d||CL.base[k]!==undefined||CL.dirty[k]) return; var cur=JSON.stringify(d);
       if(th(cur)===s.h[k]) CL.base[k]=cur;                                     // ไม่ได้แก้หลังซิงก์ล่าสุด
       else { CL.dirty[k]=1; if(typeof b[k]==='string'&&th(b[k])===s.h[k]) CL.base[k]=b[k]; } });   // แก้ค้างไว้ → ฐานสำหรับรวม
-  })();
+  }
+  restoreSync();
   function chip(t,k){ var e=$('tkw-cloud'); if(e){ e.textContent=t; e.className='cloud '+(k||''); } }
   function fbReady(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0&&!!firebase.auth().currentUser; }catch(e){ return false; } }
   function fbExists(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0; }catch(e){ return false; } }
@@ -674,7 +687,10 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     if(!CL.on||!CL.col||CL.denied) return;
     var byM={}; Object.keys(CL.dirty).forEach(function(k){ var d=store[k]; if(!d) return; if(!hasData(d)&&!CL.cu[k]) { delete CL.dirty[k]; return; } (byM[k.slice(0,7)]=byM[k.slice(0,7)]||{})[dayField(k)]=JSON.stringify(d); });
     var ms=Object.keys(byM); if(!ms.length) return;
-    chip('☁ กำลังซิงก์…');
+    /* เอกสารรายเดือนมีเพดาน 1 MiB: ประเมินจากทุกวันของเดือนนั้นในเครื่อง ถ้าเกิน ~880KB เตือนล่วงหน้า */
+    var big=ms.filter(function(m){ var n=0; Object.keys(store).forEach(function(k){ if(k.slice(0,7)===m&&store[k]) n+=JSON.stringify(store[k]).length*1.2+12; }); return n>880000; });
+    if(big.length){ chip('⚠ ข้อมูลเดือน '+big.join(', ')+' ใกล้เพดาน 1MB ของฐานข้อมูลกลาง · แจ้งผู้ดูแล','er'); }
+    else chip('☁ กำลังซิงก์…');
     Promise.all(ms.map(function(m){ var o=byM[m]; return pushDoc(m,o).then(function(mg){ var changed=false;
         Object.keys(o).forEach(function(f){ var k=parseField(f); if(!k) return;
           try{
@@ -690,6 +706,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   function onErr(err,write){ var c=err&&err.code; console.warn('tkw sync',err);
     if(c==='permission-denied'){ CL.denied=true; chip('☁ ซิงก์ไม่ได้: ยังไม่มีสิทธิ์ (บันทึกในเครื่องนี้)','er'); say('ซิงก์หน้าเขียนตั๋วไม่ได้: ต้องเพิ่มกฎ Firestore ให้คอลเลกชัน tkw'); return; }
+    if(c==='invalid-argument'&&write){ chip('⚠ ซิงก์ไม่ได้: ข้อมูลเดือนนี้ใหญ่เกินเพดาน 1MB (บันทึกในเครื่องนี้) · แจ้งผู้ดูแล','er'); return; }
     if(c==='resource-exhausted'){ try{ window.pawnQuotaHit&&pawnQuotaHit('ตั๋วขาย'); }catch(_){} chip('☁ โควตาเต็ม (บันทึกในเครื่องนี้)','er'); return; }
     chip('☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา','er'); if(write) schedPush(30000); }
   function applyRemote(k,c){
@@ -719,7 +736,9 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     try{
       CL.col=firebase.firestore().collection(COLN);
       CL.col.onSnapshot({includeMetadataChanges:true},function(snap){
-        var seen={}; snap.docs.forEach(function(d){ var x=d.data()||{}; Object.keys(x).forEach(function(f){ var k=parseField(f); if(!k) return; var c; try{ c=JSON.parse(x[f]); }catch(e){ return; } seen[k]=1; CL.cu[k]=c.u||0; applyRemote(k,c); }); });
+        /* ครั้งแรกอ่านทุกเอกสาร · ครั้งต่อไปอ่านเฉพาะเอกสารที่เปลี่ยน (ไม่ต้องแปลงทุกเดือนใหม่ทุกครั้ง) */
+        var list=(CL.on&&typeof snap.docChanges==='function')?snap.docChanges().filter(function(c){ return c.type!=='removed'; }).map(function(c){ return c.doc; }):snap.docs;
+        var seen={}; list.forEach(function(d){ var x=d.data()||{}; Object.keys(x).forEach(function(f){ var k=parseField(f); if(!k) return; var c; try{ c=JSON.parse(x[f]); }catch(e){ return; } seen[k]=1; CL.cu[k]=c.u||0; applyRemote(k,c); }); });
         if(!CL.on){ CL.on=true; Object.keys(store).forEach(function(k){ var l=store[k]; if(!hasData(l)) return; if(!seen[k]){ if(!l.u) l.u=Date.now(); CL.dirty[k]=1; } else if((l.u||0)>(CL.cu[k]||0)) CL.dirty[k]=1; }); save(); }
         persistSync();
         chip(snap.metadata&&snap.metadata.fromCache?'☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา':'☁ ซิงก์แล้ว',snap.metadata&&snap.metadata.fromCache?'er':'ok');

@@ -4,6 +4,7 @@ quickkey.html
 storage.html
 mobile.html
 backup.html
+syncconf.html
 netstate.html
 barcode.html
 tweaks.html
