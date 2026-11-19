@@ -363,12 +363,12 @@
   }
   var ready=new Promise(function(resolve){
     if(!configured){ resolve(false); return; }
-    /* App Check (ไม่บังคับ): เปิดเมื่อใส่ appCheckSiteKey (reCAPTCHA v3) ใน firebase-config.js เท่านั้น — ไม่ใส่ = ทำงานเหมือนเดิมทุกอย่าง
+    /* App Check (ไม่บังคับ): เปิดเมื่อใส่ appCheckSiteKey (คีย์ Fraud Defense / reCAPTCHA Enterprise) ใน firebase-config.js เท่านั้น — ไม่ใส่ = ทำงานเหมือนเดิมทุกอย่าง
        โหลดสคริปต์ไม่ได้ (ออฟไลน์) ก็เริ่มต่อได้ · ควรเปิด "บังคับใช้" ใน Console หลังดูสถิติว่าคำขอผ่านการยืนยันครบแล้วเท่านั้น */
     var acKey=cfg.appCheckSiteKey||'';
     function boot(){
     firebase.initializeApp(cfg);
-    if(acKey){ try{ if(firebase.appCheck) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider(acKey),true); }catch(e){ console.warn('appcheck',e); } }
+    if(acKey){ try{ if(firebase.appCheck){ var P=firebase.appCheck.ReCaptchaEnterpriseProvider||firebase.appCheck.ReCaptchaV3Provider; firebase.appCheck().activate(new P(acKey),true); }   // ลงทะเบียนใน Console เป็น Fraud Defense (reCAPTCHA Enterprise) }catch(e){ console.warn('appcheck',e); } }
     var fs=firebase.firestore(); cloud.fs=fs;
     try{ fs.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
     var auth=firebase.auth(), started=false, firstResolve=resolve;
