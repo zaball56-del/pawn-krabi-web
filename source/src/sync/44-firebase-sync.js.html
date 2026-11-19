@@ -368,7 +368,7 @@
     var acKey=cfg.appCheckSiteKey||'';
     function boot(){
     firebase.initializeApp(cfg);
-    if(acKey){ try{ if(firebase.appCheck){ var P=firebase.appCheck.ReCaptchaEnterpriseProvider||firebase.appCheck.ReCaptchaV3Provider; firebase.appCheck().activate(new P(acKey),true); }   // ลงทะเบียนใน Console เป็น Fraud Defense (reCAPTCHA Enterprise) }catch(e){ console.warn('appcheck',e); } }
+    if(acKey){ try{ if(firebase.appCheck){ var P=firebase.appCheck.ReCaptchaEnterpriseProvider||firebase.appCheck.ReCaptchaV3Provider; /* ลงทะเบียนใน Console เป็น Fraud Defense (reCAPTCHA Enterprise) */ firebase.appCheck().activate(new P(acKey),true); } }catch(e){ console.warn('appcheck',e); } }
     var fs=firebase.firestore(); cloud.fs=fs;
     try{ fs.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
     var auth=firebase.auth(), started=false, firstResolve=resolve;
