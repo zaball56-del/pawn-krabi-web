@@ -6997,8 +6997,10 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       if(started) return; started=true; connect();
     });
     }
-    if(acKey && !firebase.appCheck){ var sc=document.createElement('script'); sc.src='https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js'; sc.onload=boot; sc.onerror=boot; document.head.appendChild(sc); }
-    else boot();
+    /* โหลดสคริปต์ App Check ไม่เกิน 4 วิ — เน็ตช้า/ค้าง/ถูกบล็อก ก็เริ่มเว็บต่อได้ทันที (แค่ไม่มี App Check รอบนั้น) · เริ่มได้ครั้งเดียว */
+    var booted=false; function bootOnce(){ if(booted) return; booted=true; boot(); }
+    if(acKey && !firebase.appCheck){ var sc=document.createElement('script'); sc.src='https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js'; sc.onload=bootOnce; sc.onerror=bootOnce; setTimeout(bootOnce,4000); document.head.appendChild(sc); }
+    else bootOnce();
   });
 
   /* ---------- วันเก่า (นอกช่วงฟังสด) ---------- */

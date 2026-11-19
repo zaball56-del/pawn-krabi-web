@@ -125,6 +125,15 @@ const srvTickets=(docs)=>{ const j=((docs.ledger||{})[WID]||{})[FLD]; if(!j) ret
     ok(/นำเข้าไฟล์ pawn-krabi-cloud-backup-/.test(await pg.evaluate(()=>window.__msg)),'4.7 ปุ่ม "นำเข้า…" ในการ์ด เปิดกล่องเลือกวิธีนำเข้าเดิม');
     ok(!pg.errs.length,'4.8 ไม่มี error '+pg.errs.join(' | '));
     await ctx.close(); }
+  { /* 5) สคริปต์ App Check ค้าง (เน็ตช้า/ถูกบล็อก) → เว็บต้องเริ่มซิงก์ได้เองภายในไม่กี่วินาที */
+    const ctx=await b.newContext(); const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(String(e).slice(0,160)));
+    await pg.route('**/*',r=>{ const u=r.request().url(); if(u.startsWith('file:')) return r.continue(); if(/app-check/.test(u)) return; return r.abort(); });   /* app-check: ไม่ตอบเลย */
+    await pg.addInitScript(fakeFirebase,'{}'); const t0=Date.now();
+    await pg.goto(URL,{waitUntil:'domcontentloaded'});
+    let on=false; while(Date.now()-t0<12000){ await sleep(300); on=await pg.evaluate(()=>!!(window.__syncDebug&&window.firebase.apps.length&&window.__syncDebug().last>=0)).catch(()=>false);   /* เริ่ม Firebase แล้ว (สถานะบนจอเปลี่ยนหลังใส่ PIN ซึ่งเทสต์ไม่ใส่) */ if(on) break; }
+    const ms=Date.now()-t0;
+    ok(on&&ms<9000,'5.0 สคริปต์ App Check ค้าง: เว็บยังเชื่อมฐานข้อมูลได้ใน '+Math.round(ms/100)/10+' วิ');
+    ok(!errs.length,'5.1 ไม่มี error '+errs.join(' | ')); await ctx.close(); }
   await b.close();
   console.log(fail?`❌ ล้มเหลว ${fail}`:'✅ ผ่านทั้งหมด'); process.exit(fail?1:0);
 })();
