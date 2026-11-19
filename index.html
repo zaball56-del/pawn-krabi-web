@@ -6955,7 +6955,12 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
   }
   var ready=new Promise(function(resolve){
     if(!configured){ resolve(false); return; }
+    /* App Check (ไม่บังคับ): เปิดเมื่อใส่ appCheckSiteKey (reCAPTCHA v3) ใน firebase-config.js เท่านั้น — ไม่ใส่ = ทำงานเหมือนเดิมทุกอย่าง
+       โหลดสคริปต์ไม่ได้ (ออฟไลน์) ก็เริ่มต่อได้ · ควรเปิด "บังคับใช้" ใน Console หลังดูสถิติว่าคำขอผ่านการยืนยันครบแล้วเท่านั้น */
+    var acKey=cfg.appCheckSiteKey||'';
+    function boot(){
     firebase.initializeApp(cfg);
+    if(acKey){ try{ if(firebase.appCheck) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider(acKey),true); }catch(e){ console.warn('appcheck',e); } }
     var fs=firebase.firestore(); cloud.fs=fs;
     try{ fs.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
     var auth=firebase.auth(), started=false, firstResolve=resolve;
@@ -6991,6 +6996,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       hideAuth();
       if(started) return; started=true; connect();
     });
+    }
+    if(acKey && !firebase.appCheck){ var sc=document.createElement('script'); sc.src='https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js'; sc.onload=boot; sc.onerror=boot; document.head.appendChild(sc); }
+    else boot();
   });
 
   /* ---------- วันเก่า (นอกช่วงฟังสด) ---------- */
@@ -8310,6 +8318,128 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
   if(typeof o0==='function') window.openDataSettings=function(){ var r=o0.apply(this,arguments);
     setTimeout(function(){ var m=document.getElementById('ds-modal'); if(m&&!mo){ mo=new MutationObserver(function(){ if(!document.getElementById('sc-card')) inject(); }); mo.observe(m,{childList:true,subtree:true}); } inject(); },60); return r; };
 }catch(e){ try{ console.error('sc',e); }catch(_){} } })();
+</script>
+
+<style id="cb-css">
+#cb-card{padding:16px 20px;border-bottom:1px solid #EEF1F6}
+#cb-card h3{margin:0 0 6px;font-size:15px;color:inherit !important}
+#cb-card .cb-sm{font-size:12.5px;color:#64748b;line-height:1.55;margin-bottom:8px}
+#cb-card .cb-st{padding:10px 12px;border-radius:12px;border:1.5px solid #E1E7F0;background:#F4F7FC;font-size:13.5px;margin-bottom:8px}
+#cb-card .cb-st.ok{border-color:#A7F3D0;background:#ECFDF5;color:#065F46}#cb-card .cb-st.er{border-color:#FECACA;background:#FEF2F2;color:#991B1B}
+#cb-card .cb-it{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid #E1E7F0;border-radius:12px;background:#F8FAFC;margin-bottom:6px;font-size:13px}
+#cb-card .cb-it small{color:#64748b}
+#cb-card button{border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:7px 12px;font:600 12.5px Sarabun,sans-serif;cursor:pointer;white-space:nowrap}
+#cb-card button.pri{background:#1D4ED8;border-color:#1D4ED8;color:#fff}
+#cb-card button:disabled{opacity:.55;cursor:default}
+</style>
+<script id="cb-js">
+/* สำรองบนคลาวด์อัตโนมัติ (คอลเลกชัน backup — กฎอนุญาตให้ "เพิ่ม" ได้อย่างเดียว แก้/ลบไม่ได้)
+   - วันละครั้ง: เครื่องแรกที่ออนไลน์ อ่าน ledger + tkw จากเซิร์ฟเวอร์ แล้วคัดลอกเฉพาะเอกสารที่เปลี่ยนจากครั้งก่อน
+     เอกสารสำเนา: b<YYYYMMDD>_<ledger|tkw>_<id> · บันทึกประจำวัน: m<YYYYMMDD> = {hashes, latest(src→วันที่ของสำเนาล่าสุด)}
+   - กู้คืน: เลือกวัน → ประกอบข้อมูล ณ วันนั้นจากสำเนา → เข้ากล่องนำเข้าไฟล์ (.json) เดิม ให้เลือก เพิ่มเฉพาะที่ยังไม่มี / แทน / แทนที่ทั้งหมด
+   ไม่แตะซิงก์ของเดิม · ถ้ายังไม่ได้เพิ่มกฎ backup จะขึ้น "ยังไม่มีสิทธิ์" และไม่ลองซ้ำถี่ ๆ */
+(function(){ try{
+  var DAYK='pawn_cloudbak_day', LASTK='pawn_cloudbak_last', busy=false, state={msg:'',cls:''};
+  function p2(n){ return String(n).padStart(2,'0'); }
+  function today(){ var d=new Date(); return ''+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate()); }
+  function th8(s){ return (+s.slice(6,8))+'/'+(+s.slice(4,6))+'/'+(+s.slice(0,4)+543); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function toast(m){ try{ showToast(m); }catch(e){} }
+  function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
+  function fbOk(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0&&!!firebase.auth().currentUser; }catch(e){ return false; } }
+  function hash(str){ var h=2166136261; for(var i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36)+':'+str.length; }
+  function stable(o){ var k=Object.keys(o||{}).filter(function(f){ return f.charAt(0)!=='_'; }).sort(), x={}; k.forEach(function(f){ x[f]=o[f]; }); return JSON.stringify(x); }
+  function col(){ return firebase.firestore().collection('backup'); }
+  function FP(){ return firebase.firestore.FieldPath.documentId(); }
+  function ts(){ try{ return firebase.firestore.FieldValue.serverTimestamp(); }catch(e){ return new Date(); } }
+  function bid(day,src){ return 'b'+day+'_'+src.replace('/','_'); }
+  function setState(m,c){ state={msg:m,cls:c||''}; try{ render(); }catch(e){} }
+
+  async function prevMarker(day){ var q=await col().where(FP(),'>=','m').where(FP(),'<','m'+day).orderBy(FP(),'desc').limit(1).get(); return q.docs.length?(q.docs[0].data()||{}):null; }
+  /* สำรองของวันนี้ (ถ้ายังไม่มีเครื่องไหนทำ) · คืน {done|skip|err} */
+  async function runBackup(force){
+    if(busy) return {skip:'busy'}; if(!fbOk()) return {skip:'nofb'}; if(navigator.onLine===false) return {skip:'offline'};
+    var day=today(); if(!force&&ls(DAYK)===day) return {skip:'done'};
+    busy=true; setState('กำลังสำรองบนคลาวด์…');
+    try{
+      var fs=firebase.firestore(), mref=col().doc('m'+day);
+      var ms=await mref.get({source:'server'}); if(ms.exists){ ls(DAYK,day); ls(LASTK,day); setState('สำรองของวันนี้แล้ว ('+th8(day)+')','ok'); return {done:'exists'}; }
+      var prev=await prevMarker(day)||{}, ph=prev.hashes||{}, latest={}, hashes={}, wrote=0, big=[], failed=0;
+      var srcs=[]; for(var c of ['ledger','tkw']){ var s=await fs.collection(c).get({source:'server'}); s.docs.forEach(function(d){ srcs.push({src:c+'/'+d.id,data:d.data()||{}}); }); }
+      for(var x of srcs){
+        var h=hash(stable(x.data)); hashes[x.src]=h;
+        if(ph[x.src]===h&&prev.latest&&prev.latest[x.src]){ latest[x.src]=prev.latest[x.src]; continue; }   // ไม่เปลี่ยน → ใช้สำเนาเดิม
+        var o=Object.assign({},x.data,{_src:x.src,_at:ts(),_h:h}), size=0; Object.keys(x.data).forEach(function(f){ size+=f.length+String(x.data[f]).length*1.1; });
+        if(size>1000000){ big.push(x.src); if(prev.latest&&prev.latest[x.src]) latest[x.src]=prev.latest[x.src]; continue; }
+        var ref=col().doc(bid(day,x.src));
+        try{ await ref.set(o); latest[x.src]=day; wrote++; }
+        catch(e){ var ex=null; try{ ex=await ref.get({source:'server'}); }catch(_){}                 // มีสำเนาของวันนี้อยู่แล้ว (เครื่องอื่นทำค้างไว้) → ใช้ได้
+          if(ex&&ex.exists){ latest[x.src]=day; } else { failed++; if(e&&e.code==='permission-denied') throw e; if(prev.latest&&prev.latest[x.src]) latest[x.src]=prev.latest[x.src]; } }
+      }
+      if(failed) throw Object.assign(new Error('บางเอกสารสำรองไม่สำเร็จ ('+failed+')'),{code:'partial'});
+      try{ await mref.set({at:ts(),day:day,hashes:hashes,latest:latest,wrote:wrote,docs:srcs.length,big:big}); }
+      catch(e){ var m2=null; try{ m2=await mref.get({source:'server'}); }catch(_){} if(!(m2&&m2.exists)) throw e; }   // อีกเครื่องเขียนบันทึกวันนี้ไปก่อน = ใช้ได้
+      ls(DAYK,day); ls(LASTK,day);
+      setState('สำรองบนคลาวด์แล้ว ('+th8(day)+') · คัดลอก '+wrote+' เอกสารที่เปลี่ยน จากทั้งหมด '+srcs.length+(big.length?' · ใหญ่เกินสำรองไม่ได้ '+big.length:''),big.length?'er':'ok');
+      return {done:'new',wrote:wrote,docs:srcs.length};
+    }catch(e){
+      var c=e&&e.code; try{ console.warn('cloud backup',e); }catch(_){}
+      setState(c==='permission-denied'?'สำรองบนคลาวด์ไม่ได้: ยังไม่ได้เพิ่มกฎ Firestore ให้คอลเลกชัน backup':c==='resource-exhausted'?'สำรองบนคลาวด์ไม่ได้: โควตาวันนี้เต็ม จะลองใหม่ทีหลัง':'สำรองบนคลาวด์ไม่สำเร็จ · จะลองใหม่ทีหลัง','er');
+      return {err:c||String(e&&e.message||e)};
+    }finally{ busy=false; }
+  }
+  /* ประกอบข้อมูล ณ วันที่เลือก → ข้อความไฟล์สำรอง (รูปแบบเดียวกับปุ่มสำรอง .json) */
+  function unhex(h){ var a=[]; for(var i=0;i<h.length;i+=2) a.push(parseInt(h.substr(i,2),16)); return new TextDecoder().decode(new Uint8Array(a)); }
+  async function buildFile(day){
+    var m=await col().doc('m'+day).get({source:'server'}); if(!m.exists) throw new Error('ไม่พบสำรองของวันนั้น');
+    var latest=(m.data()||{}).latest||{}, out={}, tkw={}, hol={}, miss=0;
+    for(var src of Object.keys(latest)){
+      var d=await col().doc(bid(latest[src],src)).get({source:'server'}); if(!d.exists){ miss++; continue; } var x=d.data()||{};
+      Object.keys(x).forEach(function(f){ if(f.charAt(0)==='_'||typeof x[f]!=='string') return; var v; try{ v=JSON.parse(x[f]); }catch(e){ return; }
+        var md=/^d(\d{4})(\d{2})(\d{2})$/.exec(f), mh=/^h(\d{4})(\d{2})(\d{2})$/.exec(f);
+        if(src.indexOf('ledger/')===0){ if(md) out[md[1]+'-'+md[2]+'-'+md[3]]=v; else if(f.charAt(0)==='x'){ try{ var k=unhex(f.slice(1)); if(/^\d{4}-\d{2}-\d{2}$/.test(k)) out[k]=v; }catch(e){} } }
+        else if(src==='tkw/holidays'){ if(mh) hol[mh[1]+'-'+mh[2]+'-'+mh[3]]=v; }
+        else if(md) tkw[md[1]+'-'+md[2]+'-'+md[3]]=v; });
+    }
+    out._extra={v:1,tkw:tkw,holidays:hol};
+    return {text:JSON.stringify(out),name:'pawn-krabi-cloud-backup-'+day.slice(0,4)+'-'+day.slice(4,6)+'-'+day.slice(6,8)+'.json',days:Object.keys(out).length-1,miss:miss};
+  }
+  window.__cloudBackup={run:runBackup,build:buildFile,list:async function(n){ var q=await col().where(FP(),'>=','m').where(FP(),'<','n').orderBy(FP(),'desc').limit(n||30).get(); return q.docs.map(function(d){ var x=d.data()||{}; return {day:d.id.slice(1),docs:x.docs||0,wrote:x.wrote||0}; }); }};
+
+  /* ---- การ์ดในหน้าตั้งค่า/ข้อมูล ---- */
+  var listCache=null;
+  function render(){
+    var c=document.getElementById('cb-card'); if(!c) return; var last=ls(LASTK);
+    var st=state.msg?state:{msg:last?('สำรองล่าสุด: '+th8(last)):(fbOk()?'ยังไม่เคยสำรองบนคลาวด์จากเครื่องนี้':'ยังไม่ได้เชื่อมต่อฐานข้อมูลกลาง'),cls:last?'ok':''};
+    var h='<h3>สำรองบนคลาวด์ (อัตโนมัติวันละครั้ง)</h3><div class="cb-sm">คัดลอกสมุดบัญชี + ตารางเขียนตั๋ว + วันหยุดไว้ในฐานข้อมูลกลาง แยกจากข้อมูลที่ใช้งาน · สำเนาแก้หรือลบจากเว็บไม่ได้ (ลบผิดก็ย้อนกลับได้) · กู้คืน = เลือกวัน แล้วเข้ากล่องนำเข้าเดิมให้เลือกวิธี</div>'
+      +'<div class="cb-st '+esc(st.cls)+'">'+esc(st.msg)+'</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button type="button" class="pri" id="cb-now"'+(busy?' disabled':'')+'>สำรองตอนนี้</button><button type="button" id="cb-list">ดูรายการสำรอง / กู้คืน</button></div>';
+    if(listCache){ if(!listCache.length) h+='<div class="cb-sm">ยังไม่มีสำรองบนคลาวด์</div>';
+      listCache.forEach(function(x){ h+='<div class="cb-it"><span><b>'+esc(th8(x.day))+'</b> <small>· '+x.docs+' เอกสาร (คัดลอกใหม่ '+x.wrote+')</small></span><span style="display:flex;gap:6px"><button type="button" data-cbi="'+x.day+'">นำเข้า…</button><button type="button" data-cbd="'+x.day+'">ดาวน์โหลด</button></span></div>'; }); }
+    c.innerHTML=h;
+    c.querySelector('#cb-now').onclick=async function(){ var r=await runBackup(true); if(r.done) toast(r.done==='exists'?'วันนี้สำรองไว้แล้ว':'สำรองบนคลาวด์แล้ว'); render(); };
+    c.querySelector('#cb-list').onclick=async function(){ this.disabled=true; try{ listCache=await window.__cloudBackup.list(30); }catch(e){ setState(e&&e.code==='permission-denied'?'อ่านสำรองไม่ได้: ยังไม่ได้เพิ่มกฎ Firestore ให้คอลเลกชัน backup':'อ่านรายการสำรองไม่ได้ (ออฟไลน์?)','er'); } render(); };
+    c.querySelectorAll('[data-cbi],[data-cbd]').forEach(function(b){ b.onclick=async function(){ var day=b.getAttribute('data-cbi')||b.getAttribute('data-cbd'); b.disabled=true;
+      try{ var f=await buildFile(day); if(f.miss) toast('ขาดสำเนา '+f.miss+' เอกสาร');
+        if(b.hasAttribute('data-cbd')){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([f.text],{type:'application/json'})); a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); },1500); }
+        else { try{ closeDataSettings(); }catch(e){} await importJSON({target:{files:[new File([f.text],f.name,{type:'application/json'})],value:''}}); }
+      }catch(e){ toast('เปิดสำรองไม่ได้: '+(e&&e.message||e)); } b.disabled=false; }; });
+  }
+  function inject(){
+    var m=document.getElementById('ds-modal'); if(!m||document.getElementById('cb-card')) return;
+    var after=document.getElementById('bk-card');
+    if(!after){ var secs=[].slice.call(m.querySelectorAll('.ds-sec')); after=secs.filter(function(s){ var h=s.querySelector('h3'); return h&&/สำรอง \/ นำเข้า/.test(h.textContent); })[0]; }
+    if(!after) return; var c=document.createElement('div'); c.id='cb-card'; after.parentNode.insertBefore(c,after.nextSibling); render();
+  }
+  var mo=null, o0=window.openDataSettings;
+  if(typeof o0==='function') window.openDataSettings=function(){ var r=o0.apply(this,arguments);
+    setTimeout(function(){ var m=document.getElementById('ds-modal'); if(m&&!mo){ mo=new MutationObserver(function(){ if(!document.getElementById('cb-card')) inject(); }); mo.observe(m,{childList:true,subtree:true}); } inject(); },60); return r; };
+  /* อัตโนมัติ: หลังเปิดเว็บ 90 วิ แล้วตรวจทุก 30 นาที (ถ้าถูกปฏิเสธสิทธิ์ หยุดจนรีเฟรช) */
+  var stop=false;
+  async function tick(){ if(stop) return; var r=await runBackup(false); if(r&&r.err==='permission-denied') stop=true; }
+  setTimeout(tick,(window.__cbDelay!=null?window.__cbDelay:90000)); setInterval(tick,30*60000);
+  window.addEventListener('online',function(){ setTimeout(tick,20000); });
+}catch(e){ try{ console.error('cb',e); }catch(_){} } })();
 </script>
 
 <style id="ns-css">

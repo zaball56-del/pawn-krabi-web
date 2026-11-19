@@ -1,0 +1,26 @@
+rules_version = '2';
+// กฎสิทธิ์ Firestore ของเว็บบัญชีสถานธนานุบาลเทศบาลเมืองกระบี่ (สำเนาเก็บใน repo — ของจริงต้องกด "เผยแพร่" ใน Firebase Console)
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null && request.auth.token.email in ["zaball56@gmail.com"];
+    }
+    // สมุดบัญชี: เอกสารรายสัปดาห์ w<เลข>, แยกวันใหญ่ w<เลข>~d<YYYYMMDD>, คีย์อื่น wx · ลบได้ (โค้ดลบเอกสารสัปดาห์ที่ว่าง/รูปแบบเก่า)
+    match /ledger/{doc} {
+      allow read, delete: if isOwner();
+      allow create, update: if isOwner() && doc.matches('^w([0-9]+|x)(~[dx][0-9a-f]+)?$');
+    }
+    // ตารางเขียนตั๋ว: เอกสารรายเดือน YYYY-MM และวันหยุด holidays · โค้ดไม่เคยลบ จึงห้ามลบ
+    match /tkw/{doc} {
+      allow read: if isOwner();
+      allow create, update: if isOwner() && doc.matches('^([0-9]{4}-[0-9]{2}|holidays)$');
+      allow delete: if false;
+    }
+    // สำรองบนคลาวด์: เพิ่มได้อย่างเดียว (แก้/ลบจากเว็บไม่ได้) · b<YYYYMMDD>_<ledger|tkw>_<id> และบันทึกประจำวัน m<YYYYMMDD>
+    match /backup/{doc} {
+      allow read: if isOwner();
+      allow create: if isOwner() && doc.matches('^(b[0-9]{8}_(ledger|tkw)_[A-Za-z0-9~_-]+|m[0-9]{8})$');
+      allow update, delete: if false;
+    }
+  }
+}

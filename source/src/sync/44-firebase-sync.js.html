@@ -363,7 +363,12 @@
   }
   var ready=new Promise(function(resolve){
     if(!configured){ resolve(false); return; }
+    /* App Check (ไม่บังคับ): เปิดเมื่อใส่ appCheckSiteKey (reCAPTCHA v3) ใน firebase-config.js เท่านั้น — ไม่ใส่ = ทำงานเหมือนเดิมทุกอย่าง
+       โหลดสคริปต์ไม่ได้ (ออฟไลน์) ก็เริ่มต่อได้ · ควรเปิด "บังคับใช้" ใน Console หลังดูสถิติว่าคำขอผ่านการยืนยันครบแล้วเท่านั้น */
+    var acKey=cfg.appCheckSiteKey||'';
+    function boot(){
     firebase.initializeApp(cfg);
+    if(acKey){ try{ if(firebase.appCheck) firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider(acKey),true); }catch(e){ console.warn('appcheck',e); } }
     var fs=firebase.firestore(); cloud.fs=fs;
     try{ fs.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
     var auth=firebase.auth(), started=false, firstResolve=resolve;
@@ -399,6 +404,9 @@
       hideAuth();
       if(started) return; started=true; connect();
     });
+    }
+    if(acKey && !firebase.appCheck){ var sc=document.createElement('script'); sc.src='https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js'; sc.onload=boot; sc.onerror=boot; document.head.appendChild(sc); }
+    else boot();
   });
 
   /* ---------- วันเก่า (นอกช่วงฟังสด) ---------- */

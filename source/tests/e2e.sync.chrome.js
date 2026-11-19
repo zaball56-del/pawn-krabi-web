@@ -16,21 +16,24 @@ function fakeFirebase(initDocs){
   const colOf=(c)=>docs[c]=docs[c]||{};
   const D=(c,id)=>({id,exists:!!colOf(c)[id],data:()=>Object.assign({},colOf(c)[id]||{})});
   const snap=(c,ids,filter)=>({docs:Object.keys(colOf(c)).filter(filter||(()=>true)).map(id=>D(c,id)),metadata:{fromCache:false},docChanges:()=>(ids||Object.keys(colOf(c))).map(id=>({type:colOf(c)[id]?'modified':'removed',doc:D(c,id)}))});
-  const write=(c,id,o,merge)=>{ const cur=merge?Object.assign({},colOf(c)[id]||{}):{}; Object.keys(o).forEach(f=>{ if(o[f]===DEL) delete cur[f]; else cur[f]=o[f]; }); colOf(c)[id]=cur; subs.filter(s=>s.c===c).forEach(s=>setTimeout(()=>s.cb(snap(c,[id])),5)); };
+  const write=(c,id,o,merge)=>{ if(c==='backup'&&colOf(c)[id]) throw {code:'permission-denied'};   /* กฎ: backup เพิ่มได้อย่างเดียว */ const cur=merge?Object.assign({},colOf(c)[id]||{}):{}; Object.keys(o).forEach(f=>{ if(o[f]===DEL) delete cur[f]; else cur[f]=o[f]; }); colOf(c)[id]=cur; subs.filter(s=>s.c===c).forEach(s=>setTimeout(()=>s.cb(snap(c,[id])),5)); };
   function col(c){ const q={
-      where:(fp,op,v)=>Object.assign(col(c),{_f:id=>op==='>='?id>=v:op==='<'?id<v:op==='<='?id<=v:true}),
+      _fs:[], _desc:false, _lim:0,
+      where(fp,op,v){ const q=Object.assign(col(c),{_fs:this._fs.concat([id=>op==='>='?id>=v:op==='<'?id<v:op==='<='?id<=v:true]),_desc:this._desc,_lim:this._lim}); q._f=id=>q._fs.every(f=>f(id)); return q; },
+      orderBy(fp,dir){ this._desc=dir==='desc'; return this; }, limit(n){ this._lim=n; return this; },
       onSnapshot(a,b){ const cb=typeof a==='function'?a:b; const f=this._f; subs.push({c,cb}); setTimeout(()=>cb(snap(c,null,f)),5); return ()=>{}; },
-      get(){ const f=this._f; return Promise.resolve(snap(c,null,f)); },
-      doc:id=>({id,_c:c,set:(o,opt)=>{ if(!window.__online) return Promise.reject({code:'unavailable'}); write(c,id,o,opt&&opt.merge); return Promise.resolve(); },delete:()=>{ delete colOf(c)[id]; return Promise.resolve(); },
+      get(){ if(!window.__online) return Promise.reject({code:'unavailable'}); const s=snap(c,null,this._f); s.docs.sort((x,y)=>x.id<y.id?-1:1); if(this._desc) s.docs.reverse(); if(this._lim) s.docs=s.docs.slice(0,this._lim); return Promise.resolve(s); },
+      doc:id=>({id,_c:c,get:()=>window.__online?Promise.resolve(D(c,id)):Promise.reject({code:'unavailable'}),set:(o,opt)=>{ if(!window.__online) return Promise.reject({code:'unavailable'}); try{ write(c,id,JSON.parse(JSON.stringify(o)),opt&&opt.merge); }catch(e){ return Promise.reject(e); } return Promise.resolve(); },delete:()=>{ delete colOf(c)[id]; return Promise.resolve(); },
         onSnapshot(a,b){ const cb=typeof a==='function'?a:b; subs.push({c,cb:s=>cb(D(c,id))}); setTimeout(()=>cb(D(c,id)),5); return ()=>{}; }}) }; return q; }
   const fs={collection:col,enablePersistence:()=>Promise.resolve(),settings(){},
     runTransaction:async fn=>{ if(!window.__online) throw {code:'unavailable'}; const pend=[]; await fn({get:async r=>D(r._c,r.id),set:(r,o,opt)=>pend.push([r._c,r.id,o,opt&&opt.merge])}); pend.forEach(x=>write(...x)); }};
   const user={uid:'u',email:'test@example.test'};
   const fb={apps:[],initializeApp(){ fb.apps.push({}); },firestore:()=>fs,auth:()=>({currentUser:user,onAuthStateChanged:cb=>setTimeout(()=>cb(user),10),signInWithEmailAndPassword:()=>Promise.resolve()})};
-  fb.firestore.FieldValue={delete:()=>DEL}; fb.firestore.FieldPath={documentId:()=>'__id'};
+  fb.firestore.FieldValue={delete:()=>DEL,serverTimestamp:()=>new Date().toISOString()}; fb.firestore.FieldPath={documentId:()=>'__id'};
   Object.defineProperty(window,'firebase',{get:()=>fb,set(){},configurable:true});
   window.__srv={docs};
 }
+function shiftDays(n){ const RD=Date, off=n*864e5; window.Date=class extends RD{ constructor(...a){ a.length?super(...a):super(RD.now()+off); } static now(){ return RD.now()+off; } }; }
 async function open(ctx,initDocs,extra){
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(String(e).slice(0,160)));
   await pg.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort());
@@ -88,6 +91,39 @@ const srvTickets=(docs)=>{ const j=((docs.ledger||{})[WID]||{})[FLD]; if(!j) ret
     const card=await pg.evaluate(()=>{ const c=document.getElementById('sc-card'); return c?c.innerText:''; });
     ok(/18\/11\/2569/.test(card)&&/17\/11\/2569/.test(card)&&/ดาวน์โหลด/.test(card),'3.0 หน้าตั้งค่า/ข้อมูลแสดงรายการสำเนาที่ชน 2 รายการ');
     const el=await pg.$('#sc-card'); if(el){ await el.scrollIntoViewIfNeeded(); await sleep(300); await el.screenshot({path:path.join(__dirname,'../../../sync-conflicts-card.png')}); }
+    await ctx.close(); }
+  { /* 4) สำรองบนคลาวด์: วันละครั้ง คัดลอกเฉพาะที่เปลี่ยน · แก้/ลบสำเนาไม่ได้ · กู้คืนเป็นไฟล์นำเข้า */
+    const ctx=await b.newContext(); let pg=await open(ctx,null,'window.__cbDelay=99999999;');
+    await pg.evaluate(([K,M])=>{ db[K]={months:[M],bf:[0],bfCount:[0],data:{[M]:[{type:'ส',ticket:'1110',book:'243',amount:100000,count:'',timestamp:'10:00:00',origIdx:0}],'สรุปประจำวัน':[]}}; saveDB(); tkwImportS3(K,[{month:11,ticket:'9001',book:'12',amount:500}]); },[K,M]);
+    await pg.evaluate(()=>tkwEnsure(3000)); await sleep(5000);
+    const r1=await pg.evaluate(()=>window.__cloudBackup.run(true));
+    const s1=await pg.evaluate(()=>JSON.parse(JSON.stringify(window.__srv.docs)));
+    const bk1=Object.keys(s1.backup||{}), d1=K.replace(/-/g,'');
+    ok(r1.done==='new'&&bk1.includes('m'+d1)&&bk1.filter(x=>x[0]==='b').length===r1.docs&&r1.docs>=2,'4.0 สำรองครั้งแรก: คัดลอกทุกเอกสาร (ledger+tkw) + บันทึกประจำวัน ('+bk1.join(',')+')');
+    const r2=await pg.evaluate(()=>window.__cloudBackup.run(true));
+    ok(r2.done==='exists'&&Object.keys((await pg.evaluate(()=>window.__srv.docs)).backup).length===bk1.length,'4.1 กดซ้ำวันเดียวกัน: ไม่สำรองซ้ำ');
+    const prot=await pg.evaluate(id=>firebase.firestore().collection('backup').doc(id).set({x:1}).then(()=>'wrote',e=>e.code),bk1.find(x=>x[0]==='b'));
+    ok(prot==='permission-denied','4.2 เขียนทับสำเนาเดิมไม่ได้ (เพิ่มได้อย่างเดียว)');
+    const srv=JSON.stringify(s1); await pg.close();
+    /* วันถัดไป: แก้เฉพาะสมุดบัญชี → สำรองควรคัดลอกเฉพาะเอกสาร ledger ที่เปลี่ยน */
+    pg=await open(ctx,srv,'('+shiftDays.toString()+')(1); window.__cbDelay=99999999;'); await sleep(1000);
+    await pg.evaluate(([K,M])=>{ db[K].data[M][1]={type:'ถ',ticket:'2222',book:'243',amount:700,count:'',timestamp:'11:00:00',origIdx:1}; saveDB(); },[K,M]); await sleep(3000);
+    const r3=await pg.evaluate(()=>window.__cloudBackup.run(true));
+    ok(r3.done==='new'&&r3.wrote===1,'4.3 วันถัดไป: คัดลอกเฉพาะเอกสารที่เปลี่ยน (wrote='+r3.wrote+' จาก '+r3.docs+')');
+    const list=await pg.evaluate(()=>window.__cloudBackup.list(10));
+    ok(list.length===2,'4.4 รายการสำรองมี 2 วัน ('+list.map(x=>x.day).join(',')+')');
+    const f=await pg.evaluate(day=>window.__cloudBackup.build(day).then(x=>x.text),list[0].day);
+    const fo=JSON.parse(f); const t=(fo[K]&&fo[K].data[M]||[]).map(r=>r&&r.ticket).filter(Boolean).sort().join(',');
+    ok(t==='1110,2222'&&fo._extra&&fo._extra.tkw&&fo._extra.tkw[K],'4.5 กู้คืนวันล่าสุด: สมุดบัญชีฉบับใหม่ + เขียนตั๋วจากสำเนาวันก่อน ('+t+')');
+    const f0=JSON.parse(await pg.evaluate(day=>window.__cloudBackup.build(day).then(x=>x.text),list[1].day));
+    ok((f0[K].data[M]||[]).map(r=>r&&r.ticket).filter(Boolean).join(',')==='1110','4.6 กู้คืนวันแรก: ได้ฉบับก่อนแก้ (1110)');
+    /* กู้คืนผ่านการ์ด → กล่องนำเข้าเดิม */
+    await pg.evaluate(()=>{ window.__msg=''; window.uiChoice=(m)=>{ window.__msg=m; return Promise.resolve(null); }; });
+    if(await pg.evaluate(()=>typeof openDataSettings==='function')){ await pg.evaluate(()=>openDataSettings()); await sleep(1200);
+      await pg.evaluate(()=>document.getElementById('cb-list').click()); await sleep(800);
+      await pg.evaluate(()=>{ const b=document.querySelector('[data-cbi]'); b&&b.click(); }); await sleep(1500); }
+    ok(/นำเข้าไฟล์ pawn-krabi-cloud-backup-/.test(await pg.evaluate(()=>window.__msg)),'4.7 ปุ่ม "นำเข้า…" ในการ์ด เปิดกล่องเลือกวิธีนำเข้าเดิม');
+    ok(!pg.errs.length,'4.8 ไม่มี error '+pg.errs.join(' | '));
     await ctx.close(); }
   await b.close();
   console.log(fail?`❌ ล้มเหลว ${fail}`:'✅ ผ่านทั้งหมด'); process.exit(fail?1:0);

@@ -5,6 +5,7 @@ storage.html
 mobile.html
 backup.html
 syncconf.html
+cloudbak.html
 netstate.html
 barcode.html
 tweaks.html
