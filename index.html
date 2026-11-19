@@ -10910,7 +10910,7 @@ html body #app-sidebar#app-sidebar .sb-item.on .sb-ic *:not(#_x):not(#_y){color:
 /* กล่องเวอร์ชัน */
 html body #app-sidebar#app-sidebar .sb-ver:not(#_x):not(#_y){background:#fff !important;border:1px solid #E7DDC2 !important;border-radius:14px !important;color:#7c8598 !important;box-shadow:none !important}
 html body #app-sidebar#app-sidebar .sb-ver b:not(#_x){color:#14213D !important}
-@media (min-width:1024px){html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-grp .ch:not(#_x){display:none !important}}
+@media (min-width:1024px){html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-gb:not(#_x):not(#_y):not(#_z){background:#FFFDF7 !important;border:1px solid #E3DCC4 !important;border-radius:16px !important;padding:6px !important;box-shadow:0 14px 34px rgba(20,33,61,.22) !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important}html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-grp .ch:not(#_x){display:none !important}}
 @media (prefers-reduced-motion:reduce){html body #app-sidebar#app-sidebar *{transition:none !important}}
 </style>
 
@@ -11022,6 +11022,60 @@ html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on em:not(#_x):n
         show(el2,(/^\d{1,9}$/.test(t2)&&k2)?inTkw(k2,nz(t2),b2):null,'ตารางเขียนตั๋ว',k2); } }
   }
   setInterval(tick,400);
+}catch(e){} })();
+</script>
+
+<style id="tkwdesk-css">
+/* คอม (≥1024px): หน้าเขียนตั๋ว รวมแถบเลือกวัน · วันที่ · ปากกา · ปุ่มจัดการ · แถบเครื่องมือ ไว้แถวเดียว (จอแคบจะตัดเป็น 2 แถวเอง) */
+@media screen and (min-width:1024px){
+html body #tkw-page #tkw-hdr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 14px 6px;margin:0}
+html body #tkw-page #tkw-hdr .dt:not(#_x):not(#_y){order:1;margin:0 !important;flex:none;width:auto !important;max-width:none !important}
+html body #tkw-page #tkw-hdr .thd:not(#_x):not(#_y){display:contents !important}
+html body #tkw-page #tkw-hdr #tkw-thd:not(#_x):not(#_y){order:2;margin:0 !important;white-space:nowrap}
+html body #tkw-page #tkw-hdr .thd > span:last-child:not(#_x):not(#_y){order:4;display:flex !important;gap:6px;flex-wrap:nowrap}
+html body #tkw-page #tkw-hdr .thd .mb:not(#_x):not(#_y){margin:0 !important;white-space:nowrap}
+html body #tkw-page #tkw-hdr #tkw-pen:not(#_x):not(#_y):not(#_z){order:3;display:flex !important;flex-wrap:nowrap !important;align-items:center;gap:6px;margin:0 !important;padding:4px 10px !important;
+  background:rgba(255,255,255,.75) !important;border:1px solid #E7DDC2 !important;border-radius:14px !important;box-shadow:none !important;width:auto !important;flex:none}
+html body #tkw-page #tkw-hdr #tkw-pen .pn:not(#_x){display:none !important}
+html body #tkw-page #tkw-hdr #tkw-pen .pd:not(#_x):not(#_y){width:28px !important;height:28px !important;min-width:0 !important;margin:0 !important}
+html body #tkw-page #tkw-hdr #tkw-pen .pc:not(#_x):not(#_y){margin:0 0 0 4px !important;white-space:nowrap}
+html body #tkw-page #tkw-hdr .bar:not(#_x):not(#_y):not(#_z){order:5;position:static !important;margin:0 0 0 auto !important;top:auto !important;right:auto !important}
+html body #tkw-page #tkw-hdr .dt input#tkw-date:not(#_x):not(#_y):not(#_z):not(#_w){width:150px !important;min-width:0 !important;max-width:150px !important;flex:none !important}
+html body #tkw-page #tkw-hdr #tkw-thd .ic:not(#_x){display:none !important}
+}
+/* จอคอมขนาดกลาง: แถบเครื่องมือเหลือไอคอน (ยกเว้น "สแกน") · ซ่อนคำว่า "ปากกา" ให้พอดีแถวเดียวบ่อยขึ้น */
+@media screen and (min-width:1024px) and (max-width:1799px){
+html body #tkw-page #tkw-hdr .bar button:not(.scan):not(#_x):not(#_y){font-size:0 !important;gap:0 !important;padding:0 10px !important;flex:none !important;width:auto !important;min-width:40px !important}
+html body #tkw-page #tkw-hdr .bar button:not(.scan) b:not(#_x){display:block !important;position:relative !important;width:18px !important;height:18px !important;font-size:0 !important;color:inherit}
+html body #tkw-page #tkw-hdr #tkw-pen .pl:not(#_x):not(#_y){font-size:0 !important}
+html body #tkw-page #tkw-hdr #tkw-pen .pl:not(#_x):not(#_y)::first-letter{font-size:14px}
+}
+/* จอ ~1366: ซ่อนป้ายชื่อวัน และบีบระยะ ให้ยังอยู่แถวเดียว */
+@media screen and (min-width:1024px) and (max-width:1499px){
+html body #tkw-page #tkw-hdr:not(#_x){gap:6px 7px;padding-left:10px;padding-right:10px}
+html body #tkw-page #tkw-hdr #tkw-thd .dn:not(#_x):not(#_y){display:none !important}
+html body #tkw-page #tkw-hdr .thd .mb:not(#_x):not(#_y):not(#_z){padding-left:9px !important;padding-right:9px !important}
+html body #tkw-page #tkw-hdr #tkw-pen:not(#_x):not(#_y):not(#_z){gap:4px;padding:4px 7px !important}
+html body #tkw-page #tkw-hdr .bar button:not(.scan):not(#_x):not(#_y){padding:0 7px !important;min-width:34px !important}
+}
+</style>
+<script id="tkwdesk-js">
+/* ย้าย .dt / .thd / #tkw-pen / .bar เข้ากล่องแถวเดียวเฉพาะจอคอม · กลับเป็นที่เดิมเมื่อจอแคบ (ใช้ตัวคั่นจำตำแหน่งเดิม) */
+(function(){ try{
+  var mq=window.matchMedia('(min-width:1024px)'), box=null, marks=[];
+  function els(P){ return [P.querySelector(':scope > .dt'),P.querySelector(':scope > .thd'),document.getElementById('tkw-pen'),P.querySelector(':scope > .bar')]; }
+  function apply(){ var P=document.getElementById('tkw-page'); if(!P) return;
+    if(mq.matches){ if(box) return; var L=els(P); if(L.some(function(e){ return !e; })) return;
+      box=document.createElement('div'); box.id='tkw-hdr';
+      marks=L.map(function(e){ var c=document.createComment('tkw-hdr-slot'); e.parentNode.insertBefore(c,e); return c; });
+      P.insertBefore(box,marks[0]); L.forEach(function(e){ box.appendChild(e); });
+    } else if(box){ restore(); } }
+  function restore(){ if(!box) return; var L=[box.querySelector('.dt'),box.querySelector('.thd'),box.querySelector('#tkw-pen'),box.querySelector('.bar')];
+    L.forEach(function(e,i){ if(e&&marks[i]&&marks[i].parentNode){ marks[i].parentNode.insertBefore(e,marks[i]); marks[i].remove(); } });
+    box.remove(); box=null; marks=[]; }
+  (mq.addEventListener?mq.addEventListener('change',apply):mq.addListener(apply));
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply); else apply();
+  setTimeout(apply,1500);
 }catch(e){} })();
 </script>
 
