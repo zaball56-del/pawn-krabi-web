@@ -6711,6 +6711,10 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     return {day:out,conflicts:ctx.conflicts,moved:ctx.moved};
   }
 
+  /* หลังรวมข้อมูล 2 เครื่องของวันใดวันหนึ่ง: คำนวณยอดยกมาของวันถัดไปใหม่จากฉบับรวม (ใช้ฟังก์ชันเดียวกับตอนแก้ข้อมูลย้อนหลัง — ไม่เปลี่ยนสูตร)
+     ไม่ทำ = วันถัดไปหักไถ่ถอนของเครื่องเดียว ยอดยกมาผิด */
+  function recalcAfterMerge(keys){ var ks=(keys||[]).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k); }).sort(); if(!ks.length) return;
+    try{ if(typeof recalculateFutureBroughtForwardBalances==='function') recalculateFutureBroughtForwardBalances(ks[0]); }catch(e){ console.warn('recalc after merge',e); } }
   /* โควตาฟรีรีเซ็ตเที่ยงคืนเวลาแปซิฟิก = 08:00 UTC (ฤดูหนาว PST) / 07:00 UTC (ฤดูร้อน PDT) → แปลงเป็นเวลาเครื่อง (ไทย = 15:00 / 14:00) */
   function quotaResetText(){ try{ var utcH=8, nm=(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',timeZoneName:'short'}).formatToParts(new Date()).filter(function(p){ return p.type==='timeZoneName'; })[0]||{}).value||'';
       if(/PDT|GMT-7/.test(nm)) utcH=7; var d=new Date(); d.setUTCHours(utcH,0,0,0); return d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.'; }catch(e){ return 'บ่ายวันนี้'; } }
@@ -6789,7 +6793,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       mergeNote.n++; mergeNote.moved+=w.res.moved;
       if(w.res.conflicts.length){ mergeNote.conf=mergeNote.conf.concat(w.res.conflicts.map(function(x){ return k+' '+x; })); SM.logConflict('push',k,w.srv,w.res.conflicts); }
       try{ origSave(); }catch(e){}
-      if(k===currentDate) refresh();
+      recalcAfterMerge([k]);
+      if(k===currentDate||(typeof currentDate==='string'&&currentDate>k)) refresh();
     }catch(e){ console.warn('adopt',k,e); setLast(k,sent); }
   }
   function flushMergeNote(){
@@ -6876,7 +6881,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       try{
         var base=cloud.last[k]!==undefined?JSON.parse(cloud.last[k]):null, res=mergeDay(base||{},JSON.parse(cur),JSON.parse(json));
         db[k]=res.day; setLast(k,json); st.save=true; st.push=true; if(k===currentDate) st.cur=true;
-        st.merged=(st.merged||0)+1; st.moved=(st.moved||0)+res.moved;
+        st.merged=(st.merged||0)+1; st.moved=(st.moved||0)+res.moved; (st.mk=st.mk||[]).push(k);
         if(res.conflicts.length){ st.conf=(st.conf||[]).concat(res.conflicts.map(function(x){ return k+' '+x; })); SM.logConflict('live',k,json,res.conflicts); }
       }catch(e){ console.warn('merge',k,e); }
       return;
@@ -6903,6 +6908,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       cloud.chunkKeys[id]=Object.keys(now);
     });
     if(st.save||st.cur){ try{ origSave(); }catch(e){} }
+    if(st.mk&&st.mk.length){ recalcAfterMerge(st.mk); st.cur=true; }
     if(st.cur) refresh();
     if(st.conf&&st.conf.length) toast('2 เครื่องแก้ช่องเดียวกัน ('+st.conf.slice(0,2).join(', ')+(st.conf.length>2?' …':'')+') · ใช้ของเครื่องนี้ และเก็บของอีกเครื่องไว้แล้ว');
     else if(st.merged) toast('รวมข้อมูลจาก 2 เครื่องแล้ว'+(st.moved?' · ย้ายตั๋วที่ชนแถวไปแถวว่าง '+st.moved+' ใบ':''));
@@ -6947,6 +6953,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     Object.keys(r.last).forEach(function(k){ if(!keep[k]) hs[k]=hash(r.last[k]); });
     saveHs();
     try{ origSave(); }catch(e){}
+    if(startMerged.length) recalcAfterMerge(startMerged);
     if(conflicts.length){ toast('วันที่ '+conflicts.slice(0,3).join(', ')+' ถูกแก้ทั้งสองฝั่งตอนออฟไลน์ ใช้ของเครื่องนี้ · เก็บของอีกเครื่องไว้แล้ว'); conflicts=[]; }
     else if(startMerged.length){ toast('รวมข้อมูลจาก 2 เครื่องแล้ว (วันที่ '+startMerged.slice(0,3).join(', ')+')'); }
     startMerged=[];

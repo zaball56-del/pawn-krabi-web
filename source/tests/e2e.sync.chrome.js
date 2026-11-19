@@ -134,6 +134,44 @@ const srvTickets=(docs)=>{ const j=((docs.ledger||{})[WID]||{})[FLD]; if(!j) ret
     const ms=Date.now()-t0;
     ok(on&&ms<9000,'5.0 สคริปต์ App Check ค้าง: เว็บยังเชื่อมฐานข้อมูลได้ใน '+Math.round(ms/100)/10+' วิ');
     ok(!errs.length,'5.1 ไม่มี error '+errs.join(' | ')); await ctx.close(); }
+  { /* 6) 2 เครื่องแก้ "วันก่อนหน้า" ตอนออฟไลน์ → หลังรวมทีละแถว ยอดยกมาของวันถัดไปต้องคิดจากฉบับรวม (หักทั้งสองฝั่ง) */
+    const D0=new Date(Date.now()-864e5), Y=`${D0.getFullYear()}-${p2(D0.getMonth()+1)}-${p2(D0.getDate())}`;
+    const FY='d'+Y.replace(/-/g,''), WY='w'+Math.floor(Date.UTC(D0.getFullYear(),D0.getMonth(),D0.getDate())/864e5/7);
+    const ctx=await b.newContext(); let pg=await open(ctx);
+    await pg.evaluate(([Y,K,M])=>{ db[Y]={months:[M],bf:[100000],bfCount:[10],data:{[M]:[{type:'ถ',ticket:'1110',book:'243',amount:1000,count:'',timestamp:'10:00:00',origIdx:0}],'สรุปประจำวัน':[]}};
+      db[K]={months:[M],bf:[0],bfCount:[0],data:{[M]:[],'สรุปประจำวัน':[]}}; syncBroughtForwardForDate(K,true); saveDB(); },[Y,K,M]);
+    await sleep(3000);
+    const bf0=await pg.evaluate(K=>db[K].bf[0],K);
+    ok(bf0===99000,'6.0 ยกมาวันนี้ = 100,000 − 1,000 = 99,000 ('+bf0+')');
+    let srv=JSON.parse(await pg.evaluate(()=>JSON.stringify(window.__srv.docs)));
+    await pg.evaluate(([Y,M])=>{ window.__online=false; db[Y].data[M][1]={type:'ถ',ticket:'2222',book:'243',amount:700,count:'',timestamp:'11:00:00',origIdx:1}; saveDB(); recalculateFutureBroughtForwardBalances(Y); },[Y,M]);
+    await sleep(2500); await pg.close();
+    /* อีกเครื่อง: ไถ่ 3333 (900) วันเดียวกัน และคำนวณยกมาวันนี้ใหม่ของตัวเอง = 98,100 */
+    const dy=JSON.parse(srv.ledger[WY][FY]); dy.data[M][1]={type:'ถ',ticket:'3333',book:'243',amount:900,count:'',timestamp:'11:05:00',origIdx:1}; srv.ledger[WY][FY]=JSON.stringify(dy);
+    const dk=JSON.parse(srv.ledger[WID][FLD]); dk.bf[0]=98100; dk.bfCount[0]=8; srv.ledger[WID][FLD]=JSON.stringify(dk);
+    pg=await open(ctx,JSON.stringify(srv)); await sleep(3500);
+    const r=await pg.evaluate(([Y,K,M])=>({y:db[Y].data[M].map(x=>x&&x.ticket).filter(Boolean).sort().join(','),bf:db[K].bf[0],cnt:db[K].bfCount[0]}),[Y,K,M]);
+    ok(r.y==='1110,2222,3333','6.1 วันก่อนหน้าหลังรวม: มีไถ่ถอนครบ 3 ใบ ('+r.y+')');
+    ok(r.bf===97400&&r.cnt===7,'6.2 ยกมาวันนี้คิดจากฉบับรวม = 100,000 − 1,000 − 700 − 900 = 97,400 / 7 ราย (ได้ '+r.bf+' / '+r.cnt+')');
+    const s2=JSON.parse(await pg.evaluate(()=>JSON.stringify(window.__srv.docs))); const kk=JSON.parse(s2.ledger[WID][FLD]);
+    ok(kk.bf[0]===97400,'6.3 คลาวด์ได้ยกมาที่ถูกต้องด้วย ('+kk.bf[0]+')');
+    ok(!pg.errs.length,'6.4 ไม่มี error '+pg.errs.join(' | ')); await ctx.close(); }
+  { /* 7) รวมตอนส่ง (อีกเครื่องเพิ่งส่งวันก่อนหน้า ขณะเครื่องนี้กำลังแก้วันเดียวกัน) → ยกมาวันถัดไปต้องคิดจากฉบับรวม */
+    const D0=new Date(Date.now()-864e5), Y=`${D0.getFullYear()}-${p2(D0.getMonth()+1)}-${p2(D0.getDate())}`;
+    const FY='d'+Y.replace(/-/g,''), WY='w'+Math.floor(Date.UTC(D0.getFullYear(),D0.getMonth(),D0.getDate())/864e5/7);
+    const ctx=await b.newContext(); const pg=await open(ctx);
+    await pg.evaluate(([Y,K,M])=>{ db[Y]={months:[M],bf:[100000],bfCount:[10],data:{[M]:[{type:'ถ',ticket:'1110',book:'243',amount:1000,count:'',timestamp:'10:00:00',origIdx:0}],'สรุปประจำวัน':[]}};
+      db[K]={months:[M],bf:[0],bfCount:[0],data:{[M]:[],'สรุปประจำวัน':[]}}; syncBroughtForwardForDate(K,true); saveDB(); },[Y,K,M]);
+    await sleep(3000);
+    /* อีกเครื่องเขียนลงเซิร์ฟเวอร์ตรง ๆ (ไม่แจ้งเครื่องนี้): ไถ่ 3333 (900) + ยกมาวันนี้ของมัน 98,100 */
+    await pg.evaluate(([WY,FY,WID,FLD,M])=>{ const L=window.__srv.docs.ledger; const dy=JSON.parse(L[WY][FY]); dy.data[M][1]={type:'ถ',ticket:'3333',book:'243',amount:900,count:'',timestamp:'11:05:00',origIdx:1}; L[WY][FY]=JSON.stringify(dy);
+      const dk=JSON.parse(L[WID][FLD]); dk.bf[0]=98100; dk.bfCount[0]=8; L[WID][FLD]=JSON.stringify(dk); },[WY,FY,WID,FLD,M]);
+    await pg.evaluate(([Y,M])=>{ db[Y].data[M][1]={type:'ถ',ticket:'2222',book:'243',amount:700,count:'',timestamp:'11:00:00',origIdx:1}; saveDB(); recalculateFutureBroughtForwardBalances(Y); },[Y,M]);
+    await sleep(5000);
+    const r=await pg.evaluate(([Y,K,M])=>({y:db[Y].data[M].map(x=>x&&x.ticket).filter(Boolean).sort().join(','),bf:db[K].bf[0]}),[Y,K,M]);
+    const L=JSON.parse(await pg.evaluate(()=>JSON.stringify(window.__srv.docs.ledger)));
+    ok(r.y==='1110,2222,3333'&&r.bf===97400&&JSON.parse(L[WID][FLD]).bf[0]===97400,'7.0 รวมตอนส่ง: ไถ่ครบ 3 ใบ และยกมาวันนี้ = 97,400 ทั้งในเครื่องและคลาวด์ (ได้ '+r.bf+' / คลาวด์ '+JSON.parse(L[WID][FLD]).bf[0]+')');
+    ok(!pg.errs.length,'7.1 ไม่มี error '+pg.errs.join(' | ')); await ctx.close(); }
   await b.close();
   console.log(fail?`❌ ล้มเหลว ${fail}`:'✅ ผ่านทั้งหมด'); process.exit(fail?1:0);
 })();
