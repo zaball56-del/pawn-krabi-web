@@ -173,7 +173,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div id="tkw-sq" role="dialog" aria-label="สแกนตั๋วเดิม">
     <div class="h"><b>สแกนตั๋วเดิม</b><button type="button" id="tkw-sq-x">ปิด ✕</button></div>
     <div class="b">
-      <div class="cnt"><span>วันนี้บันทึกแล้ว <strong id="tkw-sq-n">0</strong> ใบ</span><div style="display:flex;flex-direction:column;gap:2px"><label><input type="checkbox" id="tkw-sq-cont"> สแกนต่อเนื่อง</label><label><input type="checkbox" id="tkw-sq-auto"> บันทึกอัตโนมัติเมื่อข้อมูลครบ</label></div></div>
+      <div class="cnt"><span>วันนี้บันทึกแล้ว <strong id="tkw-sq-n">0</strong> ใบ<br><small style="font-weight:700">รวม <strong id="tkw-sq-sum" style="font-size:inherit">0</strong> บาท</small></span><div style="display:flex;flex-direction:column;gap:2px"><label><input type="checkbox" id="tkw-sq-cont"> สแกนต่อเนื่อง</label><label><input type="checkbox" id="tkw-sq-auto"> บันทึกอัตโนมัติเมื่อข้อมูลครบ</label></div></div>
       <button type="button" class="big" id="tkw-sq-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg><span>สแกนตั๋วเดิม</span></button>
       <div class="row"><div><label class="l" for="tkw-sq-m">เดือน (รหัส 1–12)</label><input class="i" id="tkw-sq-m" type="number" inputmode="numeric" min="1" max="12"></div><div class="mn" id="tkw-sq-mn"></div></div>
       <div><label class="l" for="tkw-sq-t">เลขตั๋วเดิม (ยิงบาร์โค้ดช่องนี้)</label><input class="i" id="tkw-sq-t" type="text" inputmode="numeric" autocomplete="off"></div>
@@ -444,7 +444,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   }
   function msg(t,k){ SG.textContent=t; SG.className='msg'+(k?' '+k:''); }
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
-  function sqCount(){ var n=0; for(var g=0;g<NG();g++) n+=totals(g).c; $('tkw-sq-n').textContent=n; }
+  function sqCount(){ var n=0, sm=0; for(var g=0;g<NG();g++){ var t=totals(g); n+=t.c; sm=Math.round((sm+t.s)*100)/100; } $('tkw-sq-n').textContent=n; var e=$('tkw-sq-sum'); if(e) e.textContent=sm?fmt(sm):'0'; }
   function mhint(){ var m=+SM.value, el=$('tkw-sq-mn'); if(m>=1&&m<=12){ var has=day.m.indexOf(m)>=0; el.textContent=MN[m]+(has?' ✓':' (จะเพิ่มคอลัมน์ใหม่)'); el.className='mn '+(has?'ok':'new'); } else { el.textContent=''; el.className='mn'; } }
   function sqOpen(){ if(!day) return; P.classList.add('sq-on'); dupOk=''; try{ recPaint(); }catch(e){} monTyped=false; SM.value=lastM(); ST.value=''; SA.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); $('tkw-sq-cont').checked=ls(KC)==='1'; msg('สแกนตั๋ว → เดือนกับยอดมาเอง (ถ้าเจอในข้อมูลเดิม) → Enter'); mhint(); sqCount(); setTimeout(function(){ ST.focus(); },50); }
   function sqClose(){ P.classList.remove('sq-on'); render(); }
