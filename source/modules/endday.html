@@ -24,7 +24,7 @@
 </style>
 <script id="ed-js">
 (function(){
-  /* "ตรวจก่อนจบวัน": รายการตรวจ 3 ขั้น (ตรวจความสอดคล้อง · รักษาของ=เขียนตั๋ว · สำรองข้อมูล) อ่านอย่างเดียว ปุ่มพาไปทำต่อ */
+  /* "ตรวจก่อนจบวัน": รายการตรวจหลายขั้น (ตรวจความสอดคล้อง · ประเภทครบ · คงเหลือ=ยกไปรวม · รักษาของ=เขียนตั๋ว · สำรองข้อมูล) อ่านอย่างเดียว ปุ่มพาไปทำต่อ */
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function fmtDT(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
   function steps(){
@@ -32,6 +32,17 @@
     var nbad=F.filter(function(x){ return x.sev==='bad'; }).length;
     out.push({id:'ck',st:F.length?(nbad?'bad':'warn'):'ok',t:'ตรวจความสอดคล้องของข้อมูล',
       d:F.length?('พบ '+F.length+' รายการที่ควรตรวจสอบ'+(F[0]?' · '+F[0].t:'')):'ไม่พบรายการผิดปกติ',btn:F.length?'ดูรายการ':'',act:function(){ close(); try{ openChecks(); }catch(e){} }});
+    /* แถวที่มีเลขตั๋ว/ยอดเงินแต่ยังไม่เลือกประเภท = ยังไม่ถูกนับในไถ่ถอนและยกไป */
+    var nt=[]; try{ var d0=db[currentDate]; (d0.months||[]).forEach(function(m){ if(!m) return; (d0.data[m]||[]).forEach(function(r,i){ if(!r) return; var has=String(r.ticket||'').trim()||cleanNumberString(r.amount); if(has&&!String(r.type||'').trim()) nt.push(m+' แถว '+(i+1)+(r.ticket?' ('+String(r.ticket).trim()+')':'')); }); }); }catch(e){}
+    out.push(nt.length?{id:'ty',st:'warn',t:'แถวที่ยังไม่เลือกประเภท ('+nt.length+' แถว)',d:'ยังไม่ถูกนับในไถ่ถอนและยกไป: '+nt.slice(0,3).join(' · ')+(nt.length>3?' …':''),btn:'',act:null}
+      :{id:'ty',st:'ok',t:'ทุกแถวเลือกประเภทแล้ว',d:'ไม่มีแถวที่ขาดประเภท ส/พ/ผ/ถ',btn:'',act:null});
+    /* คงเหลือ 2 ทาง: สรุปประจำวัน (ย/ม+รับจำนำ−ไถ่ถอน) กับผลรวมยกไปทุกคอลัมน์เดือน ต้องเท่ากัน */
+    try{ var d1=db[currentDate], sr=d1&&d1.data&&d1.data['สรุปประจำวัน'], kc=sr&&sr[3]?cleanNumberString(sr[3].count):0, ka=sr&&sr[3]?cleanNumberString(sr[3].amount):0;
+      if(sr&&(kc||ka)){ var mc=0,ma=0; (d1.months||[]).forEach(function(m){ if(!m) return; mc+=getMonthCarriedCount(currentDate,m); ma=roundMoney(ma+getMonthCarriedBalance(currentDate,m)); });
+        var f2=function(v){ try{ return formatNumber(v)||'0'; }catch(e){ return String(v); } };
+        var same=(mc===kc)&&Math.abs(ma-ka)<0.01;
+        out.push(same?{id:'bal',st:'ok',t:'คงเหลือตรงกับยอดยกไปทุกเดือน',d:f2(kc)+' ราย / '+f2(ka)+' บาท',btn:'',act:null}
+          :{id:'bal',st:'warn',t:'คงเหลือไม่ตรงกับยอดยกไปรวมทุกเดือน',d:'สรุปประจำวัน '+f2(kc)+' ราย / '+f2(ka)+' · ยกไปรวม '+f2(mc)+' ราย / '+f2(ma)+' (ต่าง '+f2(mc-kc)+' ราย / '+f2(roundMoney(ma-ka))+') — ตรวจยอดรับจำนำ ยอดยกมา หรือคอลัมน์เดือนที่ขาด',btn:'',act:null}); } }catch(e){}
     var tn=0; try{ var tk=(JSON.parse(localStorage.getItem('pawn_tkw_v1')||'{}')||{})[currentDate]; if(tk&&tk.r) tk.r.forEach(function(c){ (c||[]).forEach(function(x){ if(x&&String(x[0]==null?'':x[0]).trim()) tn++; }); }); }catch(e){}
     var ln=0; try{ var dd=db[currentDate]; (dd.months||[]).forEach(function(m){ if(!m||m==='สรุปประจำวัน') return; (dd.data[m]||[]).forEach(function(r){ if(r&&String(r.ticket||'').trim()) ln++; }); }); }catch(e){}
     var mis=F.filter(function(x){ return /^รักษาของไม่ตรงกับตารางเขียนตั๋ว/.test(x.t)||/^ตั๋วเดียวกันซ้ำคนละเดือน/.test(x.t); });

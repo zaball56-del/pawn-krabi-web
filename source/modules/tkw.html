@@ -232,7 +232,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   function num(s){ var v=parseFloat(String(s||'').replace(/,/g,'')); return isNaN(v)?0:v; }
   function fmt(v){ return v?v.toLocaleString('en-US'):'0'; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-  function totals(g){ var c=0,s=0; day.r[g].forEach(function(x){ if(x[0]!==''||x[1]!=='') c++; s+=num(x[1]); }); return {c:c,s:s}; }
+  function totals(g){ var c=0,s=0; day.r[g].forEach(function(x){ if(x[0]!==''||x[1]!=='') c++; s=Math.round((s+num(x[1]))*100)/100; }); return {c:c,s:s}; }
   function rowsShown(){ var n=0; if(wide.matches){ day.r.forEach(function(x){ n=Math.max(n,x.length); }); } else n=day.r[cur].length; return Math.max(n,1); }
   function ensure(g,i){ while(day.r[g].length<=i) day.r[g].push(['','']); }
   function render(){
