@@ -108,6 +108,16 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
 
 #tkw-thd{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}#tkw-thd .dn{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#3b2400;border-radius:999px;padding:3px 12px;font:800 14px Sarabun,sans-serif}#tkw-thd .dd{color:#a7f3d0;font:700 16px Sarabun,sans-serif}#tkw-thd .dd b{color:#fff;font-size:20px;font-weight:800}#tkw-thd .ic{font-size:16px}
 @media (max-width:899px){html #tkw-page .thd{flex-wrap:wrap;row-gap:6px}html #tkw-page #tkw-thd{flex-wrap:nowrap;width:100%;gap:8px;white-space:nowrap}html #tkw-page #tkw-thd .dd{font-size:15px}html #tkw-page #tkw-thd .dd b{font-size:18px}html #tkw-page .thd>span:last-child{width:100%}html #tkw-page .thd>span:last-child .mb{flex:1;padding:8px 6px}}
+#tkw-addcol .cm-sm{display:none}
+#tkw-colmenu{position:fixed;z-index:95;min-width:220px;max-width:calc(100vw - 16px);max-height:70vh;overflow:auto;padding:6px;border-radius:14px;background:#FFFDF7;border:1px solid #E3DCC4;box-shadow:0 14px 34px rgba(20,33,61,.25);font-family:Sarabun,sans-serif;display:none}
+#tkw-colmenu.on{display:block}
+#tkw-colmenu button{display:flex;align-items:center;gap:8px;width:100%;padding:9px 10px;border:0;border-radius:10px;background:transparent;color:#14213D;font:700 14.5px Sarabun,sans-serif;text-align:left;cursor:pointer}
+#tkw-colmenu button:hover,#tkw-colmenu button:focus-visible{background:rgba(184,146,58,.14)}
+#tkw-colmenu button:disabled{opacity:.4;cursor:default;background:transparent}
+#tkw-colmenu button.del{color:#B4233A}
+#tkw-colmenu button small{margin-left:auto;color:#8A8371;font-weight:600}
+#tkw-colmenu .sep{margin:6px 8px 4px;padding-top:6px;border-top:1px solid #EFE7D2;color:#8A7238;font:800 12px Sarabun,sans-serif}
+@media print{#tkw-colmenu{display:none !important}}
 @media (min-width:900px){#tkw-page .mobonly{display:none}#tkw-page .tabs{display:none}
 #tkw-page table{table-layout:fixed;min-width:calc(58px + var(--g,7) * 150px)}
 #tkw-page td{height:52px;padding:3px 4px}#tkw-page td input{height:42px;font-size:17px;padding:0 6px;border-radius:12px}
@@ -155,7 +165,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   <div class="top"><h1>บัญชีรายวันเขียนตั๋ว<small id="tkw-cloud" class="cloud"></small></h1><button type="button" class="x" id="tkw-x" aria-label="ปิด">✕</button></div>
   <div class="dt"><button type="button" id="tkw-prev">‹</button><input type="date" id="tkw-date"><button type="button" id="tkw-next">›</button><button type="button" class="td" id="tkw-today">วันนี้</button></div>
   <div id="tkw-ph"><div class="t1"></div><div class="t2"></div></div>
-  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol">＋ เพิ่มเดือน</button><button type="button" class="mb" id="tkw-delday" onclick="dayDelAsk('tkw')" style="color:#fecaca !important;border-color:rgba(248,113,113,.6) !important">🗑 ลบทั้งวัน</button><button type="button" class="mb" id="tkw-compact" title="เลื่อนตั๋วของเดือนที่เลือกขึ้นมาเติมช่องว่าง (เดือนอื่นไม่ขยับ)">⇡ เลื่อนขึ้น</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
+  <div class="thd"><span id="tkw-thd"></span><span style="display:flex;gap:6px"><button type="button" class="mb" id="tkw-addcol" aria-haspopup="menu" aria-expanded="false" title="เพิ่มหรือลบคอลัมน์เดือน"><span class="cm-lg">＋ เพิ่ม/ลบเดือน</span><span class="cm-sm">± เดือน</span> ▾</button><button type="button" class="mb" id="tkw-delday" onclick="dayDelAsk('tkw')" style="color:#fecaca !important;border-color:rgba(248,113,113,.6) !important">🗑 ลบทั้งวัน</button><button type="button" class="mb" id="tkw-compact" title="เลื่อนตั๋วของเดือนที่เลือกขึ้นมาเติมช่องว่าง (เดือนอื่นไม่ขยับ)">⇡ เลื่อนขึ้น</button><button type="button" class="mb mobonly" id="tkw-delcol">ลบเดือนนี้</button></span></div>
   <div class="srch"><input type="search" id="tkw-q" placeholder="ค้นหาเลขตั๋ว..." inputmode="numeric"></div>
   <div id="tkw-pen" class="no-print"><span class="pl">🖊 ปากกา</span><button type="button" class="pd k" data-pen="k" aria-label="ปากกาดำ"></button><button type="button" class="pd r" data-pen="r" aria-label="ปากกาแดง"></button><button type="button" class="pd b" data-pen="b" aria-label="ปากกาน้ำเงิน"></button><button type="button" class="pd g" data-pen="g" aria-label="ปากกาเขียว"></button><button type="button" class="pc" id="tkw-pclose">ปิดบัญชีครั้งที่ 1</button><span class="pn" id="tkw-pnote"></span></div>
   <div class="tabs" id="tkw-tabs"></div>
@@ -248,7 +258,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     h+='</tr></tbody>';
     $('tkw-table').innerHTML=h; $('tkw-table').style.setProperty('--g',G);
     mark2(); tabs(); tot(); penPaint(); penUI();
-    $('tkw-delcol').disabled=(G<=1); $('tkw-addcol').disabled=(G>=MAXG);
+    $('tkw-delcol').disabled=(G<=1); $('tkw-addcol').disabled=false; $('tkw-delcol').style.display='none';   /* ลบเดือนย้ายไปอยู่ในเมนู เพิ่ม/ลบเดือน */
   }
   function mark2(){ [].forEach.call($('tkw-table').querySelectorAll('[data-g]'),function(e){ if(e.tagName!=='INPUT') e.classList.toggle('cur',+e.dataset.g===cur); }); }
   function tabs(){ var h=''; for(var g=0;g<NG();g++){ var c=totals(g).c; h+='<button type="button" class="t'+(g===cur?' on':'')+'" data-tab="'+g+'">'+MS[day.m[g]]+(c?'<em>'+c+'</em>':'')+'</button>'; } $('tkw-tabs').innerHTML=h; }
@@ -378,7 +388,29 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   })();
   function addRow(quiet){ var n=rowsShown()+1; snap(); for(var g=0;g<NG();g++){ if(wide.matches||g===cur) ensure(g,n-1); } commit(); render(); if(!quiet){ var c=$('tkw-card'); if(c) c.scrollTop=c.scrollHeight; } }
   $('tkw-add').onclick=function(){ addRow(false); };
-  $('tkw-addcol').onclick=function(){ if(NG()>=MAXG) return; snap(); var last=day.m[NG()-1]; day.m.push(last%12+1); day.r.push(emptyCol()); cur=NG()-1; commit(); render(); };
+  function addColNow(){ if(NG()>=MAXG) return; snap(); var last=day.m[NG()-1]; day.m.push(last%12+1); day.r.push(emptyCol()); cur=NG()-1; commit(); render(); }
+  /* เมนูรวม เพิ่ม/ลบเดือน */
+  var CM=null;
+  function cmClose(){ if(CM){ CM.classList.remove('on'); } $('tkw-addcol').setAttribute('aria-expanded','false'); }
+  function cmOpen(){
+    if(!day) return;
+    if(!CM){ CM=document.createElement('div'); CM.id='tkw-colmenu'; CM.setAttribute('role','menu'); document.body.appendChild(CM);
+      CM.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b||b.disabled) return; cmClose();
+        if(b.dataset.act==='add') addColNow(); else if(b.dataset.del!=null) delCol(+b.dataset.del); });
+      document.addEventListener('mousedown',function(e){ if(CM.classList.contains('on')&&!CM.contains(e.target)&&e.target!==$('tkw-addcol')) cmClose(); },true);
+      document.addEventListener('touchstart',function(e){ if(CM.classList.contains('on')&&!CM.contains(e.target)&&e.target!==$('tkw-addcol')) cmClose(); },{capture:true,passive:true});
+      document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&CM.classList.contains('on')){ e.stopPropagation(); cmClose(); $('tkw-addcol').focus(); } },true);
+      window.addEventListener('resize',cmClose); }
+    var G=NG(), h='<button type="button" role="menuitem" data-act="add"'+(G>=MAXG?' disabled':'')+'>＋ เพิ่มเดือน'+(G<MAXG?' <small>'+MN[day.m[G-1]%12+1]+'</small>':' <small>ครบ '+MAXG+' เดือนแล้ว</small>')+'</button>';
+    h+='<div class="sep">ลบเดือน'+(G<=1?' (ต้องเหลืออย่างน้อย 1 เดือน)':'')+'</div>';
+    for(var g=0;g<G;g++){ var n=totals(g).c; h+='<button type="button" role="menuitem" class="del" data-del="'+g+'"'+(G<=1?' disabled':'')+'>🗑 '+MN[day.m[g]]+' <small>'+(n?n+' ใบ':'ว่าง')+'</small></button>'; }
+    CM.innerHTML=h; CM.classList.add('on'); $('tkw-addcol').setAttribute('aria-expanded','true');
+    var r=$('tkw-addcol').getBoundingClientRect(), w=CM.offsetWidth, hh=CM.offsetHeight;
+    var left=Math.min(Math.max(8,r.left),window.innerWidth-w-8), top=r.bottom+6; if(top+hh>window.innerHeight-8) top=Math.max(8,r.top-hh-6);
+    CM.style.left=left+'px'; CM.style.top=top+'px';
+    var f=CM.querySelector('button:not(:disabled)'); if(f) f.focus();
+  }
+  $('tkw-addcol').onclick=function(){ if(CM&&CM.classList.contains('on')) cmClose(); else cmOpen(); };
   $('tkw-delcol').onclick=function(){ delCol(cur); };
   /* เลื่อนแถวว่างขึ้น: เฉพาะคอลัมน์เดือนที่เลือก (cur) เดือนอื่นไม่ขยับ ลำดับเดิมคงเดิม แถวว่างไปอยู่ท้าย เลิกทำได้ */
   function cUsed(x){ return !!(x&&(String(x[0]==null?'':x[0]).trim()!==''||String(x[1]==null?'':x[1]).trim()!=='')); }
