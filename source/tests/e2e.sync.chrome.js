@@ -20,9 +20,9 @@ function fakeFirebase(initDocs){
   function col(c){ const q={
       _fs:[], _desc:false, _lim:0,
       where(fp,op,v){ const q=Object.assign(col(c),{_fs:this._fs.concat([id=>op==='>='?id>=v:op==='<'?id<v:op==='<='?id<=v:true]),_desc:this._desc,_lim:this._lim}); q._f=id=>q._fs.every(f=>f(id)); return q; },
-      orderBy(fp,dir){ this._desc=dir==='desc'; return this; }, limit(n){ this._lim=n; return this; },
+      orderBy(fp,dir){ if(dir==='desc') this._needIndex=true; this._desc=dir==='desc'; return this; },   /* ของจริง: desc บน __name__ ต้องสร้างดัชนี */ limit(n){ this._lim=n; return this; },
       onSnapshot(a,b){ const cb=typeof a==='function'?a:b; const f=this._f; subs.push({c,cb}); setTimeout(()=>cb(snap(c,null,f)),5); return ()=>{}; },
-      get(){ if(!window.__online) return Promise.reject({code:'unavailable'}); const s=snap(c,null,this._f); s.docs.sort((x,y)=>x.id<y.id?-1:1); if(this._desc) s.docs.reverse(); if(this._lim) s.docs=s.docs.slice(0,this._lim); return Promise.resolve(s); },
+      get(){ if(!window.__online) return Promise.reject({code:'unavailable'}); if(this._needIndex) return Promise.reject({code:'failed-precondition'}); const s=snap(c,null,this._f); s.docs.sort((x,y)=>x.id<y.id?-1:1); if(this._desc) s.docs.reverse(); if(this._lim) s.docs=s.docs.slice(0,this._lim); return Promise.resolve(s); },
       doc:id=>({id,_c:c,get:()=>window.__online?Promise.resolve(D(c,id)):Promise.reject({code:'unavailable'}),set:(o,opt)=>{ if(!window.__online) return Promise.reject({code:'unavailable'}); try{ write(c,id,JSON.parse(JSON.stringify(o)),opt&&opt.merge); }catch(e){ return Promise.reject(e); } return Promise.resolve(); },delete:()=>{ delete colOf(c)[id]; return Promise.resolve(); },
         onSnapshot(a,b){ const cb=typeof a==='function'?a:b; subs.push({c,cb:s=>cb(D(c,id))}); setTimeout(()=>cb(D(c,id)),5); return ()=>{}; }}) }; return q; }
   const fs={collection:col,enablePersistence:()=>Promise.resolve(),settings(){},

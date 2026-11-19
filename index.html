@@ -8355,7 +8355,11 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
   function bid(day,src){ return 'b'+day+'_'+src.replace('/','_'); }
   function setState(m,c){ state={msg:m,cls:c||''}; try{ render(); }catch(e){} }
 
-  async function prevMarker(day){ var q=await col().where(FP(),'>=','m').where(FP(),'<','m'+day).orderBy(FP(),'desc').limit(1).get(); return q.docs.length?(q.docs[0].data()||{}):null; }
+  /* ไม่ใช้ orderBy desc (ต้องสร้างดัชนีเพิ่ม): ลองวันก่อนหน้าทีละวัน 14 วัน แล้วค่อยอ่านทั้งหมดแบบเรียงขึ้น (แทบไม่เกิด) */
+  function dayAdd(day,n){ var d=new Date(+day.slice(0,4),+day.slice(4,6)-1,+day.slice(6,8)+n); return ''+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate()); }
+  async function prevMarker(day){
+    for(var i=1;i<=14;i++){ var s=await col().doc('m'+dayAdd(day,-i)).get({source:'server'}); if(s.exists) return s.data()||{}; }
+    var q=await col().where(FP(),'>=','m').where(FP(),'<','m'+day).get(); return q.docs.length?(q.docs[q.docs.length-1].data()||{}):null; }
   /* สำรองของวันนี้ (ถ้ายังไม่มีเครื่องไหนทำ) · คืน {done|skip|err} */
   async function runBackup(force){
     if(busy) return {skip:'busy'}; if(!fbOk()) return {skip:'nofb'}; if(navigator.onLine===false) return {skip:'offline'};
@@ -8404,7 +8408,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
     out._extra={v:1,tkw:tkw,holidays:hol};
     return {text:JSON.stringify(out),name:'pawn-krabi-cloud-backup-'+day.slice(0,4)+'-'+day.slice(4,6)+'-'+day.slice(6,8)+'.json',days:Object.keys(out).length-1,miss:miss};
   }
-  window.__cloudBackup={run:runBackup,build:buildFile,list:async function(n){ var q=await col().where(FP(),'>=','m').where(FP(),'<','n').orderBy(FP(),'desc').limit(n||30).get(); return q.docs.map(function(d){ var x=d.data()||{}; return {day:d.id.slice(1),docs:x.docs||0,wrote:x.wrote||0}; }); }};
+  window.__cloudBackup={run:runBackup,build:buildFile,list:async function(n){ var q=await col().where(FP(),'>=','m'+dayAdd(today(),-62)).where(FP(),'<','n').get(); return q.docs.slice().reverse().slice(0,n||30).map(function(d){ var x=d.data()||{}; return {day:d.id.slice(1),docs:x.docs||0,wrote:x.wrote||0}; }); }};
 
   /* ---- การ์ดในหน้าตั้งค่า/ข้อมูล ---- */
   var listCache=null;
