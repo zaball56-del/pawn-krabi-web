@@ -33,6 +33,77 @@
     return out;
   }
 
+
+  /* ---------- รวมข้อมูลเมื่อ 2 เครื่องแก้วันเดียวกันพร้อมกัน (3 ทาง: ฉบับซิงก์ล่าสุด / เครื่องนี้ / อีกเครื่อง) ----------
+     - แก้คนละแถว หรือคนละช่องในแถวเดียวกัน → รวมกันได้หมด
+     - ทั้งสองเครื่องใส่ตั๋วใหม่ลงแถวว่างเดียวกัน → เก็บของเครื่องนี้ไว้ที่เดิม ย้ายของอีกเครื่องไปแถวว่างถัดไป
+     - แก้ช่องเดียวกันเป็นค่าต่างกัน → ใช้ของเครื่องนี้ และเก็บสำเนาของอีกเครื่องไว้ (pawn_sync_conflicts) ไม่ทิ้งเงียบ */
+  var SM=window.__syncMerge=(function(){
+    function J(v){ return v===undefined?'§u':JSON.stringify(v); }
+    function eq(a,b){ return J(a)===J(b); }
+    function cp(v){ return v===undefined?undefined:JSON.parse(JSON.stringify(v)); }
+    function isObj(v){ return v!==null&&typeof v==='object'&&!Array.isArray(v); }
+    function merge3(b,l,r,ctx,path){
+      if(eq(l,r)) return cp(l); if(eq(b,l)) return cp(r); if(eq(b,r)) return cp(l);
+      if(isObj(l)&&isObj(r)){ var o={}, ks={}; Object.keys(l).forEach(function(k){ ks[k]=1; }); Object.keys(r).forEach(function(k){ ks[k]=1; });
+        Object.keys(ks).forEach(function(k){ var v=merge3(isObj(b)?b[k]:undefined,l[k],r[k],ctx,(path||'')+'.'+k); if(v!==undefined) o[k]=v; }); return o; }
+      if(Array.isArray(l)&&Array.isArray(r)){ var n=Math.max(l.length,r.length), a=[]; var bb=Array.isArray(b)?b:[];
+        for(var i=0;i<n;i++){ var v=merge3(bb[i],l[i],r[i],ctx,(path||'')+'['+i+']'); a.push(v===undefined?null:v); } return a; }
+      if(ctx) ctx.conflicts.push(path||''); return cp(l);      // ค่าเดียวกันแก้ไม่ตรงกัน → ของเครื่องนี้
+    }
+    /* รวมรายการแถว โดยจับคู่แถวด้วย "เลขตั๋ว+เล่ม" (ไม่ใช่ตำแหน่ง) → ลบแถวแล้วเลื่อนขึ้นที่เครื่องหนึ่ง ก็ไม่ทำให้ตั๋วซ้ำ
+       empty(row)=แถวว่าง · tk(row)=กุญแจตั๋ว ('' = ยังไม่มีเลขตั๋ว ใช้ตำแหน่งแทน) · blank(i)=แถวว่างใหม่ · ยึดลำดับแถวของเครื่องนี้ */
+    function mergeRows(B,L,R,ctx,label,empty,tk,blank){
+      B=B||[]; L=L||[]; R=R||[];
+      function index(A){ var m={}; A.forEach(function(r,i){ if(!r||empty(r)) return; var t=tk(r), k=t?('t:'+t):('i:'+i); if(m[k]) k=k+'#'+i; m[k]={r:r,i:i}; }); return m; }
+      var bm=index(B), lm=index(L), rm=index(R), out=L.map(function(r){ return cp(r); });
+      function sub(i){ return {conflicts:{push:function(){ ctx.conflicts.push(label+' แถว '+(i+1)); }}}; }
+      Object.keys(lm).forEach(function(k){ var li=lm[k].i, l=lm[k].r, b=bm[k]?bm[k].r:undefined;
+        if(rm[k]){ var r=rm[k].r; if(!eq(l,r)) out[li]=merge3(b,l,r,sub(li),''); }
+        else if(bm[k]){ if(eq(l,b)) out[li]=blank(li); else ctx.conflicts.push(label+' แถว '+(li+1)+' (อีกเครื่องลบ แต่เครื่องนี้แก้)'); }
+      });
+      var adds=Object.keys(rm).filter(function(k){ return !lm[k]; }).map(function(k){ return {k:k,r:rm[k].r,i:rm[k].i}; }).sort(function(x,y){ return x.i-y.i; });
+      adds.forEach(function(x){ var b=bm[x.k]?bm[x.k].r:undefined;
+        if(b!==undefined){ if(!eq(x.r,b)) ctx.conflicts.push(label+' แถว '+(x.i+1)+' (เครื่องนี้ลบ แต่อีกเครื่องแก้)'); return; }   // เครื่องนี้ลบไปแล้ว → ไม่ดึงกลับ
+        var t=tk(x.r); if(t&&out.some(function(y){ return y&&!empty(y)&&tk(y)===t; })) return;
+        var at=(x.i<out.length&&(!out[x.i]||empty(out[x.i])))?x.i:-1;
+        if(at<0){ for(var j=0;j<out.length;j++){ if(!out[j]||empty(out[j])){ at=j; break; } } if(at!==x.i) ctx.moved++; }
+        if(at<0){ at=out.length; out.push(null); }
+        out[at]=cp(x.r); });
+      var n=Math.max(out.length,R.length); for(var q=0;q<n;q++) if(out[q]==null) out[q]=blank(q);
+      return out;
+    }
+    function logConflict(kind,k,remoteJson,notes){
+      try{ var KEY='pawn_sync_conflicts', a=JSON.parse(localStorage.getItem(KEY)||'[]')||[];
+        a.unshift({kind:kind,k:k,at:new Date().toISOString(),notes:(notes||[]).slice(0,20),remote:remoteJson});
+        while(a.length>8) a.pop();
+        try{ localStorage.setItem(KEY,JSON.stringify(a)); }catch(e){ a.length=Math.max(1,Math.floor(a.length/2)); try{ localStorage.setItem(KEY,JSON.stringify(a)); }catch(_){} }
+      }catch(e){}
+    }
+    return {eq:eq,cp:cp,merge3:merge3,mergeRows:mergeRows,logConflict:logConflict};
+  })();
+  var LF=['ticket','amount','type','newTicket','newAmount','newBook','book'];
+  function rowEmpty(r){ if(!r||typeof r!=='object') return true; return !LF.some(function(f){ return String(r[f]==null?'':r[f]).trim()!==''; }); }
+  function rowTk(r){ var t=String((r&&r.ticket)||'').trim(); return t?(t.replace(/^0+(?=\d)/,'')+'|'+String((r&&(r.book||r.importBook))||'').trim()):''; }
+  function blankRow(i){ return {type:'',ticket:'',amount:'',count:'',origIdx:i,timestamp:''}; }
+  function mergeDay(b,l,r){
+    var ctx={conflicts:[],moved:0}; b=b||{}; var out={};
+    var ks={}; Object.keys(l||{}).forEach(function(k){ ks[k]=1; }); Object.keys(r||{}).forEach(function(k){ ks[k]=1; });
+    Object.keys(ks).forEach(function(k){
+      if(k==='data'){ var D={}, dk={}; [b.data,l.data,r.data].forEach(function(x){ Object.keys(x||{}).forEach(function(m){ dk[m]=1; }); });
+        Object.keys(dk).forEach(function(m){ var bm=(b.data||{})[m], lm=(l.data||{})[m], rm=(r.data||{})[m];
+          if(lm===undefined&&SM.eq(bm,rm)) return; if(rm===undefined&&SM.eq(bm,lm)) return;
+          if(m==='สรุปประจำวัน') D[m]=SM.merge3(bm,lm,rm,ctx,m);
+          else D[m]=SM.mergeRows(bm,lm,rm,ctx,'เดือน'+m,rowEmpty,rowTk,blankRow); });
+        out.data=D; return; }
+      var v=SM.merge3(b[k],(l||{})[k],(r||{})[k],ctx,k); if(v!==undefined) out[k]=v;
+    });
+    /* จำนวนแถวต้องพอกับทุกคอลัมน์ (กรณีย้ายตั๋วที่ชนไปต่อท้าย) */
+    var need=Math.max(Number(out.totalRows)||0,60); Object.keys(out.data||{}).forEach(function(m){ if(m!=='สรุปประจำวัน'&&Array.isArray(out.data[m])) need=Math.max(need,out.data[m].length); });
+    out.totalRows=need; Object.keys(out.data||{}).forEach(function(m){ var a=out.data[m]; if(m==='สรุปประจำวัน'||!Array.isArray(a)) return; while(a.length<need) a.push(blankRow(a.length)); a.forEach(function(x,i){ if(x&&typeof x==='object') x.origIdx=i; }); });
+    return {day:out,conflicts:ctx.conflicts,moved:ctx.moved};
+  }
+
   var QUOTA_MSG='โควตาฟรีวันนี้เต็ม · กรอกต่อได้ ระบบจะซิงค์ให้เองหลังรีเซ็ต (ราว 14:00 น.)';
   var configured = !!(cfg.apiKey && cfg.projectId && window.firebase);
 
@@ -73,11 +144,53 @@
     if(cloud.on && s==='saved' && /เครื่อง/.test(m||'')){ s='pending'; m='กำลังซิงค์ข้อมูลกลาง…'; }
     origInd(s,m);
   };
+  /* เขียนเอกสารรายสัปดาห์แบบ transaction: อ่านฉบับบนเซิร์ฟเวอร์ก่อน ถ้าอีกเครื่องเพิ่งแก้วันเดียวกัน (ไม่ตรงกับฉบับซิงก์ล่าสุดของเครื่องนี้)
+     ให้รวมทีละแถวก่อนเขียน → ไม่ทับของกันแม้ส่งพร้อมกัน · ออฟไลน์/transaction ใช้ไม่ได้ → เขียนแบบเดิม (set merge) */
+  var mergeNote={n:0,moved:0,conf:[]};
+  async function writeChunk(cid,ch,loc){
+    var ref=cloud.col.doc(cid), out=null;
+    if(cloud.fs && cloud.fs.runTransaction){
+      /* ออฟไลน์: ไม่ส่งแบบเขียนทับไปรอคิว (จะทับของเครื่องอื่นตอนกลับมา) เก็บไว้ในเครื่อง แล้วส่งแบบรวมเมื่อออนไลน์ */
+      if(navigator.onLine===false) throw Object.assign(new Error('offline'),{code:'unavailable'});
+      try{
+        await cloud.fs.runTransaction(async function(t){
+          out={}; var snap=await t.get(ref), x=snap.exists?(snap.data()||{}):{}, f={};
+          ch.sets.forEach(function(k){ var fld=fieldOf(k), srv=(typeof x[fld]==='string')?x[fld]:undefined, mine=loc[k], base=ch.base[k];   // ฐาน = ฉบับซิงก์ล่าสุด ณ ตอนเริ่มส่ง (ไม่ใช้ค่าที่อาจเปลี่ยนระหว่างส่ง)
+            if(srv!==undefined && srv!==mine && srv!==base){
+              var res=mergeDay(base!==undefined?JSON.parse(base):{},JSON.parse(mine),JSON.parse(srv)), mj=JSON.stringify(res.day,stripTrailingBlankRows);
+              f[fld]=mj; out[k]={json:mj,res:res,srv:srv};
+            } else f[fld]=mine; });
+          Object.keys(ch.f).forEach(function(fld){ if(!(fld in f)) f[fld]=ch.f[fld]; });   // ฟิลด์ลบวัน
+          t.set(ref,f,{merge:true});
+        });
+        return out;
+      }catch(e){ throw e; }   // ส่งไม่สำเร็จ → ลองใหม่ทีหลัง (ข้อมูลยังอยู่ในเครื่อง)
+    }
+    await ref.set(ch.f,{merge:true}); return null;      // ไม่มี transaction (ไม่ควรเกิดกับ Firebase จริง)
+  }
+  /* รับผลที่รวมแล้วกลับเข้าเครื่อง (ถ้าระหว่างนั้นมีพิมพ์เพิ่ม รวมอีกรอบ แล้วส่งใหม่) */
+  function adoptMerged(k,sent,w){
+    try{
+      var now=(k in db)?compactOf(k):sent;
+      if(now===sent) db[k]=JSON.parse(w.json);
+      else db[k]=mergeDay(JSON.parse(sent),JSON.parse(now),JSON.parse(w.json)).day, cloud.again=true;
+      setLast(k,w.json);
+      mergeNote.n++; mergeNote.moved+=w.res.moved;
+      if(w.res.conflicts.length){ mergeNote.conf=mergeNote.conf.concat(w.res.conflicts.map(function(x){ return k+' '+x; })); SM.logConflict('push',k,w.srv,w.res.conflicts); }
+      try{ origSave(); }catch(e){}
+      if(k===currentDate) refresh();
+    }catch(e){ console.warn('adopt',k,e); setLast(k,sent); }
+  }
+  function flushMergeNote(){
+    var m=mergeNote; if(!m.n) return; mergeNote={n:0,moved:0,conf:[]};
+    if(m.conf.length) toast('2 เครื่องแก้ช่องเดียวกัน ('+m.conf.slice(0,2).join(', ')+(m.conf.length>2?' …':'')+') · ใช้ของเครื่องนี้ และเก็บของอีกเครื่องไว้แล้ว');
+    else toast('รวมข้อมูลจาก 2 เครื่องแล้ว'+(m.moved?' · ย้ายตั๋วที่ชนแถวไปแถวว่าง '+m.moved+' ใบ':''));
+  }
   async function push(){
     if(!cloud.on) return;
     if(cloud.busy){ cloud.again=true; return; }
     cloud.busy=true;
-    var failed=0, tooBig=0, quota=false;
+    var failed=0, tooBig=0, quota=false, offline=false;
     try{
       do{
         cloud.again=false;
@@ -85,22 +198,23 @@
         Object.keys(loc).forEach(function(k){
           if(loc[k]===cloud.last[k]) return;
           if(bytes(loc[k])>900000){ tooBig++; return; }
-          var c=chunkOf(k); (byChunk[c]=byChunk[c]||{f:{},sets:[],dels:[]}); byChunk[c].f[fieldOf(k)]=loc[k]; byChunk[c].sets.push(k);
+          var c=chunkOf(k); (byChunk[c]=byChunk[c]||{f:{},sets:[],dels:[],base:{}}); byChunk[c].f[fieldOf(k)]=loc[k]; byChunk[c].sets.push(k); byChunk[c].base[k]=cloud.last[k];
         });
         var del=Object.keys(cloud.last).filter(function(k){ return !(k in loc); });
         if(del.length && !Object.keys(loc).length){ del=[]; toast('ข้อมูลในเครื่องว่าง จึงไม่ลบข้อมูลกลาง'); }
-        del.forEach(function(k){ var c=chunkOf(k); (byChunk[c]=byChunk[c]||{f:{},sets:[],dels:[]}); byChunk[c].f[fieldOf(k)]=firebase.firestore.FieldValue.delete(); byChunk[c].dels.push(k); });
+        del.forEach(function(k){ var c=chunkOf(k); (byChunk[c]=byChunk[c]||{f:{},sets:[],dels:[],base:{}}); byChunk[c].f[fieldOf(k)]=firebase.firestore.FieldValue.delete(); byChunk[c].dels.push(k); });
         var ids=Object.keys(byChunk), i=0;
         var worker=async function(){
           while(i<ids.length){
             var cid=ids[i++], ch=byChunk[cid];
             try{
               var remain=Object.keys(cloud.last).filter(function(k){ return chunkOf(k)===cid && ch.dels.indexOf(k)<0; }).length;
+              var wrote=null;
               if(!ch.sets.length && !remain) await cloud.col.doc(cid).delete();     // ไม่เหลือวันไหนในสัปดาห์นี้ ลบเอกสารทิ้ง
-              else await cloud.col.doc(cid).set(ch.f,{merge:true});
-              ch.sets.forEach(function(k){ setLast(k,loc[k]); });
+              else wrote=await writeChunk(cid,ch,loc);
+              ch.sets.forEach(function(k){ if(wrote&&wrote[k]) adoptMerged(k,loc[k],wrote[k]); else setLast(k,loc[k]); });
               ch.dels.forEach(function(k){ unsetLast(k); });
-            }catch(e){ failed++; if(e&&e.code==='resource-exhausted'){ quota=true; try{ window.pawnQuotaHit&&pawnQuotaHit('เขียน'); }catch(_){} } console.warn('sync',cid,e); }
+            }catch(e){ failed++; if(e&&(e.code==='unavailable'||navigator.onLine===false)) offline=true; if(e&&e.code==='resource-exhausted'){ quota=true; try{ window.pawnQuotaHit&&pawnQuotaHit('เขียน'); }catch(_){} } console.warn('sync',cid,e); }
           }
         };
         await Promise.all([worker(),worker(),worker(),worker()]);
@@ -109,8 +223,9 @@
         var L=cloud.legacy; cloud.legacy=[];
         L.forEach(function(id){ cloud.col.doc(id).delete().catch(function(e){ console.warn('legacy',id,e); }); });
       }
+      flushMergeNote();
       if(tooBig) ind('error','ข้อมูลบางวันใหญ่เกินกำหนด · ไม่ได้ซิงค์');
-      else if(failed){ ind('error',quota?QUOTA_MSG:'ซิงค์ไม่สำเร็จ · กำลังลองใหม่'); clearTimeout(cloud.failTimer); cloud.failTimer=setTimeout(push,quota?300000:8000); }
+      else if(failed){ if(offline&&!quota) ind('pending','ออฟไลน์ · จะซิงค์เมื่อกลับมาออนไลน์'); else ind('error',quota?QUOTA_MSG:'ซิงค์ไม่สำเร็จ · กำลังลองใหม่'); clearTimeout(cloud.failTimer); cloud.failTimer=setTimeout(push,quota?300000:(offline?15000:8000)); }
       else ind('saved','ซิงค์ข้อมูลกลางแล้ว');
     }finally{ cloud.busy=false; }
   }
@@ -122,14 +237,23 @@
     cloud.deferRender=false;
     try{ getCurrentDayData(); renderTable(); }catch(e){ console.warn(e); }
   }
+  window.addEventListener('online',function(){ if(cloud.on){ clearTimeout(cloud.failTimer); setTimeout(push,800); } });
   document.addEventListener('focusout',function(){ if(cloud.deferRender) setTimeout(function(){ if(!editing()) refresh(); },400); },true);
   cloud.chunkKeys={}; cloud.legacy=[];
   function applyKey(k,json,st){
     if(json===cloud.last[k]) return;
     var cur=(k in db)?compactOf(k):undefined;
     if(cur===json){ setLast(k,json); return; }
-    if(cur!==undefined && cur!==cloud.last[k]) return;      // เครื่องนี้กำลังแก้ ให้ของเครื่องนี้ทับ
-    try{ db[k]=JSON.parse(json); setLast(k,json); if(k===currentDate) st.cur=true; }catch(e){}
+    if(cur!==undefined && cur!==cloud.last[k]){      // เครื่องนี้มีแก้ที่ยังไม่ได้ส่ง และอีกเครื่องก็แก้วันเดียวกัน → รวมทีละแถว
+      try{
+        var base=cloud.last[k]!==undefined?JSON.parse(cloud.last[k]):null, res=mergeDay(base||{},JSON.parse(cur),JSON.parse(json));
+        db[k]=res.day; setLast(k,json); st.save=true; st.push=true; if(k===currentDate) st.cur=true;
+        st.merged=(st.merged||0)+1; st.moved=(st.moved||0)+res.moved;
+        if(res.conflicts.length){ st.conf=(st.conf||[]).concat(res.conflicts.map(function(x){ return k+' '+x; })); SM.logConflict('live',k,json,res.conflicts); }
+      }catch(e){ console.warn('merge',k,e); }
+      return;
+    }
+    try{ db[k]=JSON.parse(json); setLast(k,json); st.save=true; if(k===currentDate) st.cur=true; }catch(e){}
   }
   function dropKey(k,st){
     if(!(k in cloud.last)) return;
@@ -149,7 +273,12 @@
       (cloud.chunkKeys[id]||[]).forEach(function(k){ if(!now[k]) dropKey(k,st); });
       cloud.chunkKeys[id]=Object.keys(now);
     });
-    if(st.cur){ try{ origSave(); }catch(e){} refresh(); toast('มีการอัปเดตข้อมูลจากอีกเครื่อง'); }
+    if(st.save||st.cur){ try{ origSave(); }catch(e){} }
+    if(st.cur) refresh();
+    if(st.conf&&st.conf.length) toast('2 เครื่องแก้ช่องเดียวกัน ('+st.conf.slice(0,2).join(', ')+(st.conf.length>2?' …':'')+') · ใช้ของเครื่องนี้ และเก็บของอีกเครื่องไว้แล้ว');
+    else if(st.merged) toast('รวมข้อมูลจาก 2 เครื่องแล้ว'+(st.moved?' · ย้ายตั๋วที่ชนแถวไปแถวว่าง '+st.moved+' ใบ':''));
+    else if(st.cur) toast('มีการอัปเดตข้อมูลจากอีกเครื่อง');
+    if(st.push){ clearTimeout(cloud.timer); cloud.timer=setTimeout(push,700); }
   }
   function loadAll(snap){
     var o={}, last={};
@@ -174,7 +303,7 @@
       var cj=(k in nd)?(r.last[k]!==undefined?r.last[k]:JSON.stringify(nd[k])):undefined;
       var was=hs[k], dirty=(was!==undefined && was!==hash(cur) && (cj===undefined || hash(cj)!==hash(cur)));
       if(cj===undefined){ if(was===undefined || dirty) keep[k]=1; }                // วันที่มีแต่ในเครื่อง
-      else if(dirty){ keep[k]=1; if(hash(cj)!==was) conflicts.push(k); }            // แก้ค้างในเครื่อง (และอีกเครื่องแก้ด้วย = ชน)
+      else if(dirty){ keep[k]=1; if(hash(cj)!==was){ conflicts.push(k); SM.logConflict('startup',k,cj,['ทั้งสองเครื่องแก้ตอนออฟไลน์ ใช้ของเครื่องนี้']); } }            // แก้ค้างในเครื่อง (และอีกเครื่องแก้ด้วย = ชน) — เก็บสำเนาอีกฝั่งไว้
     });
     Object.keys(keep).forEach(function(k){ nd[k]=db[k]; });
     db=nd; cloud.last=r.last;
@@ -182,14 +311,14 @@
     Object.keys(r.last).forEach(function(k){ if(!keep[k]) hs[k]=hash(r.last[k]); });
     saveHs();
     try{ origSave(); }catch(e){}
-    if(conflicts.length){ toast('วันที่ '+conflicts.slice(0,3).join(', ')+' ถูกแก้ทั้งสองฝั่ง ใช้ของเครื่องนี้'); conflicts=[]; }
+    if(conflicts.length){ toast('วันที่ '+conflicts.slice(0,3).join(', ')+' ถูกแก้ทั้งสองฝั่งตอนออฟไลน์ ใช้ของเครื่องนี้ · เก็บของอีกเครื่องไว้แล้ว'); conflicts=[]; }
     if(live){ refresh(); }
     return Object.keys(keep).length>0;
   }
   var ready=new Promise(function(resolve){
     if(!configured){ resolve(false); return; }
     firebase.initializeApp(cfg);
-    var fs=firebase.firestore();
+    var fs=firebase.firestore(); cloud.fs=fs;
     try{ fs.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
     var auth=firebase.auth(), started=false, firstResolve=resolve;
     function connect(){

@@ -575,7 +575,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   $('tkw-scan-btn').onclick=sqOpen;
 
   // ----- ซิงก์คลาวด์ (คอลเลกชัน tkw แยกจากบัญชีหลัก 'ledger' ไม่แตะซิงก์ของเดิม) -----
-  var CL={on:false,started:false,denied:false,dirty:{},cu:{},timer:null,tries:0,pending:{},col:null};
+  var CL={on:false,started:false,denied:false,dirty:{},cu:{},timer:null,tries:0,pending:{},col:null,base:{}};
   var COLN='tkw';
   function chip(t,k){ var e=$('tkw-cloud'); if(e){ e.textContent=t; e.className='cloud '+(k||''); } }
   function fbReady(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0&&!!firebase.auth().currentUser; }catch(e){ return false; } }
@@ -585,12 +585,54 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   function hasData(d){ return !!(d&&d.r&&d.r.some(function(col){ return col.some(function(x){ return x[0]!==''||x[1]!==''; }); })); }
   function markDirty(k){ CL.dirty[k]=1; if(CL.on) schedPush(3000); }
   function schedPush(ms){ clearTimeout(CL.timer); CL.timer=setTimeout(push,ms); }
+  /* รวมทีละแถวเมื่อ 2 เครื่องแก้วันเดียวกัน (ใช้ตัวรวมเดียวกับสมุดบัญชี: window.__syncMerge) · จับคู่แถวด้วยเลขตั๋ว+เล่ม */
+  function say(m){ try{ showToast(m); }catch(e){} }   /* ข้อความแจ้งเตือนสั้น (เดิมถูกเรียกใน onErr แต่ยังไม่มีฟังก์ชันนี้) */
+  function tkEmpty(x){ return !x||(String(x[0]==null?'':x[0]).trim()===''&&String(x[1]==null?'':x[1]).trim()===''); }
+  function tkKey(x){ var t=String((x&&x[0])==null?'':x[0]).trim(); return t?(t.replace(/^0+(?=\d)/,'')+'|'+String((x&&x[2])||'').trim()):''; }
+  function tkBlank(){ return ['','']; }
+  function mergeTkw(b,l,r){ var S=window.__syncMerge, ctx={conflicts:[],moved:0}; b=b||{m:[],r:[]}; var out={}, ks={};
+    Object.keys(l||{}).forEach(function(k){ ks[k]=1; }); Object.keys(r||{}).forEach(function(k){ ks[k]=1; });
+    Object.keys(ks).forEach(function(k){ if(k==='m'||k==='r'||k==='u') return; var v=S.merge3(b[k],l[k],r[k],ctx,k); if(v!==undefined) out[k]=v; });
+    var bm=b.m||[], lm=l.m||[], rm=r.m||[], months=lm.slice();
+    rm.forEach(function(mm){ if(months.indexOf(mm)>=0) return; var bi=bm.indexOf(mm); if(bi>=0&&S.eq(r.r[rm.indexOf(mm)],b.r[bi])) return; months.push(mm); });
+    function col(d,mm){ var i=(d.m||[]).indexOf(mm); return i>=0?(d.r||[])[i]:undefined; }
+    out.m=months; out.r=months.map(function(mm){ var c=S.mergeRows(col(b,mm),col(l,mm),col(r,mm),ctx,'เดือน '+mm,tkEmpty,tkKey,tkBlank); return c.length?c:[['','']]; });
+    out.u=Math.max(l.u||0,r.u||0,Date.now());
+    return {day:out,conflicts:ctx.conflicts,moved:ctx.moved}; }
+  function mergeNote(k,res,srv,kind){
+    if(res.conflicts.length){ try{ window.__syncMerge.logConflict('tkw-'+kind,k,srv,res.conflicts); }catch(e){} say('ตารางเขียนตั๋ว: 2 เครื่องแก้ช่องเดียวกัน ('+res.conflicts.slice(0,2).join(', ')+') · ใช้ของเครื่องนี้ และเก็บของอีกเครื่องไว้แล้ว'); }
+    else say('ตารางเขียนตั๋ว: รวมข้อมูลจาก 2 เครื่องแล้ว'+(res.moved?' · ย้ายตั๋วที่ชนแถวไปแถวว่าง '+res.moved+' ใบ':'')); }
+  function showIf(k){ if(key===k&&document.body.classList.contains('tkw-open')){ day=store[k]; if(cur>=NG()) cur=NG()-1; render(); } }
+  /* เขียนเอกสารรายเดือนแบบ transaction: ถ้าบนเซิร์ฟเวอร์มีของอีกเครื่องที่เพิ่งแก้ (ไม่ตรงฐานตอนเริ่มส่ง) รวมก่อนเขียน */
+  function pushDoc(m,o){
+    var ref=CL.col.doc(m), base={}, merged={}; Object.keys(o).forEach(function(f){ var k=parseField(f); base[f]=k?CL.base[k]:undefined; });
+    var fs=null; try{ fs=firebase.firestore(); }catch(e){}
+    var plain=function(){ return ref.set(o,{merge:true}).then(function(){ return {}; }); };
+    if(!fs||!fs.runTransaction||!window.__syncMerge) return plain();
+    if(navigator.onLine===false) return Promise.reject(Object.assign(new Error('offline'),{code:'unavailable'}));   /* ออฟไลน์: เก็บไว้ในเครื่อง ส่งแบบรวมเมื่อออนไลน์ */
+    return fs.runTransaction(function(t){ merged={}; return t.get(ref).then(function(snap){ var x=snap.exists?(snap.data()||{}):{}, w={};
+        Object.keys(o).forEach(function(f){ var srv=(typeof x[f]==='string')?x[f]:undefined, mine=o[f], b=base[f];
+          if(srv!==undefined&&b!==undefined&&srv!==mine&&srv!==b){ var res=mergeTkw(JSON.parse(b),JSON.parse(mine),JSON.parse(srv)), mj=JSON.stringify(res.day); w[f]=mj; merged[f]={json:mj,res:res,srv:srv}; }
+          else w[f]=mine; });
+        t.set(ref,w,{merge:true}); }); })
+      .then(function(){ return merged; })
+      /* ส่งไม่สำเร็จ → onErr ลองใหม่ทีหลัง ไม่เขียนทับแบบไม่รวม */
+  }
   function push(){
     if(!CL.on||!CL.col||CL.denied) return;
     var byM={}; Object.keys(CL.dirty).forEach(function(k){ var d=store[k]; if(!d) return; if(!hasData(d)&&!CL.cu[k]) { delete CL.dirty[k]; return; } (byM[k.slice(0,7)]=byM[k.slice(0,7)]||{})[dayField(k)]=JSON.stringify(d); });
     var ms=Object.keys(byM); if(!ms.length) return;
     chip('☁ กำลังซิงก์…');
-    Promise.all(ms.map(function(m){ var o=byM[m]; return CL.col.doc(m).set(o,{merge:true}).then(function(){ Object.keys(o).forEach(function(f){ var k=parseField(f); if(k){ try{ var u=JSON.parse(o[f]).u; if(CL.dirty[k]&&store[k]&&store[k].u===u) delete CL.dirty[k]; CL.cu[k]=u; }catch(e){} } }); }); }))
+    Promise.all(ms.map(function(m){ var o=byM[m]; return pushDoc(m,o).then(function(mg){ var changed=false;
+        Object.keys(o).forEach(function(f){ var k=parseField(f); if(!k) return;
+          try{
+            if(mg&&mg[f]){ var w=mg[f], same=store[k]&&JSON.stringify(store[k])===o[f];
+              store[k]=same?JSON.parse(w.json):mergeTkw(JSON.parse(o[f]),store[k],JSON.parse(w.json)).day;
+              CL.base[k]=w.json; CL.cu[k]=JSON.parse(w.json).u; if(same) delete CL.dirty[k]; else CL.dirty[k]=1;
+              changed=true; mergeNote(k,w.res,w.srv,'push'); showIf(k); return; }
+            var u=JSON.parse(o[f]).u; if(CL.dirty[k]&&store[k]&&store[k].u===u) delete CL.dirty[k]; CL.cu[k]=u; CL.base[k]=o[f];
+          }catch(e){} });
+        if(changed) save(); }); }))
       .then(function(){ chip('☁ ซิงก์แล้ว','ok'); if(Object.keys(CL.dirty).length) schedPush(3000); })
       .catch(function(err){ onErr(err,true); });
   }
@@ -599,10 +641,17 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     if(c==='resource-exhausted'){ try{ window.pawnQuotaHit&&pawnQuotaHit('ตั๋วขาย'); }catch(_){} chip('☁ โควตาเต็ม (บันทึกในเครื่องนี้)','er'); return; }
     chip('☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา','er'); if(write) schedPush(30000); }
   function applyRemote(k,c){
-    var l=store[k]; if(l&&(c.u||0)<=(l.u||0)) return;
+    var l=store[k], cj=JSON.stringify(c);
+    if(l&&JSON.stringify(l)===cj){ CL.base[k]=cj; return; }
+    if(CL.dirty[k]&&CL.base[k]===cj) return;                     // อีกเครื่องยังไม่ได้แก้เพิ่ม รอส่งของเครื่องนี้
     var busy=document.body.classList.contains('tkw-open')&&key===k&&(P.contains(document.activeElement)&&document.activeElement.tagName==='INPUT');
+    if(l&&CL.dirty[k]&&CL.base[k]!==undefined&&window.__syncMerge){   // เครื่องนี้มีแก้ค้าง + อีกเครื่องแก้วันเดียวกัน → รวมทีละแถว
+      if(busy){ CL.pending[k]=c; return; }
+      var res=mergeTkw(JSON.parse(CL.base[k]),l,c); CL.base[k]=cj; store[k]=res.day; save(); markDirty(k); mergeNote(k,res,cj,'live'); showIf(k); return;
+    }
+    if(l&&(c.u||0)<=(l.u||0)){ if(CL.base[k]===undefined){ CL.base[k]=cj; if(hasData(l)&&hasData(c)) try{ window.__syncMerge&&window.__syncMerge.logConflict('tkw-startup',k,cj,['เครื่องนี้ใหม่กว่า ใช้ของเครื่องนี้']); }catch(e){} } return; }
     if(busy){ CL.pending[k]=c; return; }
-    store[k]=c; save(); if(key===k&&document.body.classList.contains('tkw-open')){ day=c; if(cur>=NG()) cur=NG()-1; render(); }
+    store[k]=c; CL.base[k]=cj; save(); showIf(k);
   }
   function applyPending(){ Object.keys(CL.pending).forEach(function(k){ var c=CL.pending[k]; delete CL.pending[k]; applyRemote(k,c); }); }
   function startSync(){
