@@ -18,6 +18,22 @@
         box.appendChild(row); l.appendChild(box); l.style.display='flex'; document.addEventListener('keydown',onKey,true); setTimeout(function(){ ok.focus(); },30);
     }
     window.uiConfirm=function(msg,labels){ return new Promise(function(res){ show(msg,true,res,labels); }); };
+    /* เลือกได้หลายทาง: opts=[{v,label,note,kind:'pri'|'danger'}] → คืนค่า v ที่เลือก หรือ null เมื่อยกเลิก */
+    window.uiChoice=function(msg,opts){ return new Promise(function(res){
+        var l=ensureLayer(); l.innerHTML='';
+        var box=document.createElement('div'); box.style.cssText='width:100%;max-width:500px;max-height:92vh;overflow:auto;background:#fff;color:#14213D;border-radius:18px;padding:22px 22px 16px;box-shadow:0 30px 70px -24px rgba(11,34,68,.6)';
+        var p=document.createElement('div'); p.style.cssText='white-space:pre-line;font-size:15px;line-height:1.6;margin-bottom:14px'; p.textContent=String(msg==null?'':msg); box.appendChild(p);
+        function close(v){ l.style.display='none'; l.innerHTML=''; document.removeEventListener('keydown',onKey,true); res(v); }
+        function onKey(e){ if(e.key==='Escape'){ e.stopPropagation(); close(null); } }
+        var first=null;
+        (opts||[]).forEach(function(o){ var b=document.createElement('button'); b.type='button';
+            var bg=o.kind==='pri'?'#1D4ED8':o.kind==='danger'?'#fff':'#F1F5F9', fg=o.kind==='pri'?'#fff':o.kind==='danger'?'#B42318':'#14213D', bd=o.kind==='danger'?'1px solid #F3B4AE':'0';
+            b.style.cssText='display:block;width:100%;text-align:left;margin:0 0 8px;border:'+bd+';background:'+bg+';color:'+fg+';border-radius:12px;padding:11px 14px;font:700 14.5px Sarabun,sans-serif;cursor:pointer';
+            b.textContent=o.label; if(o.note){ var n=document.createElement('div'); n.style.cssText='font-weight:400;font-size:12.5px;opacity:.85;margin-top:2px'; n.textContent=o.note; b.appendChild(n); }
+            b.onclick=function(){ close(o.v); }; box.appendChild(b); if(!first) first=b; });
+        var c=document.createElement('button'); c.type='button'; c.textContent='ยกเลิก'; c.style.cssText='display:block;margin:4px 0 0 auto;border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:9px 18px;font:600 14px Sarabun,sans-serif;cursor:pointer'; c.onclick=function(){ close(null); }; box.appendChild(c);
+        l.appendChild(box); l.style.display='flex'; document.addEventListener('keydown',onKey,true); setTimeout(function(){ (first||c).focus(); },30);
+    }); };
     window.uiAlert=function(msg){ return new Promise(function(res){ show(msg,false,res); }); };
     /* confirm: ถ้าเบราว์เซอร์ตอบ "ไม่" เร็วผิดปกติ (<40ms) แปลว่าถูกบล็อก -> ถามในหน้า แล้วเรียกฟังก์ชันเดิมซ้ำโดยถือว่าตอบ "ยืนยัน" */
     var blockedInRun=false;

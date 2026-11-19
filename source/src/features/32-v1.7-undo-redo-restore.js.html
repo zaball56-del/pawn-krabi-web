@@ -81,7 +81,8 @@
         return ks.every(function(k){ var d=o[k]; return /^\d{4}-\d{2}-\d{2}$/.test(k)&&d&&typeof d==='object'&&Array.isArray(d.months)&&d.data&&typeof d.data==='object'; }); }
     function dl(rec){ try{ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rec.data],{type:'application/json'})); var dt=new Date(rec.id), p=function(n){ return ('0'+n).slice(-2); }; a.download='pawn_krabi_restorepoint_'+dt.getFullYear()+p(dt.getMonth()+1)+p(dt.getDate())+'_'+p(dt.getHours())+p(dt.getMinutes())+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }catch(e){ toast('ดาวน์โหลดไม่สำเร็จ'); } }
     function restore(rec){
-        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
+        var drop=0; try{ var nd0=JSON.parse(rec.data); drop=Object.keys(db).filter(function(k){ return k!==''&&!(k in nd0); }).length; }catch(e){}
+        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+(drop?'\n⚠ จะลบ '+drop+' วันที่ไม่มีในจุดกู้คืนนี้ ออกจากฐานข้อมูลกลางและทุกเครื่องด้วย':'')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
             if(v===null) return; if(!(window.__pinOk&&window.__pinOk(String(v).trim()))){ toast('PIN ไม่ถูกต้อง'); return; }
             var nd; try{ nd=JSON.parse(rec.data); }catch(e){ toast('ข้อมูลในจุดกู้คืนเสียหาย'); return; } if(!validDb(nd)){ toast('ข้อมูลในจุดกู้คืนไม่ถูกต้อง'); return; }
             return snapshotNow('ก่อนกู้คืน',true).then(function(){ Object.keys(db).forEach(function(k){ delete db[k]; }); Object.keys(nd).forEach(function(k){ db[k]=nd[k]; });

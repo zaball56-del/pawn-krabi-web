@@ -1802,8 +1802,21 @@
             }
         }
 
+        /* ข้อมูลอื่นที่ต้องอยู่ในไฟล์สำรองด้วย (ไม่ได้อยู่ใน db): ตารางเขียนตั๋ว + วันหยุด → เก็บใต้คีย์ _extra */
+        window.pawnBackupExtra = function () {
+            const x = { v: 1 };
+            try { if (typeof window.tkwExportAll === 'function') x.tkw = window.tkwExportAll(); } catch (_) {}
+            try { if (typeof window.holidaysExport === 'function') x.holidays = window.holidaysExport(); } catch (_) {}
+            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) ? x : null;
+        };
+        window.pawnBackupText = function (pretty) {
+            const out = Object.assign({}, db); delete out._extra;
+            const extra = window.pawnBackupExtra(); if (extra) out._extra = extra;
+            return pretty ? JSON.stringify(out, null, 2) : JSON.stringify(out);
+        };
+
         async function exportJSON() {
-            const dataStr = JSON.stringify(db, null, 2);
+            const dataStr = window.pawnBackupText(true);
             const fileName = `pawn_krabi_backup_${currentDate}.json`;
             let backupSuccess = false;
 
@@ -1850,6 +1863,12 @@
                 if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
                     throw new Error('รูปแบบฐานข้อมูลไม่ถูกต้อง');
                 }
+                // ตารางเขียนตั๋ว/วันหยุด (ไฟล์สำรองรุ่นใหม่) แยกออกมาก่อนตรวจโครงสร้างวันที่
+                let extra = null;
+                if (Object.prototype.hasOwnProperty.call(imported, '_extra')) {
+                    extra = (imported._extra && typeof imported._extra === 'object') ? imported._extra : null;
+                    delete imported._extra;
+                }
                 if (Object.prototype.hasOwnProperty.call(imported, '') && !hasDayDataIn(imported, '')) delete imported[''];
                 for (const [dateKey, day] of Object.entries(imported)) {
                     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || !day || typeof day !== 'object' ||
@@ -1857,11 +1876,6 @@
                         throw new Error('พบข้อมูลวันที่หรือโครงสร้างฐานข้อมูลไม่ถูกต้อง');
                     }
                 }
-                if (!confirm(`ยืนยันนำเข้าข้อมูลจากไฟล์ ${file.name} หรือไม่?\n\nข้อมูลเดิมในเครื่องนี้จะถูกแทนที่ แต่ระบบจะเก็บจุดกู้คืนไว้ให้ก่อน`)) return;
-
-                // ห้ามเปลี่ยนฐานข้อมูลปัจจุบันจนกว่าจะบันทึกจุดกู้คืนสำเร็จ
-                await savePreImportRecoverySnapshot(db);
-
                 let normalizedDb = {};
                 for (const [key, value] of Object.entries(imported)) {
                     const parts = key.split('-');
@@ -1873,14 +1887,51 @@
                     }
                 }
 
+                /* นับก่อนว่าไฟล์ต่างจากในเครื่องแค่ไหน แล้วให้เลือกวิธี — ไม่แทนที่ทั้งก้อนโดยไม่รู้ตัว
+                   (แทนที่ทั้งหมด = วันที่ไม่มีในไฟล์จะถูกลบจากฐานข้อมูลกลางและทุกเครื่องด้วย) */
+                const same = (a, b) => { try { return JSON.stringify(a, stripTrailingBlankRows) === JSON.stringify(b, stripTrailingBlankRows); } catch (_) { return false; } };
+                const fileKeys = Object.keys(normalizedDb), localKeys = Object.keys(db).filter(k => k !== '' && k !== '_extra');
+                const addKeys = fileKeys.filter(k => !(k in db)), diffKeys = fileKeys.filter(k => (k in db) && !same(db[k], normalizedDb[k]));
+                const dropKeys = localKeys.filter(k => !(k in normalizedDb)).sort();
+                const th = k => { const p = k.split('-'); return p.length === 3 ? `${+p[2]}/${+p[1]}/${+p[0] + 543}` : k; };
+                const range = ks => ks.length ? (ks.length === 1 ? th(ks[0]) : `${th(ks[0])} – ${th(ks[ks.length - 1])}`) : '';
+                const nT = extra && extra.tkw ? Object.keys(extra.tkw).length : 0, nH = extra && extra.holidays ? Object.keys(extra.holidays).length : 0;
+                const msg = `นำเข้าไฟล์ ${file.name}\nสมุดบัญชีในไฟล์ ${fileKeys.length} วัน\n`
+                    + `• วันที่ยังไม่มีในเครื่อง: ${addKeys.length} วัน\n`
+                    + `• วันที่มีทั้งสองฝั่งแต่ไม่ตรงกัน: ${diffKeys.length} วัน\n`
+                    + `• วันที่มีในเครื่องแต่ไม่มีในไฟล์: ${dropKeys.length} วัน${dropKeys.length ? ' (' + range(dropKeys) + ')' : ''}`
+                    + (nT || nH ? `\nไฟล์มีตารางเขียนตั๋ว ${nT} วัน · วันหยุด ${nH} วัน` : '\nไฟล์นี้ไม่มีตารางเขียนตั๋ว (ไฟล์รุ่นก่อน)')
+                    + `\n\nระบบจะเก็บจุดกู้คืนของข้อมูลเดิมไว้ก่อนเสมอ · เลือกวิธีนำเข้า:`;
+                const opts = [{ v: 'add', kind: 'pri', label: 'เพิ่มเฉพาะวันที่ยังไม่มี (ปลอดภัยที่สุด)', note: `เพิ่ม ${addKeys.length} วัน · วันที่มีอยู่แล้วไม่แตะ` },
+                              { v: 'over', label: 'ใช้ของในไฟล์แทนวันที่ไม่ตรงกัน', note: `เพิ่ม ${addKeys.length} วัน + แทน ${diffKeys.length} วัน · ไม่ลบวันอื่น` }];
+                if (dropKeys.length) opts.push({ v: 'replace', kind: 'danger', label: `แทนที่ทั้งหมดตามไฟล์ (ลบ ${dropKeys.length} วัน)`, note: 'วันที่ไม่มีในไฟล์จะหายจากฐานข้อมูลกลางและทุกเครื่อง' });
+                const mode = window.uiChoice ? await window.uiChoice(msg, opts) : (confirm(msg + '\n\nตกลง = เพิ่มเฉพาะวันที่ยังไม่มี') ? 'add' : null);
+                if (!mode) return;
+                if (mode === 'replace') {
+                    const ok2 = window.uiConfirm ? await window.uiConfirm(`ยืนยันลบ ${dropKeys.length} วัน (${range(dropKeys)})\nออกจากเครื่องนี้ ฐานข้อมูลกลาง และทุกเครื่อง?`, { ok: `ลบ ${dropKeys.length} วัน และแทนที่`, cancel: 'กลับ' }) : confirm('ยืนยันลบ ' + dropKeys.length + ' วัน?');
+                    if (!ok2) return;
+                }
+
+                // ห้ามเปลี่ยนฐานข้อมูลปัจจุบันจนกว่าจะบันทึกจุดกู้คืนสำเร็จ
+                await savePreImportRecoverySnapshot(db);
+
+                let nextDb;
+                if (mode === 'replace') nextDb = normalizedDb;
+                else { nextDb = Object.assign({}, db); (mode === 'add' ? addKeys : addKeys.concat(diffKeys)).forEach(k => { nextDb[k] = normalizedDb[k]; }); }
                 const previousDb = db;
-                db = normalizedDb;
+                db = nextDb;
                 if (!saveDB()) {
                     db = previousDb;
                     throw new Error('บันทึกข้อมูลใหม่ไม่สำเร็จ จึงยกเลิกการนำเข้า');
                 }
+                let nT2 = 0, nH2 = 0;
+                if (extra) {
+                    try { if (extra.tkw && typeof window.tkwImportAll === 'function') nT2 = window.tkwImportAll(extra.tkw, mode === 'add' ? 'add' : 'over'); } catch (e) { console.warn('import tkw', e); }
+                    try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
+                }
                 renderTable();
-                showToast('นำเข้าข้อมูลสำเร็จ · เก็บจุดกู้คืนข้อมูลเดิมแล้ว');
+                const nDays = mode === 'replace' ? fileKeys.length : (mode === 'add' ? addKeys.length : addKeys.length + diffKeys.length);
+                showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
             } catch (err) {
                 console.error('Import JSON failed:', err);
                 alert('นำเข้าข้อมูลไม่สำเร็จ: ' + (err.message || 'ไฟล์ JSON ไม่ถูกต้อง'));

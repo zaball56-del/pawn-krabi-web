@@ -3490,8 +3490,21 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             }
         }
 
+        /* ข้อมูลอื่นที่ต้องอยู่ในไฟล์สำรองด้วย (ไม่ได้อยู่ใน db): ตารางเขียนตั๋ว + วันหยุด → เก็บใต้คีย์ _extra */
+        window.pawnBackupExtra = function () {
+            const x = { v: 1 };
+            try { if (typeof window.tkwExportAll === 'function') x.tkw = window.tkwExportAll(); } catch (_) {}
+            try { if (typeof window.holidaysExport === 'function') x.holidays = window.holidaysExport(); } catch (_) {}
+            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) ? x : null;
+        };
+        window.pawnBackupText = function (pretty) {
+            const out = Object.assign({}, db); delete out._extra;
+            const extra = window.pawnBackupExtra(); if (extra) out._extra = extra;
+            return pretty ? JSON.stringify(out, null, 2) : JSON.stringify(out);
+        };
+
         async function exportJSON() {
-            const dataStr = JSON.stringify(db, null, 2);
+            const dataStr = window.pawnBackupText(true);
             const fileName = `pawn_krabi_backup_${currentDate}.json`;
             let backupSuccess = false;
 
@@ -3538,6 +3551,12 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
                     throw new Error('รูปแบบฐานข้อมูลไม่ถูกต้อง');
                 }
+                // ตารางเขียนตั๋ว/วันหยุด (ไฟล์สำรองรุ่นใหม่) แยกออกมาก่อนตรวจโครงสร้างวันที่
+                let extra = null;
+                if (Object.prototype.hasOwnProperty.call(imported, '_extra')) {
+                    extra = (imported._extra && typeof imported._extra === 'object') ? imported._extra : null;
+                    delete imported._extra;
+                }
                 if (Object.prototype.hasOwnProperty.call(imported, '') && !hasDayDataIn(imported, '')) delete imported[''];
                 for (const [dateKey, day] of Object.entries(imported)) {
                     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || !day || typeof day !== 'object' ||
@@ -3545,11 +3564,6 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                         throw new Error('พบข้อมูลวันที่หรือโครงสร้างฐานข้อมูลไม่ถูกต้อง');
                     }
                 }
-                if (!confirm(`ยืนยันนำเข้าข้อมูลจากไฟล์ ${file.name} หรือไม่?\n\nข้อมูลเดิมในเครื่องนี้จะถูกแทนที่ แต่ระบบจะเก็บจุดกู้คืนไว้ให้ก่อน`)) return;
-
-                // ห้ามเปลี่ยนฐานข้อมูลปัจจุบันจนกว่าจะบันทึกจุดกู้คืนสำเร็จ
-                await savePreImportRecoverySnapshot(db);
-
                 let normalizedDb = {};
                 for (const [key, value] of Object.entries(imported)) {
                     const parts = key.split('-');
@@ -3561,14 +3575,51 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     }
                 }
 
+                /* นับก่อนว่าไฟล์ต่างจากในเครื่องแค่ไหน แล้วให้เลือกวิธี — ไม่แทนที่ทั้งก้อนโดยไม่รู้ตัว
+                   (แทนที่ทั้งหมด = วันที่ไม่มีในไฟล์จะถูกลบจากฐานข้อมูลกลางและทุกเครื่องด้วย) */
+                const same = (a, b) => { try { return JSON.stringify(a, stripTrailingBlankRows) === JSON.stringify(b, stripTrailingBlankRows); } catch (_) { return false; } };
+                const fileKeys = Object.keys(normalizedDb), localKeys = Object.keys(db).filter(k => k !== '' && k !== '_extra');
+                const addKeys = fileKeys.filter(k => !(k in db)), diffKeys = fileKeys.filter(k => (k in db) && !same(db[k], normalizedDb[k]));
+                const dropKeys = localKeys.filter(k => !(k in normalizedDb)).sort();
+                const th = k => { const p = k.split('-'); return p.length === 3 ? `${+p[2]}/${+p[1]}/${+p[0] + 543}` : k; };
+                const range = ks => ks.length ? (ks.length === 1 ? th(ks[0]) : `${th(ks[0])} – ${th(ks[ks.length - 1])}`) : '';
+                const nT = extra && extra.tkw ? Object.keys(extra.tkw).length : 0, nH = extra && extra.holidays ? Object.keys(extra.holidays).length : 0;
+                const msg = `นำเข้าไฟล์ ${file.name}\nสมุดบัญชีในไฟล์ ${fileKeys.length} วัน\n`
+                    + `• วันที่ยังไม่มีในเครื่อง: ${addKeys.length} วัน\n`
+                    + `• วันที่มีทั้งสองฝั่งแต่ไม่ตรงกัน: ${diffKeys.length} วัน\n`
+                    + `• วันที่มีในเครื่องแต่ไม่มีในไฟล์: ${dropKeys.length} วัน${dropKeys.length ? ' (' + range(dropKeys) + ')' : ''}`
+                    + (nT || nH ? `\nไฟล์มีตารางเขียนตั๋ว ${nT} วัน · วันหยุด ${nH} วัน` : '\nไฟล์นี้ไม่มีตารางเขียนตั๋ว (ไฟล์รุ่นก่อน)')
+                    + `\n\nระบบจะเก็บจุดกู้คืนของข้อมูลเดิมไว้ก่อนเสมอ · เลือกวิธีนำเข้า:`;
+                const opts = [{ v: 'add', kind: 'pri', label: 'เพิ่มเฉพาะวันที่ยังไม่มี (ปลอดภัยที่สุด)', note: `เพิ่ม ${addKeys.length} วัน · วันที่มีอยู่แล้วไม่แตะ` },
+                              { v: 'over', label: 'ใช้ของในไฟล์แทนวันที่ไม่ตรงกัน', note: `เพิ่ม ${addKeys.length} วัน + แทน ${diffKeys.length} วัน · ไม่ลบวันอื่น` }];
+                if (dropKeys.length) opts.push({ v: 'replace', kind: 'danger', label: `แทนที่ทั้งหมดตามไฟล์ (ลบ ${dropKeys.length} วัน)`, note: 'วันที่ไม่มีในไฟล์จะหายจากฐานข้อมูลกลางและทุกเครื่อง' });
+                const mode = window.uiChoice ? await window.uiChoice(msg, opts) : (confirm(msg + '\n\nตกลง = เพิ่มเฉพาะวันที่ยังไม่มี') ? 'add' : null);
+                if (!mode) return;
+                if (mode === 'replace') {
+                    const ok2 = window.uiConfirm ? await window.uiConfirm(`ยืนยันลบ ${dropKeys.length} วัน (${range(dropKeys)})\nออกจากเครื่องนี้ ฐานข้อมูลกลาง และทุกเครื่อง?`, { ok: `ลบ ${dropKeys.length} วัน และแทนที่`, cancel: 'กลับ' }) : confirm('ยืนยันลบ ' + dropKeys.length + ' วัน?');
+                    if (!ok2) return;
+                }
+
+                // ห้ามเปลี่ยนฐานข้อมูลปัจจุบันจนกว่าจะบันทึกจุดกู้คืนสำเร็จ
+                await savePreImportRecoverySnapshot(db);
+
+                let nextDb;
+                if (mode === 'replace') nextDb = normalizedDb;
+                else { nextDb = Object.assign({}, db); (mode === 'add' ? addKeys : addKeys.concat(diffKeys)).forEach(k => { nextDb[k] = normalizedDb[k]; }); }
                 const previousDb = db;
-                db = normalizedDb;
+                db = nextDb;
                 if (!saveDB()) {
                     db = previousDb;
                     throw new Error('บันทึกข้อมูลใหม่ไม่สำเร็จ จึงยกเลิกการนำเข้า');
                 }
+                let nT2 = 0, nH2 = 0;
+                if (extra) {
+                    try { if (extra.tkw && typeof window.tkwImportAll === 'function') nT2 = window.tkwImportAll(extra.tkw, mode === 'add' ? 'add' : 'over'); } catch (e) { console.warn('import tkw', e); }
+                    try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
+                }
                 renderTable();
-                showToast('นำเข้าข้อมูลสำเร็จ · เก็บจุดกู้คืนข้อมูลเดิมแล้ว');
+                const nDays = mode === 'replace' ? fileKeys.length : (mode === 'add' ? addKeys.length : addKeys.length + diffKeys.length);
+                showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
             } catch (err) {
                 console.error('Import JSON failed:', err);
                 alert('นำเข้าข้อมูลไม่สำเร็จ: ' + (err.message || 'ไฟล์ JSON ไม่ถูกต้อง'));
@@ -5226,6 +5277,22 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         box.appendChild(row); l.appendChild(box); l.style.display='flex'; document.addEventListener('keydown',onKey,true); setTimeout(function(){ ok.focus(); },30);
     }
     window.uiConfirm=function(msg,labels){ return new Promise(function(res){ show(msg,true,res,labels); }); };
+    /* เลือกได้หลายทาง: opts=[{v,label,note,kind:'pri'|'danger'}] → คืนค่า v ที่เลือก หรือ null เมื่อยกเลิก */
+    window.uiChoice=function(msg,opts){ return new Promise(function(res){
+        var l=ensureLayer(); l.innerHTML='';
+        var box=document.createElement('div'); box.style.cssText='width:100%;max-width:500px;max-height:92vh;overflow:auto;background:#fff;color:#14213D;border-radius:18px;padding:22px 22px 16px;box-shadow:0 30px 70px -24px rgba(11,34,68,.6)';
+        var p=document.createElement('div'); p.style.cssText='white-space:pre-line;font-size:15px;line-height:1.6;margin-bottom:14px'; p.textContent=String(msg==null?'':msg); box.appendChild(p);
+        function close(v){ l.style.display='none'; l.innerHTML=''; document.removeEventListener('keydown',onKey,true); res(v); }
+        function onKey(e){ if(e.key==='Escape'){ e.stopPropagation(); close(null); } }
+        var first=null;
+        (opts||[]).forEach(function(o){ var b=document.createElement('button'); b.type='button';
+            var bg=o.kind==='pri'?'#1D4ED8':o.kind==='danger'?'#fff':'#F1F5F9', fg=o.kind==='pri'?'#fff':o.kind==='danger'?'#B42318':'#14213D', bd=o.kind==='danger'?'1px solid #F3B4AE':'0';
+            b.style.cssText='display:block;width:100%;text-align:left;margin:0 0 8px;border:'+bd+';background:'+bg+';color:'+fg+';border-radius:12px;padding:11px 14px;font:700 14.5px Sarabun,sans-serif;cursor:pointer';
+            b.textContent=o.label; if(o.note){ var n=document.createElement('div'); n.style.cssText='font-weight:400;font-size:12.5px;opacity:.85;margin-top:2px'; n.textContent=o.note; b.appendChild(n); }
+            b.onclick=function(){ close(o.v); }; box.appendChild(b); if(!first) first=b; });
+        var c=document.createElement('button'); c.type='button'; c.textContent='ยกเลิก'; c.style.cssText='display:block;margin:4px 0 0 auto;border:1px solid #CBD5E4;background:#fff;color:#14213D;border-radius:10px;padding:9px 18px;font:600 14px Sarabun,sans-serif;cursor:pointer'; c.onclick=function(){ close(null); }; box.appendChild(c);
+        l.appendChild(box); l.style.display='flex'; document.addEventListener('keydown',onKey,true); setTimeout(function(){ (first||c).focus(); },30);
+    }); };
     window.uiAlert=function(msg){ return new Promise(function(res){ show(msg,false,res); }); };
     /* confirm: ถ้าเบราว์เซอร์ตอบ "ไม่" เร็วผิดปกติ (<40ms) แปลว่าถูกบล็อก -> ถามในหน้า แล้วเรียกฟังก์ชันเดิมซ้ำโดยถือว่าตอบ "ยืนยัน" */
     var blockedInRun=false;
@@ -5926,7 +5993,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         return ks.every(function(k){ var d=o[k]; return /^\d{4}-\d{2}-\d{2}$/.test(k)&&d&&typeof d==='object'&&Array.isArray(d.months)&&d.data&&typeof d.data==='object'; }); }
     function dl(rec){ try{ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rec.data],{type:'application/json'})); var dt=new Date(rec.id), p=function(n){ return ('0'+n).slice(-2); }; a.download='pawn_krabi_restorepoint_'+dt.getFullYear()+p(dt.getMonth()+1)+p(dt.getDate())+'_'+p(dt.getHours())+p(dt.getMinutes())+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }catch(e){ toast('ดาวน์โหลดไม่สำเร็จ'); } }
     function restore(rec){
-        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
+        var drop=0; try{ var nd0=JSON.parse(rec.data); drop=Object.keys(db).filter(function(k){ return k!==''&&!(k in nd0); }).length; }catch(e){}
+        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+(drop?'\n⚠ จะลบ '+drop+' วันที่ไม่มีในจุดกู้คืนนี้ ออกจากฐานข้อมูลกลางและทุกเครื่องด้วย':'')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
             if(v===null) return; if(!(window.__pinOk&&window.__pinOk(String(v).trim()))){ toast('PIN ไม่ถูกต้อง'); return; }
             var nd; try{ nd=JSON.parse(rec.data); }catch(e){ toast('ข้อมูลในจุดกู้คืนเสียหาย'); return; } if(!validDb(nd)){ toast('ข้อมูลในจุดกู้คืนไม่ถูกต้อง'); return; }
             return snapshotNow('ก่อนกู้คืน',true).then(function(){ Object.keys(db).forEach(function(k){ delete db[k]; }); Object.keys(nd).forEach(function(k){ db[k]=nd[k]; });
@@ -8103,7 +8171,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1) p:nth-of-typ
     if(busy||!handle) return {ok:false,why:'nohandle'}; busy=true;
     try{
       if(!(await perm(handle,!!ask))) return {ok:false,why:'perm'};
-      var text=JSON.stringify(db), name=fname();
+      var text=(typeof window.pawnBackupText==='function')?window.pawnBackupText(false):JSON.stringify(db), name=fname();   // รวมตารางเขียนตั๋ว + วันหยุด
       var fh=await handle.getFileHandle(name,{create:true}); var w=await fh.createWritable(); await w.write(text); await w.close();
       var back=await (await fh.getFile()).text(); if(back.length!==text.length) throw new Error('verify');
       cfg.lastAt=Date.now(); cfg.lastName=name; await save();
@@ -9158,6 +9226,14 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   window.tkwClearDay=function(){ snap(); day=blank(key); var mi=day.m.indexOf(+key.split('-')[1]); cur=mi>=0?mi:0; commit(); render(); };
   window.tkwAll=function(){ load(); return Object.keys(store).filter(function(k){ return /^\d{4}-\d\d-\d\d$/.test(k)&&store[k]&&store[k].m&&store[k].r; }).map(function(k){ return {k:k,m:store[k].m.slice(),r:store[k].r}; }); };
   window.tkwKey=function(){ return key; };
+  /* ไฟล์สำรอง: ส่งออก/นำเข้าตารางเขียนตั๋วทั้งหมด · mode 'add' = เฉพาะวันที่ยังไม่มีข้อมูล, 'over' = ใช้ของในไฟล์แทนวันที่ไม่ตรงกัน */
+  window.tkwExportAll=function(){ load(); var o={}; Object.keys(store).forEach(function(k){ if(/^\d{4}-\d\d-\d\d$/.test(k)&&hasData(store[k])) o[k]=store[k]; }); return JSON.parse(JSON.stringify(o)); };
+  window.tkwImportAll=function(obj,mode){ load(); var n=0;
+    Object.keys(obj||{}).forEach(function(k){ var d=obj[k]; if(!/^\d{4}-\d\d-\d\d$/.test(k)||!d||!Array.isArray(d.m)||!Array.isArray(d.r)||d.m.length!==d.r.length||!d.r.every(Array.isArray)||!hasData(d)) return;
+      var l=store[k], dj=JSON.parse(JSON.stringify(d)); if(l&&hasData(l)){ if(mode==='add') return; var a=JSON.parse(JSON.stringify(l)); delete a.u; delete dj.u; if(JSON.stringify(a)===JSON.stringify(dj)) return; }
+      dj.u=Date.now(); store[k]=dj; n++; try{ markDirty(k); }catch(e){}
+      if(key===k){ day=dj; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } });
+    if(n) save(); return n; };
   window.tkwReadDay=function(k){ load(); var d=store[k]; if((!d||!d.r||!d.m)&&k===key&&day&&day.r&&day.m&&hasData(day)) d=day; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
   /* ให้หน้าเทียบ สธ.3 เรียกก่อนอ่าน: รวมข้อมูลในเครื่องล่าสุด + เริ่มซิงก์คลาวด์ (เดิมเริ่มเฉพาะตอนเปิดหน้าเขียนตั๋ว) แล้วรอข้อมูลชุดแรกสูงสุด ms */
   window.tkwEnsure=function(ms){ load(); try{ startSync(); }catch(e){}
@@ -9181,13 +9257,25 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   // ----- ซิงก์คลาวด์ (คอลเลกชัน tkw แยกจากบัญชีหลัก 'ledger' ไม่แตะซิงก์ของเดิม) -----
   var CL={on:false,started:false,denied:false,dirty:{},cu:{},timer:null,tries:0,pending:{},col:null,base:{}};
   var COLN='tkw';
+  /* จำสถานะซิงก์ไว้ในเครื่อง (ข้ามการรีเฟรช/ปิดเว็บ) — กันงานที่แก้ตอนออฟไลน์หายเมื่อรีเฟรช
+     h = ลายนิ้วมือของฉบับที่ซิงก์ล่าสุดของแต่ละวัน · b = ฉบับซิงก์ล่าสุดแบบเต็ม เฉพาะวันที่ยังแก้ค้าง (ใช้เป็นฐานรวม 3 ทาง) */
+  var SK='pawn_tkw_sync_v1', skTimer=null;
+  function th(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36)+':'+s.length; }
+  function persistSync(){ clearTimeout(skTimer); skTimer=setTimeout(function(){ var h={}, b={};
+      Object.keys(CL.base).forEach(function(k){ var j=CL.base[k]; if(typeof j!=='string') return; h[k]=th(j); if(!store[k]||JSON.stringify(store[k])!==j) b[k]=j; });
+      try{ localStorage.setItem(SK,JSON.stringify({h:h,b:b})); }catch(e){ try{ localStorage.setItem(SK,JSON.stringify({h:h,b:{}})); }catch(_){} } },300); }
+  (function restoreSync(){ var s=null; try{ s=JSON.parse(localStorage.getItem(SK)||'null'); }catch(e){} if(!s||!s.h) return; var b=s.b||{};
+    Object.keys(s.h).forEach(function(k){ var d=store[k]; if(!d) return; var cur=JSON.stringify(d);
+      if(th(cur)===s.h[k]) CL.base[k]=cur;                                     // ไม่ได้แก้หลังซิงก์ล่าสุด
+      else { CL.dirty[k]=1; if(typeof b[k]==='string'&&th(b[k])===s.h[k]) CL.base[k]=b[k]; } });   // แก้ค้างไว้ → ฐานสำหรับรวม
+  })();
   function chip(t,k){ var e=$('tkw-cloud'); if(e){ e.textContent=t; e.className='cloud '+(k||''); } }
   function fbReady(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0&&!!firebase.auth().currentUser; }catch(e){ return false; } }
   function fbExists(){ try{ return typeof firebase!=='undefined'&&firebase.apps&&firebase.apps.length>0; }catch(e){ return false; } }
   function dayField(k){ return 'd'+k.replace(/-/g,''); }
   function parseField(f){ var m=/^d(\d{4})(\d{2})(\d{2})$/.exec(f); return m?m[1]+'-'+m[2]+'-'+m[3]:null; }
   function hasData(d){ return !!(d&&d.r&&d.r.some(function(col){ return col.some(function(x){ return x[0]!==''||x[1]!==''; }); })); }
-  function markDirty(k){ CL.dirty[k]=1; if(CL.on) schedPush(3000); }
+  function markDirty(k){ CL.dirty[k]=1; persistSync(); if(CL.on) schedPush(3000); }
   function schedPush(ms){ clearTimeout(CL.timer); CL.timer=setTimeout(push,ms); }
   /* รวมทีละแถวเมื่อ 2 เครื่องแก้วันเดียวกัน (ใช้ตัวรวมเดียวกับสมุดบัญชี: window.__syncMerge) · จับคู่แถวด้วยเลขตั๋ว+เล่ม */
   function say(m){ try{ showToast(m); }catch(e){} }   /* ข้อความแจ้งเตือนสั้น (เดิมถูกเรียกใน onErr แต่ยังไม่มีฟังก์ชันนี้) */
@@ -9237,7 +9325,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
             var u=JSON.parse(o[f]).u; if(CL.dirty[k]&&store[k]&&store[k].u===u) delete CL.dirty[k]; CL.cu[k]=u; CL.base[k]=o[f];
           }catch(e){} });
         if(changed) save(); }); }))
-      .then(function(){ chip('☁ ซิงก์แล้ว','ok'); if(Object.keys(CL.dirty).length) schedPush(3000); })
+      .then(function(){ persistSync(); chip('☁ ซิงก์แล้ว','ok'); if(Object.keys(CL.dirty).length) schedPush(3000); })
       .catch(function(err){ onErr(err,true); });
   }
   function onErr(err,write){ var c=err&&err.code; console.warn('tkw sync',err);
@@ -9253,8 +9341,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       if(busy){ CL.pending[k]=c; return; }
       var res=mergeTkw(JSON.parse(CL.base[k]),l,c); CL.base[k]=cj; store[k]=res.day; save(); markDirty(k); mergeNote(k,res,cj,'live'); showIf(k); return;
     }
+    if(l&&!CL.dirty[k]&&CL.base[k]!==undefined){                    // ไม่มีแก้ค้าง และรู้ฉบับซิงก์ล่าสุด → รับของเซิร์ฟเวอร์เสมอ (ไม่ใช้นาฬิกาเครื่องตัดสิน)
+      if(busy){ CL.pending[k]=c; return; }
+      store[k]=c; CL.base[k]=cj; save(); showIf(k); return;
+    }
     if(l&&(c.u||0)<=(l.u||0)){ if(CL.base[k]===undefined){ CL.base[k]=cj; if(hasData(l)&&hasData(c)) try{ window.__syncMerge&&window.__syncMerge.logConflict('tkw-startup',k,cj,['เครื่องนี้ใหม่กว่า ใช้ของเครื่องนี้']); }catch(e){} } return; }
     if(busy){ CL.pending[k]=c; return; }
+    if(l&&hasData(l)) try{ window.__syncMerge&&window.__syncMerge.logConflict('tkw-startup-local',k,JSON.stringify(l),['ไม่รู้ฉบับซิงก์ล่าสุด ใช้ของอีกเครื่องที่ใหม่กว่า · นี่คือสำเนาของเครื่องนี้']); }catch(e){}
     store[k]=c; CL.base[k]=cj; save(); showIf(k);
   }
   function applyPending(){ Object.keys(CL.pending).forEach(function(k){ var c=CL.pending[k]; delete CL.pending[k]; applyRemote(k,c); }); }
@@ -9268,6 +9361,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       CL.col.onSnapshot({includeMetadataChanges:true},function(snap){
         var seen={}; snap.docs.forEach(function(d){ var x=d.data()||{}; Object.keys(x).forEach(function(f){ var k=parseField(f); if(!k) return; var c; try{ c=JSON.parse(x[f]); }catch(e){ return; } seen[k]=1; CL.cu[k]=c.u||0; applyRemote(k,c); }); });
         if(!CL.on){ CL.on=true; Object.keys(store).forEach(function(k){ var l=store[k]; if(!hasData(l)) return; if(!seen[k]){ if(!l.u) l.u=Date.now(); CL.dirty[k]=1; } else if((l.u||0)>(CL.cu[k]||0)) CL.dirty[k]=1; }); save(); }
+        persistSync();
         chip(snap.metadata&&snap.metadata.fromCache?'☁ ออฟไลน์ · จะซิงก์เมื่อกลับมา':'☁ ซิงก์แล้ว',snap.metadata&&snap.metadata.fromCache?'er':'ok');
         if(Object.keys(CL.dirty).length) schedPush(500);
       },function(err){ onErr(err,false); });
@@ -9638,6 +9732,10 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     }catch(e){ chip('☁ ซิงก์ไม่ได้','er'); }
   }
   function act(k){ return !!(H[k]&&!H[k].x); }
+  /* ไฟล์สำรอง: ส่งออก/นำเข้าวันหยุด (ฉบับที่แก้ใหม่กว่าชนะ เหมือนการซิงก์) */
+  window.holidaysExport=function(){ load(); return JSON.parse(JSON.stringify(H)); };
+  window.holidaysImport=function(o){ load(); var n=0; Object.keys(o||{}).forEach(function(k){ var c=o[k]; if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!c||typeof c!=='object') return;
+      if(!H[k]||(c.u||0)>(H[k].u||0)){ H[k]=c; dirty(k); n++; } }); if(n) save(); return n; };
   function today(){ var n=new Date(); return key(n.getFullYear(),n.getMonth(),n.getDate()); }
   // ใช้ต่อได้จากที่อื่น: เป็นวันหยุด (เสาร์-อาทิตย์ หรือวันหยุดราชการที่ใส่ไว้) หรือไม่
   window.isHolidayDate=function(k){ if(!H||!Object.keys(H).length) load(); var a=String(k).split('-'); if(a.length<3) return false; var w=new Date(+a[0],+a[1]-1,+a[2]).getDay(); return w===0||w===6||act(k); };

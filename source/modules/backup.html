@@ -45,7 +45,7 @@
     if(busy||!handle) return {ok:false,why:'nohandle'}; busy=true;
     try{
       if(!(await perm(handle,!!ask))) return {ok:false,why:'perm'};
-      var text=JSON.stringify(db), name=fname();
+      var text=(typeof window.pawnBackupText==='function')?window.pawnBackupText(false):JSON.stringify(db), name=fname();   // รวมตารางเขียนตั๋ว + วันหยุด
       var fh=await handle.getFileHandle(name,{create:true}); var w=await fh.createWritable(); await w.write(text); await w.close();
       var back=await (await fh.getFile()).text(); if(back.length!==text.length) throw new Error('verify');
       cfg.lastAt=Date.now(); cfg.lastName=name; await save();

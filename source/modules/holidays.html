@@ -95,6 +95,10 @@
     }catch(e){ chip('☁ ซิงก์ไม่ได้','er'); }
   }
   function act(k){ return !!(H[k]&&!H[k].x); }
+  /* ไฟล์สำรอง: ส่งออก/นำเข้าวันหยุด (ฉบับที่แก้ใหม่กว่าชนะ เหมือนการซิงก์) */
+  window.holidaysExport=function(){ load(); return JSON.parse(JSON.stringify(H)); };
+  window.holidaysImport=function(o){ load(); var n=0; Object.keys(o||{}).forEach(function(k){ var c=o[k]; if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!c||typeof c!=='object') return;
+      if(!H[k]||(c.u||0)>(H[k].u||0)){ H[k]=c; dirty(k); n++; } }); if(n) save(); return n; };
   function today(){ var n=new Date(); return key(n.getFullYear(),n.getMonth(),n.getDate()); }
   // ใช้ต่อได้จากที่อื่น: เป็นวันหยุด (เสาร์-อาทิตย์ หรือวันหยุดราชการที่ใส่ไว้) หรือไม่
   window.isHolidayDate=function(k){ if(!H||!Object.keys(H).length) load(); var a=String(k).split('-'); if(a.length<3) return false; var w=new Date(+a[0],+a[1]-1,+a[2]).getDay(); return w===0||w===6||act(k); };
