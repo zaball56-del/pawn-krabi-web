@@ -3286,7 +3286,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 const type = String(item.type || '').trim();
                 const ticket = String(item.ticket || '').trim();
                 const rowAmount = cleanNumberString(item.amount);
-                if (['ถ', 'ส', 'พ', 'ผ'].includes(type) && (ticket !== '' || rowAmount !== 0 || type !== '')) {
+                if (['ถ', 'ส', 'พ', 'ผ'].includes(type) && (ticket !== '' || rowAmount !== 0)) {
                     count += 1;
                     amount = roundMoney(amount + rowAmount);
                 }
