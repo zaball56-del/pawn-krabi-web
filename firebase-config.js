@@ -5,5 +5,7 @@ window.FIREBASE_CONFIG = {
   projectId: "pawn-krabi",
   storageBucket: "pawn-krabi.firebasestorage.app",
   messagingSenderId: "964021263954",
-  appId: "1:964021263954:web:05c1bdd702821848cd098b"
+  appId: "1:964021263954:web:05c1bdd702821848cd098b",
+  // App Check (reCAPTCHA v3 "pawn-krabi-web App Check") — คีย์ของเว็บไซต์เป็นค่าสาธารณะ · ยังไม่บังคับใช้ใน Console
+  appCheckSiteKey: "6Lc3WiguAAAAAMS_t-AhmvrgmvEYQTe4iFrmLHbX"
 };
