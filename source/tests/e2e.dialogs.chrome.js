@@ -8,8 +8,10 @@ async function page(b,nat){ const pg=await (await b.newContext()).newPage(); pg.
   else pg.on('dialog',d=>d.dismiss());   /* เบราว์เซอร์ตอบ "ไม่" ทันที = ถูกบล็อก */
   await pg.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort()); await pg.goto('file://'+FILE,{waitUntil:'domcontentloaded'}); await sleep(3000);
   await pg.evaluate(()=>{ document.querySelectorAll('#login-modal').forEach(e=>e.style.display='none'); }); return pg; }
-async function answerAll(pg,max,no){ const seen=[]; for(let i=0;i<(max||6);i++){ await sleep(300);
-  const t=await pg.evaluate(()=>{ const l=document.getElementById('ui-dialog'); return l&&l.style.display!=='none'?l.textContent.replace(/\s+/g,' ').slice(0,40):''; }); if(!t) break; seen.push(t);
+async function answerAll(pg,max,no){ const seen=[]; for(let i=0;i<(max||6);i++){
+  let t=''; for(let w=0;w<(i===0?20:6);w++){ await sleep(150);   /* รอกล่องในหน้า (เครื่องช้าอาจเด้งช้า): รอบแรกถึง 3 วิ ถัดไป ~1 วิ */
+    t=await pg.evaluate(()=>{ const l=document.getElementById('ui-dialog'); return l&&l.style.display!=='none'?l.textContent.replace(/\s+/g,' ').slice(0,40):''; }); if(t) break; }
+  if(!t) break; seen.push(t);
   const b=no?await pg.$('#ui-dialog button:has-text("ยกเลิก")'):await pg.$('#ui-dialog button:has-text("ยืนยัน"), #ui-dialog button:has-text("ตกลง")'); if(!b) break; await b.click(); } await sleep(300); return seen; }
 (async()=>{
   const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
