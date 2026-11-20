@@ -8706,6 +8706,20 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
   function yyOk(yy){ var f=fyYY(), n=+yy, diff=((f-n)%100+100)%100; return diff<=5||diff>=99; }
   function parse(s){ s=String(s||'').trim(); if(/^\d{12}$/.test(s)) s='0'+s; if(!ok13(s)||!yyOk(s.slice(0,2))) return null; return {yy:s.slice(0,2),book:String(+s.slice(3,7)),ticket:String(+s.slice(7,12))}; }
   window.__parseTicketBarcode=parse;
+  /* เครื่องสแกนบาร์โค้ดทำงานเหมือนคีย์บอร์ด: ถ้าเครื่องอยู่ภาษาไทยตอนสแกน ตัวเลขจะออกเป็นตัวอักษรไทยแถวบน (ๅ / - ภ ถ ุ ึ ค ต จ)
+     → แปลงกลับเป็นตัวเลข เฉพาะช่องเลขตั๋วที่ยิงบาร์โค้ด · ตัวอักษรไทยและเลขไทยแปลงเสมอ (ช่องเลขตั๋วไม่มีทางใช้)
+     ส่วน / และ - แปลงเฉพาะตอนพิมพ์เร็วแบบเครื่องสแกน (ห่างกัน < 80 มิลลิวินาที) หรือเมื่อทั้งช่องแปลงแล้วได้บาร์โค้ด 12–13 หลัก */
+  var TH2D={'ๅ':'1','/':'2','-':'3','ภ':'4','ถ':'5','ุ':'6','ึ':'7','ค':'8','ต':'9','จ':'0'};
+  for(var di=0;di<10;di++) TH2D[String.fromCharCode(0x0E50+di)]=String(di);
+  var SCAN_IDS={'qs-ticket':1,'qs-new-ticket':1,'tkw-sq-t':1};
+  function thAll(v){ return String(v).replace(/[ๅ\/\-ภถุึคตจ\u0E50-\u0E59]/g,function(c){ return TH2D[c]; }); }
+  function thSafe(v){ return String(v).replace(/[ๅภถุึคตจ\u0E50-\u0E59]/g,function(c){ return TH2D[c]; }); }
+  window.__thKeyToDigits=thAll;
+  var lastIn={};
+  document.addEventListener('input',function(e){ var el=e.target; if(!el||!SCAN_IDS[el.id]) return;
+    var now=Date.now(), fast=(now-(lastIn[el.id]||0))<80; lastIn[el.id]=now;
+    var v=el.value, all=thAll(v), f=(fast||/^\d{12,13}$/.test(all.trim()))&&all!==v&&/^[\d\s]*$/.test(all)?all:thSafe(v);
+    if(f===v) return; var p=el.selectionStart; el.value=f; try{ if(p!=null) el.setSelectionRange(p,p); }catch(_){} },true);
   var PAIRS={'qs-ticket':'qs-book','qs-new-ticket':'qs-new-book'};
   function fire(el){ el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
   function nz(v){ try{return normalizeCompareTicket(v)}catch(e){return String(v||'').trim().toLowerCase()} }
