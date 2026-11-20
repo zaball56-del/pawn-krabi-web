@@ -2356,9 +2356,17 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         }
 
         // หาวันก่อนหน้าล่าสุดที่มีคอลัมน์เดือนนี้ (ข้ามวันที่มีแต่ยอดสรุป ไม่มีคอลัมน์เดือน เช่น วันหยุด)
+        // คอลัมน์เดือนเดียวกันที่ห่างเกิน 45 วัน (ตามปฏิทิน) ถือเป็นคนละรอบ เช่น ตุลาคมปีก่อน → ไม่ดึงยอดข้ามปี (ผู้ใช้อนุมัติ 20 พ.ย. 2569)
+        const MONTH_LINK_MAX_GAP_DAYS = 45;
+        function daysBetweenDates(a, b) {
+            const pa = String(a).split('-').map(Number), pb = String(b).split('-').map(Number);
+            return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86400000);
+        }
+
         function getPrevDateForMonth(dateStr, monthName) {
             let d = getLatestAvailablePreviousDate(dateStr), guard = 0;
             while (d && guard++ < 400) {
+                if (daysBetweenDates(d, dateStr) > MONTH_LINK_MAX_GAP_DAYS) return null;
                 const day = db[d];
                 if (day && Array.isArray(day.months) && day.months.includes(monthName)) return d;
                 d = getLatestAvailablePreviousDate(d);
