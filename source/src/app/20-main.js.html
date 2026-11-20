@@ -826,7 +826,7 @@
         function getBfAdj(dateStr, monthName) {
             const d = db[dateStr];
             const x = (d && d.bfAdj && monthName) ? d.bfAdj[monthName] : null;
-            return x ? { a: roundMoney(cleanNumberString(x.a)), c: cleanNumberString(x.c), note: String(x.note || ''), at: x.at || '' } : { a: 0, c: 0, note: '', at: '' };
+            return x ? { a: roundMoney(cleanNumberString(x.a)), c: cleanNumberString(x.c), note: String(x.note || ''), at: x.at || '', x: x.x === true } : { a: 0, c: 0, note: '', at: '', x: false };
         }
 
         // ตัดเป็นทรัพย์หลุดทั้งเดือน (ครบกำหนดตามกฎหมาย): เก็บใน db[วัน].forfeit[ชื่อเดือน] = {a,c}
@@ -857,7 +857,7 @@
             const d = db[dateStr]; let a = 0, c = 0;
             if (!d) return { a, c };
             const months = Array.isArray(d.months) ? d.months : [];
-            if (d.bfAdj && typeof d.bfAdj === 'object') months.forEach(m => { if (!m) return; const x = getBfAdj(dateStr, m); a = roundMoney(a + x.a); c += x.c; });
+            if (d.bfAdj && typeof d.bfAdj === 'object') months.forEach(m => { if (!m) return; const x = getBfAdj(dateStr, m); if (x.x) return; a = roundMoney(a + x.a); c += x.c; });   // x = แก้ยอดให้ตรง: เข้าเฉพาะยกมา ไม่เข้า ย/ม
             if (d.forfeit && typeof d.forfeit === 'object') Object.keys(d.forfeit).forEach(m => { if (months.includes(m)) return; const x = getForfeitLive(dateStr, m); if (x) { a = roundMoney(a - x.a); c -= x.c; } });
             return { a, c };
         }
@@ -1295,7 +1295,7 @@
             return { a: roundMoney(cleanNumberString(dayData.bf?.[colIdx] ?? 0) - old.a), c: cleanNumberString(dayData.bfCount?.[colIdx] ?? 0) - old.c, src: '' };
         }
 
-        function applyBfAdj(colIdx, amount, count, note) {
+        function applyBfAdj(colIdx, amount, count, note, fixOnly) {
             const dayData = getCurrentDayData();
             const m = dayData.months[colIdx];
             if (!m) return false;
@@ -1303,7 +1303,7 @@
             const a = roundMoney(cleanNumberString(amount)), c = cleanNumberString(count);
             const old = getBfAdj(currentDate, m);
             if (!dayData.bfAdj || typeof dayData.bfAdj !== 'object') dayData.bfAdj = {};
-            if (a || c) dayData.bfAdj[m] = { a, c, note: String(note || '').trim(), at: new Date().toISOString() };
+            if (a || c) { dayData.bfAdj[m] = { a, c, note: String(note || '').trim(), at: new Date().toISOString() }; if (fixOnly) dayData.bfAdj[m].x = true; }
             else delete dayData.bfAdj[m];
             if (!Object.keys(dayData.bfAdj).length) delete dayData.bfAdj;
             if (!Array.isArray(dayData.bf)) dayData.bf = new Array(dayData.months.length).fill(0);
@@ -1315,7 +1315,7 @@
             try { updateDailyBalanceCalculator(); } catch (e) {}   // คงเหลือของวันนี้ต้องอัปเดตก่อน เพื่อให้ ย/ม วันถัดไปรับยอดใหม่
             recalculateFutureBroughtForwardBalances(currentDate);
             renderTable();
-            try { if (window.__audit) window.__audit(a || c ? 'ปรับยอดยกมา' : 'ล้างยอดปรับยกมา', `เดือน${m} ${a || c ? (a > 0 ? '+' : '') + formatNumber(a) + ' บาท ' + (c > 0 ? '+' : '') + c + ' ราย' : '(เดิม ' + formatNumber(old.a) + ' บาท ' + old.c + ' ราย)'}${note ? ' · ' + note : ''}`); } catch (e) {}
+            try { if (window.__audit) window.__audit(a || c ? (fixOnly ? 'แก้ยอดยกมาให้ตรง (ไม่รวมใน ย/ม)' : 'ปรับยอดยกมา') : 'ล้างยอดปรับยกมา', `เดือน${m} ${a || c ? (a > 0 ? '+' : '') + formatNumber(a) + ' บาท ' + (c > 0 ? '+' : '') + c + ' ราย' : '(เดิม ' + formatNumber(old.a) + ' บาท ' + old.c + ' ราย)'}${note ? ' · ' + note : ''}`); } catch (e) {}
             showToast(a || c ? `ปรับยอดยกมาเดือน${m}แล้ว` : `ล้างยอดปรับยกมาเดือน${m}แล้ว`);
             return true;
         }
@@ -1336,13 +1336,14 @@
             const inp = 'width:100%;height:40px;border:1.5px solid #cbd5e1;border-radius:10px;padding:0 10px;font:600 15px Sarabun,sans-serif;color:#0f172a;background:#fff;text-align:right';
             ov.innerHTML = `<div style="background:#fff;color:#0f172a;border-radius:16px;max-width:420px;width:100%;padding:18px 20px;box-shadow:0 20px 50px rgba(0,0,0,.3);font-family:Sarabun,sans-serif">
                 <div style="font-size:17px;font-weight:800;margin-bottom:2px">ปรับยอดยกมา · เดือน${escapeHtml(m)}</div>
-                <div style="font-size:12px;color:#64748b;margin-bottom:12px">วันที่ ${escapeHtml(currentDate)} · ใช้กรณีตั๋วที่หักไปแล้วแต่อนุมัติกลับมา (ใส่ติดลบได้)</div>
+                <div style="font-size:12px;color:#64748b;margin-bottom:12px">วันที่ ${escapeHtml(currentDate)} · ตั๋วที่อนุมัติกลับ หรือแก้ยอดยกมาให้ตรง (ใส่ติดลบได้)</div>
                 <div style="display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px dashed #e2e8f0"><span>ยกมาจาก${base.src ? 'วันที่ ' + escapeHtml(base.src) : 'ที่กรอกไว้'}</span><b>${formatNumber(base.c) || 0} ราย · ${formatNumber(base.a) || 0} บาท</b></div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
                   <label style="font-size:13px;font-weight:700">ปรับจำนวนราย (+/−)<input id="bfadj-c" inputmode="numeric" style="${inp}" value="${cur.c || ''}" placeholder="เช่น 1"></label>
                   <label style="font-size:13px;font-weight:700">ปรับจำนวนเงิน (+/−)<input id="bfadj-a" inputmode="decimal" style="${inp}" value="${cur.a || ''}" placeholder="เช่น 5000"></label>
                 </div>
                 <label style="display:block;font-size:13px;font-weight:700;margin-top:10px">หมายเหตุ (เลขตั๋ว/เหตุผล)<input id="bfadj-n" style="${inp};text-align:left" value="${escapeHtml(cur.note)}" placeholder="เช่น ตั๋ว 601 อนุมัติกลับ"></label>
+                <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:13px;font-weight:700;cursor:pointer"><input type="checkbox" id="bfadj-fx" ${cur.x ? 'checked' : ''} style="width:18px;height:18px;margin-top:1px;flex:none"><span>แก้ยอดให้ตรง (ไม่รวมใน ย/ม)<br><small style="font-weight:500;color:#64748b">ติ๊กเมื่อยกมาของเดือนนี้ผิดแต่คงเหลือในสรุปประจำวันถูก · ไม่ติ๊ก = ตั๋วอนุมัติกลับ (เข้าทั้งยกมาและ ย/ม)</small></span></label>
                 <div id="bfadj-p" style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#ecfdf5;color:#065f46;font-weight:800;font-size:15px"></div>
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
                   ${cur.a || cur.c ? '<button type="button" id="bfadj-clr" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid #fca5a5;background:#fff;color:#b91c1c;font:700 14px Sarabun,sans-serif;cursor:pointer;margin-right:auto">ล้างยอดปรับ</button>' : ''}
@@ -1356,15 +1357,15 @@
             const upd = () => { const a = val('bfadj-a'), c = val('bfadj-c');
                 if (bad(a) || bad(c)) { g('bfadj-p').textContent = 'กรอกเป็นตัวเลข (ติดลบได้)'; g('bfadj-ok').disabled = true; return; }
                 g('bfadj-ok').disabled = false;
-                g('bfadj-p').textContent = 'ยกมาใหม่ = ' + (formatNumber(base.c + cleanNumberString(c)) || 0) + ' ราย · ' + (formatNumber(roundMoney(base.a + cleanNumberString(a))) || 0) + ' บาท'; };
+                g('bfadj-p').textContent = 'ยกมาใหม่ = ' + (formatNumber(base.c + cleanNumberString(c)) || 0) + ' ราย · ' + (formatNumber(roundMoney(base.a + cleanNumberString(a))) || 0) + ' บาท' + (g('bfadj-fx').checked ? ' · ไม่รวมใน ย/ม' : ' · รวมใน ย/ม ด้วย'); };
             const close = () => { ov.remove(); };
-            g('bfadj-a').oninput = upd; g('bfadj-c').oninput = upd; upd();
+            g('bfadj-a').oninput = upd; g('bfadj-c').oninput = upd; g('bfadj-fx').onchange = upd; upd();
             g('bfadj-x').onclick = close;
             ov.addEventListener('click', e => { if (e.target === ov) close(); });
             ov.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-            g('bfadj-ok').onclick = () => { const a = val('bfadj-a'), c = val('bfadj-c'), n = g('bfadj-n').value; if (bad(a) || bad(c)) return;
+            g('bfadj-ok').onclick = () => { const a = val('bfadj-a'), c = val('bfadj-c'), n = g('bfadj-n').value, fx = g('bfadj-fx').checked; if (bad(a) || bad(c)) return;
                 if (!cleanNumberString(a) && !cleanNumberString(c) && !(cur.a || cur.c)) { close(); return; }
-                close(); applyBfAdj(colIdx, a, c, n); };
+                close(); applyBfAdj(colIdx, a, c, n, fx); };
             if (g('bfadj-clr')) g('bfadj-clr').onclick = () => { if (!confirm('ล้างยอดปรับยกมาของเดือน' + m + '?')) return; close(); applyBfAdj(colIdx, 0, 0, ''); };
             setTimeout(() => { try { g('bfadj-c').focus(); } catch (e) {} }, 30);
         }
@@ -3187,7 +3188,7 @@
                 trBfRow += `
                     <td class="border border-slate-300 p-1 text-left text-[10px] font-normal text-emerald-900 bg-emerald-50/50">
                         <span class="font-bold">ยกมา</span>${m ? (() => { const aj = getBfAdj(currentDate, m); const has = aj.a || aj.c;
-                            return `<button type="button" class="bfadj-btn no-print" onclick="openBfAdj(${idx})" title="${has ? 'ยอดปรับยกมา: ' + escapeHtml((aj.a > 0 ? '+' : '') + formatNumber(aj.a) + ' บาท ' + (aj.c > 0 ? '+' : '') + aj.c + ' ราย' + (aj.note ? ' · ' + aj.note : '')) : 'ปรับยอดยกมา (+/−) เช่น ตั๋วที่อนุมัติกลับมา'}" style="margin-left:3px;border:1px solid ${has ? '#d97706' : '#a7f3d0'};background:${has ? '#fef3c7' : '#fff'};color:${has ? '#92400e' : '#047857'};border-radius:5px;padding:0 4px;font-size:10px;font-weight:700;line-height:14px;height:16px !important;min-height:0 !important;min-width:0 !important;vertical-align:middle;cursor:pointer">${has ? 'ปรับ' : '±'}</button>`; })() : ''}
+                            return `<button type="button" class="bfadj-btn no-print" onclick="openBfAdj(${idx})" title="${has ? 'ยอดปรับยกมา: ' + escapeHtml((aj.a > 0 ? '+' : '') + formatNumber(aj.a) + ' บาท ' + (aj.c > 0 ? '+' : '') + aj.c + ' ราย' + (aj.x ? ' (แก้ยอดให้ตรง ไม่รวมใน ย/ม)' : '') + (aj.note ? ' · ' + aj.note : '')) : 'ปรับยอดยกมา (+/−) เช่น ตั๋วที่อนุมัติกลับมา'}" style="margin-left:3px;border:1px solid ${has ? '#d97706' : '#a7f3d0'};background:${has ? '#fef3c7' : '#fff'};color:${has ? '#92400e' : '#047857'};border-radius:5px;padding:0 4px;font-size:10px;font-weight:700;line-height:14px;height:16px !important;min-height:0 !important;min-width:0 !important;vertical-align:middle;cursor:pointer">${has ? (aj.x ? 'แก้' : 'ปรับ') : '±'}</button>`; })() : ''}
                     </td>
                     <td class="border border-slate-300 p-0.5 bg-emerald-50/50">
                         <input type="text" value="${bfCountVal}" placeholder="จำนวนราย"

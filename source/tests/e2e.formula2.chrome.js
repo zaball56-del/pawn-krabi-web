@@ -16,7 +16,7 @@ async function RUN(arg){ const seed0=arg.seed, NDAYS=arg.days; const tick=()=>ne
   const NAMES=thaiMonths.slice(), RED=['ถ','ส','พ','ผ'], T=['ถ','ส','พ','ผ','ถ','ส','','ต'];
   const fmtD=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const days=[]; let d=new Date(2026,5,1,12); while(days.length<NDAYS){ d.setDate(d.getDate()+1); if(d.getDay()===0||d.getDay()===6) continue; days.push(fmtD(d)); }
-  const ev={}, stat={rows:0,red:0,blank:0,ff:0,add:0,adj:0,sor2:0,retro:0};
+  const ev={}, stat={rows:0,red:0,blank:0,ff:0,add:0,adj:0,fix:0,sor2:0,retro:0};
   const SUM=k=>db[k].data['สรุปประจำวัน'];
   const openDay=k=>{ currentDate=k; getCurrentDayData(); syncBroughtForwardForDate(k,false); renderTable(); };
   const setPledge=k=>{ const dd=db[k], s=SUM(k); s[1].count=dd.sor2?dd.sor2.n:''; s[1].amount=dd.sor2?dd.sor2.amt:''; dd.balanceManual=false; updateSummaryColumn(); renderTable(); };
@@ -32,7 +32,7 @@ async function RUN(arg){ const seed0=arg.seed, NDAYS=arg.days; const tick=()=>ne
     if(i>0&&rnd()<0.15){ const p=present(k); if(p.length>2){ const [m,ix]=p[ri(p.length)]; removeMonthAt(ix); if(db[k].forfeit&&db[k].forfeit[m]){ ev[k].ff.push(m); stat.ff++; } } }
     if(i>0&&rnd()<0.2){ let ei=db[k].months.indexOf(''); if(ei<0){ addMonthCol(); ei=db[k].months.indexOf(''); }
       const cand=NAMES.filter(m=>!db[k].months.includes(m)); if(cand.length){ updateMonthName(ei,cand[ri(cand.length)]); stat.add++; } }
-    if(i>0&&rnd()<0.2){ const p=present(k); const [m,ix]=p[ri(p.length)]; const a=r2((rnd()-0.3)*20000), c=ri(5)-1; applyBfAdj(ix,String(a),String(c),'สุ่ม'); ev[k].adj[m]={a,c}; stat.adj++; }
+    if(i>0&&rnd()<0.2){ const p=present(k); const [m,ix]=p[ri(p.length)]; const a=r2((rnd()-0.3)*20000), c=ri(5)-1, fx=rnd()<0.35; applyBfAdj(ix,String(a),String(c),'สุ่ม',fx); ev[k].adj[m]={a,c,x:fx}; stat.adj++; if(fx) stat.fix++; }
     present(k).forEach(([m])=>fillRows(k,i,m));
     if(rnd()<0.5){ const p=present(k); db[k].sor2={mn:p[ri(p.length)][0],n:1+ri(6),amt:r2(rnd()*50000)}; stat.sor2++; }
     saveDB(); setPledge(k); }
@@ -43,7 +43,7 @@ async function RUN(arg){ const seed0=arg.seed, NDAYS=arg.days; const tick=()=>ne
       e.ff.forEach(m=>{ const x=st[m]||{a:0,c:0}; delta.a=r2(delta.a-x.a); delta.c-=x.c; delete st[m]; });
       dd.months.forEach((m,ix)=>{ if(!m) return;
         const base=i===0?{a:num(dd.bf[ix]),c:num(dd.bfCount[ix])}:(st[m]?{a:st[m].a,c:st[m].c}:{a:0,c:0});
-        const adj=e.adj[m]||{a:0,c:0}; delta.a=r2(delta.a+adj.a); delta.c+=adj.c;
+        const adj=e.adj[m]||{a:0,c:0}; if(!adj.x){ delta.a=r2(delta.a+adj.a); delta.c+=adj.c; }   /* แก้ยอดให้ตรง: ไม่เข้า ย/ม */
         const bf={a:r2(base.a+adj.a),c:base.c+adj.c};
         let ra=0, rc=0; (dd.data[m]||[]).forEach(x=>{ if(!x) return; const ty=String(x.type||'').trim(), tk=String(x.ticket||'').trim(), am=num(x.amount); if(RED.includes(ty)&&(tk!==''||am!==0)){ ra=r2(ra+am); rc++; } });
         const add=(dd.sor2&&dd.sor2.mn===m)?{a:r2(dd.sor2.amt),c:dd.sor2.n}:{a:0,c:0};
@@ -61,9 +61,9 @@ async function RUN(arg){ const seed0=arg.seed, NDAYS=arg.days; const tick=()=>ne
         const ca=getMonthCarriedBalance(k,m), cc=getMonthCarriedCount(k,m);
         if(!near(ca,x.carry[m].a)||cc!==x.carry[m].c) bad.push(tag+' '+k+' '+m+' ยกไป '+ca+'/'+cc+' ควร '+x.carry[m].a+'/'+x.carry[m].c); });
       [['ย/ม',0,x.ym],['ไถ่ถอน',2,x.red],['คงเหลือ',3,x.bal]].forEach(([lb,r,e])=>{ if(!near(num(s[r].amount),e.a)||num(s[r].count)!==e.c) bad.push(tag+' '+k+' '+lb+' '+s[r].amount+'/'+s[r].count+' ควร '+e.a+'/'+e.c); });
-      if(!near(x.bal.a,x.sc.a)||x.bal.c!==x.sc.c) bad.push(tag+' '+k+' (oracle) คงเหลือ≠ยกไปรวม');
+      /* ส่วนต่าง (ยกไปรวม − คงเหลือ) ต้องเท่ากับที่ตัวคำนวณอิสระได้ (มาจาก "แก้ยอดให้ตรง" เท่านั้น ไม่มี = 0) */
       let ma=0, mc=0; dd.months.forEach(m=>{ if(!m) return; ma=r2(ma+getMonthCarriedBalance(k,m)); mc+=getMonthCarriedCount(k,m); });
-      if(!near(num(s[3].amount),ma)||num(s[3].count)!==mc) bad.push(tag+' '+k+' คงเหลือในแอป '+s[3].amount+'/'+s[3].count+' ≠ ยกไปรวม '+ma+'/'+mc);
+      if(!near(r2(ma-num(s[3].amount)),r2(x.sc.a-x.bal.a))||mc-num(s[3].count)!==x.sc.c-x.bal.c) bad.push(tag+' '+k+' ส่วนต่างยกไปรวม−คงเหลือในแอป '+r2(ma-num(s[3].amount))+'/'+(mc-num(s[3].count))+' ควร '+r2(x.sc.a-x.bal.a)+'/'+(x.sc.c-x.bal.c));
       dd.bf.forEach(v=>{ if(typeof v==='number'&&Math.abs(v*100-Math.round(v*100))>1e-6) bad.push(tag+' '+k+' ทศนิยมเพี้ยน '+v); }); });
     return {bad,cells}; };
 
@@ -75,7 +75,7 @@ async function RUN(arg){ const seed0=arg.seed, NDAYS=arg.days; const tick=()=>ne
     if(kind===0){ rows.push({type:'ถ',ticket:String(90000+t),book:'1',amount:String(r2(rnd()*5000)),count:'',origIdx:rows.length,timestamp:''}); }
     else if(kind===1){ const j=rows.findIndex(x=>x&&x.ticket); if(j>=0) rows[j].amount=String(r2(rnd()*9000)); }
     else if(kind===2){ const j=rows.findIndex(x=>x&&x.ticket); if(j>=0) rows[j].type=RED.includes(rows[j].type)?'ต':'ส'; }
-    else { if(!(db[k].forfeit&&Object.keys(db[k].forfeit).length)||true){ const a=r2((rnd()-0.5)*8000), c=ri(3)-1; applyBfAdj(ix,String(a),String(c),'แก้ย้อนหลัง'); ev[k].adj[m]={a,c}; } }
+    else { if(!(db[k].forfeit&&Object.keys(db[k].forfeit).length)||true){ const a=r2((rnd()-0.5)*8000), c=ri(3)-1, fx=rnd()<0.5; applyBfAdj(ix,String(a),String(c),'แก้ย้อนหลัง',fx); ev[k].adj[m]={a,c,x:fx}; } }
     saveDB(); renderTable(); recalculateFutureBroughtForwardBalances(k); stat.retro++;
     for(const kk of days.slice(i)){ openDay(kk); setPledge(kk); await tick(); } }
   R.retro=cmp('แก้ย้อนหลัง');
@@ -94,7 +94,7 @@ async function RUN(arg){ const seed0=arg.seed, NDAYS=arg.days; const tick=()=>ne
     await pg.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort()); await pg.goto(URL,{waitUntil:'domcontentloaded'}); await sleep(2500);
     await pg.evaluate(()=>{ document.querySelectorAll('#login-modal').forEach(e=>e.style.display='none'); });
     const r=await pg.evaluate(RUN,{seed,days:DAYS});
-    const s=r.stat; console.log(`   seed ${seed}: ${DAYS} วัน · แถว ${s.rows} (มีประเภทแต่ว่าง ${s.blank}) · สธ.2 ${s.sor2} · เพิ่มเดือน ${s.add} · ตัดหลุด ${s.ff} · ยอดปรับ ${s.adj} · แก้ย้อนหลัง ${s.retro}`);
+    const s=r.stat; console.log(`   seed ${seed}: ${DAYS} วัน · แถว ${s.rows} (มีประเภทแต่ว่าง ${s.blank}) · สธ.2 ${s.sor2} · เพิ่มเดือน ${s.add} · ตัดหลุด ${s.ff} · ยอดปรับ ${s.adj} (แก้ยอดให้ตรง ${s.fix}) · แก้ย้อนหลัง ${s.retro}`);
     for(const ph of ['build','retro','force']){ const x=r.R[ph]; total+=x.cells; ok(!x.bad.length,`seed ${seed} · ${ph}: ${x.cells} ช่องเดือน-วัน ตรงกับตัวคำนวณอิสระ`+(x.bad.length?' · '+x.bad.length+' จุด: '+x.bad.slice(0,4).join(' | '):'')); }
     ok(!r.ck.length,`seed ${seed} · ตัวตรวจความสอดคล้องไม่เตือนผิด`+(r.ck.length?' · '+r.ck.slice(0,3).join(' | '):''));
     ok(!errs.length,`seed ${seed} · ไม่มี error `+errs.slice(0,2).join(' | '));
