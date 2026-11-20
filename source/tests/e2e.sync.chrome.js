@@ -172,6 +172,13 @@ const srvTickets=(docs)=>{ const j=((docs.ledger||{})[WID]||{})[FLD]; if(!j) ret
     const L=JSON.parse(await pg.evaluate(()=>JSON.stringify(window.__srv.docs.ledger)));
     ok(r.y==='1110,2222,3333'&&r.bf===97400&&JSON.parse(L[WID][FLD]).bf[0]===97400,'7.0 รวมตอนส่ง: ไถ่ครบ 3 ใบ และยกมาวันนี้ = 97,400 ทั้งในเครื่องและคลาวด์ (ได้ '+r.bf+' / คลาวด์ '+JSON.parse(L[WID][FLD]).bf[0]+')');
     ok(!pg.errs.length,'7.1 ไม่มี error '+pg.errs.join(' | ')); await ctx.close(); }
+  { /* 8) นำเข้า สธ.3 ลงเขียนตั๋ว โดยยังไม่เคยเปิดหน้าเขียนตั๋ว → ต้องส่งขึ้นคลาวด์ (เครื่องอื่นเห็น) */
+    const ctx=await b.newContext(); const pg=await open(ctx,'{}');
+    const before=await pg.evaluate(()=>tkwSyncState().on);
+    await pg.evaluate(()=>tkwImportS3('2026-11-20',[{month:11,ticket:'7701',book:'240',amount:2500}])); await sleep(6000);
+    const srv=await pg.evaluate(()=>{ const t=(window.__srv.docs.tkw||{})['2026-11']; return t?JSON.stringify(t).includes('7701'):false; });
+    ok(!before&&srv,'8.0 นำเข้า สธ.3 โดยไม่เปิดหน้าเขียนตั๋ว → ตั๋วขึ้นคลาวด์ (เดิมค้างในเครื่อง)');
+    ok(!pg.errs.length,'8.1 ไม่มี error '+pg.errs.join(' | ')); await ctx.close(); }
   await b.close();
   console.log(fail?`❌ ล้มเหลว ${fail}`:'✅ ผ่านทั้งหมด'); process.exit(fail?1:0);
 })();
