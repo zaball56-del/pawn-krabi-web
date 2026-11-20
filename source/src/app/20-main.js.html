@@ -808,6 +808,14 @@
         // ดึงยอดยกมาของแต่ละเดือนจากวันก่อนหน้าล่าสุดที่มีข้อมูล แล้วรวมเข้า ย/ม รายวัน
         // เมื่อเปิด/รีเฟรชวันปัจจุบัน ให้ forceUpdate เพื่อไม่ใช้ยอดยกมาค้างจากการบันทึกครั้งก่อน
         // จับคู่เดือนด้วยชื่อเดือน ไม่ใช่ตำแหน่งคอลัมน์
+        // ยอดปรับยกมา (+/−) ที่ผู้ใช้บันทึกเอง เช่น ตั๋วที่หักไปแล้วแต่อนุมัติกลับมา
+        // เก็บแยกตามชื่อเดือนใน db[วัน].bfAdj จึงไม่ถูกเขียนทับเมื่อระบบคำนวณยกมาใหม่ (ไม่มียอดปรับ = สูตรเดิมทุกประการ)
+        function getBfAdj(dateStr, monthName) {
+            const d = db[dateStr];
+            const x = (d && d.bfAdj && monthName) ? d.bfAdj[monthName] : null;
+            return x ? { a: roundMoney(cleanNumberString(x.a)), c: cleanNumberString(x.c), note: String(x.note || ''), at: x.at || '' } : { a: 0, c: 0, note: '', at: '' };
+        }
+
         function syncBroughtForwardForDate(dateStr, forceUpdate = false) {
             const day = db[dateStr];
             if (!day || !Array.isArray(day.months)) return false;
@@ -824,9 +832,12 @@
                 day.months.forEach((monthName, idx) => {
                     if (!monthName) return;
                     const srcDate = getPrevDateForMonth(dateStr, monthName);
-                    if (!srcDate) return;
-                    const carried = getMonthCarriedBalance(srcDate, monthName);
-                    const carriedCount = getMonthCarriedCount(srcDate, monthName);
+                    const adj = getBfAdj(dateStr, monthName);
+                    if (!srcDate && !adj.a && !adj.c) return;
+                    const baseAmt = srcDate ? getMonthCarriedBalance(srcDate, monthName) : 0;
+                    const baseCnt = srcDate ? getMonthCarriedCount(srcDate, monthName) : 0;
+                    const carried = (adj.a || adj.c) ? roundMoney(baseAmt + adj.a) : baseAmt;
+                    const carriedCount = (adj.a || adj.c) ? baseCnt + adj.c : baseCnt;
                     // ป้องกันข้อมูลยอดยกมาที่ผู้ใช้บันทึกไว้หายเมื่อรีเฟรช:
                     // ตอนเปิดหน้าให้เติมเฉพาะช่องว่าง/ศูนย์ แต่เมื่อแก้ข้อมูลย้อนหลัง
                     // ให้ forceUpdate=true เพื่อส่งยอดใหม่ไปยังวันถัดไป
@@ -1080,8 +1091,9 @@
                     if (!monthName) return;
                     const srcDate = getPrevDateForMonth(currentDate, monthName);
                     const previousHasMonth = !!srcDate;
-                    const carried = previousHasMonth ? getMonthCarriedBalance(srcDate, monthName) : null;
-                    const carriedCount = previousHasMonth ? getMonthCarriedCount(srcDate, monthName) : null;
+                    const adj = getBfAdj(currentDate, monthName);
+                    const carried = previousHasMonth ? roundMoney(getMonthCarriedBalance(srcDate, monthName) + adj.a) : null;
+                    const carriedCount = previousHasMonth ? getMonthCarriedCount(srcDate, monthName) + adj.c : null;
                     rows.push({ monthName, idx, previousHasMonth, carried, carriedCount, srcDate, current: cleanNumberString(dayData.bf?.[idx] ?? 0) });
                 });
                 pendingBroughtForwardImport = { date: currentDate, previousDate, rows };
@@ -1196,11 +1208,94 @@
             if (!confirm(`ลบคอลัมน์เดือน${m || ' (ยังไม่เลือกเดือน)'} ออกจากวันนี้ใช่หรือไม่?\nคอลัมน์ทางขวาจะเลื่อนมาแทน (วันก่อนหน้าไม่เปลี่ยน)`)) return;
             ['months', 'bf', 'bfCount', 'customTotals', 'customCarried'].forEach(f => { if (Array.isArray(dayData[f]) && dayData[f].length > colIdx) dayData[f].splice(colIdx, 1); });
             if (m && dayData.data && dayData.data[m] && !dayData.months.includes(m)) delete dayData.data[m];
+            if (m && dayData.bfAdj && dayData.bfAdj[m] && !dayData.months.includes(m)) delete dayData.bfAdj[m];
             saveDB();
             recalculateFutureBroughtForwardBalances(currentDate);
             renderTable();
             try { if (window.__audit) window.__audit('ลบคอลัมน์เดือน', m || '(ว่าง)'); } catch (e) {}
             showToast(`ลบคอลัมน์เดือน${m || 'ว่าง'}แล้ว`);
+        }
+
+        // ฐานยกมา (ไม่รวมยอดปรับ): จากวันล่าสุดที่มีเดือนนี้ หรือถ้าไม่มี = ยอดที่กรอกเองลบยอดปรับเดิม
+        function bfAdjBase(dayData, colIdx) {
+            const m = dayData.months[colIdx];
+            const src = m ? getPrevDateForMonth(currentDate, m) : null;
+            const old = getBfAdj(currentDate, m);
+            if (src) return { a: getMonthCarriedBalance(src, m), c: getMonthCarriedCount(src, m), src };
+            return { a: roundMoney(cleanNumberString(dayData.bf?.[colIdx] ?? 0) - old.a), c: cleanNumberString(dayData.bfCount?.[colIdx] ?? 0) - old.c, src: '' };
+        }
+
+        function applyBfAdj(colIdx, amount, count, note) {
+            const dayData = getCurrentDayData();
+            const m = dayData.months[colIdx];
+            if (!m) return false;
+            const base = bfAdjBase(dayData, colIdx);
+            const a = roundMoney(cleanNumberString(amount)), c = cleanNumberString(count);
+            const old = getBfAdj(currentDate, m);
+            if (!dayData.bfAdj || typeof dayData.bfAdj !== 'object') dayData.bfAdj = {};
+            if (a || c) dayData.bfAdj[m] = { a, c, note: String(note || '').trim(), at: new Date().toISOString() };
+            else delete dayData.bfAdj[m];
+            if (!Object.keys(dayData.bfAdj).length) delete dayData.bfAdj;
+            if (!Array.isArray(dayData.bf)) dayData.bf = new Array(dayData.months.length).fill(0);
+            if (!Array.isArray(dayData.bfCount)) dayData.bfCount = new Array(dayData.months.length).fill(0);
+            dayData.bf[colIdx] = roundMoney(base.a + a);
+            dayData.bfCount[colIdx] = base.c + c;
+            saveDB();
+            syncDailyOpeningFromMonthlyBF(currentDate, true);
+            recalculateFutureBroughtForwardBalances(currentDate);
+            renderTable();
+            try { if (window.__audit) window.__audit(a || c ? 'ปรับยอดยกมา' : 'ล้างยอดปรับยกมา', `เดือน${m} ${a || c ? (a > 0 ? '+' : '') + formatNumber(a) + ' บาท ' + (c > 0 ? '+' : '') + c + ' ราย' : '(เดิม ' + formatNumber(old.a) + ' บาท ' + old.c + ' ราย)'}${note ? ' · ' + note : ''}`); } catch (e) {}
+            showToast(a || c ? `ปรับยอดยกมาเดือน${m}แล้ว` : `ล้างยอดปรับยกมาเดือน${m}แล้ว`);
+            return true;
+        }
+
+        function openBfAdj(colIdx) {
+            const dayData = getCurrentDayData();
+            const m = dayData.months[colIdx];
+            if (!m) { alert('กรุณาเลือกชื่อเดือนก่อน'); return; }
+            const base = bfAdjBase(dayData, colIdx);
+            const cur = getBfAdj(currentDate, m);
+            let ov = document.getElementById('bfadj-modal');
+            if (ov) ov.remove();
+            ov = document.createElement('div');
+            ov.id = 'bfadj-modal';
+            ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'ปรับยอดยกมา');
+            ov.className = 'no-print';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+            const inp = 'width:100%;height:40px;border:1.5px solid #cbd5e1;border-radius:10px;padding:0 10px;font:600 15px Sarabun,sans-serif;color:#0f172a;background:#fff;text-align:right';
+            ov.innerHTML = `<div style="background:#fff;color:#0f172a;border-radius:16px;max-width:420px;width:100%;padding:18px 20px;box-shadow:0 20px 50px rgba(0,0,0,.3);font-family:Sarabun,sans-serif">
+                <div style="font-size:17px;font-weight:800;margin-bottom:2px">ปรับยอดยกมา · เดือน${escapeHtml(m)}</div>
+                <div style="font-size:12px;color:#64748b;margin-bottom:12px">วันที่ ${escapeHtml(currentDate)} · ใช้กรณีตั๋วที่หักไปแล้วแต่อนุมัติกลับมา (ใส่ติดลบได้)</div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px dashed #e2e8f0"><span>ยกมาจาก${base.src ? 'วันที่ ' + escapeHtml(base.src) : 'ที่กรอกไว้'}</span><b>${formatNumber(base.c) || 0} ราย · ${formatNumber(base.a) || 0} บาท</b></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+                  <label style="font-size:13px;font-weight:700">ปรับจำนวนราย (+/−)<input id="bfadj-c" inputmode="numeric" style="${inp}" value="${cur.c || ''}" placeholder="เช่น 1"></label>
+                  <label style="font-size:13px;font-weight:700">ปรับจำนวนเงิน (+/−)<input id="bfadj-a" inputmode="decimal" style="${inp}" value="${cur.a || ''}" placeholder="เช่น 5000"></label>
+                </div>
+                <label style="display:block;font-size:13px;font-weight:700;margin-top:10px">หมายเหตุ (เลขตั๋ว/เหตุผล)<input id="bfadj-n" style="${inp};text-align:left" value="${escapeHtml(cur.note)}" placeholder="เช่น ตั๋ว 601 อนุมัติกลับ"></label>
+                <div id="bfadj-p" style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#ecfdf5;color:#065f46;font-weight:800;font-size:15px"></div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
+                  ${cur.a || cur.c ? '<button type="button" id="bfadj-clr" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid #fca5a5;background:#fff;color:#b91c1c;font:700 14px Sarabun,sans-serif;cursor:pointer;margin-right:auto">ล้างยอดปรับ</button>' : ''}
+                  <button type="button" id="bfadj-x" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font:700 14px Sarabun,sans-serif;cursor:pointer">ยกเลิก</button>
+                  <button type="button" id="bfadj-ok" style="height:40px;padding:0 16px;border-radius:10px;border:0;background:#047857;color:#fff;font:700 14px Sarabun,sans-serif;cursor:pointer">บันทึก</button>
+                </div></div>`;
+            document.body.appendChild(ov);
+            const g = id => document.getElementById(id);
+            const val = id => String(g(id).value || '').replace(/,/g, '').trim();
+            const bad = v => v !== '' && !/^[+-]?\d+(\.\d+)?$/.test(v);
+            const upd = () => { const a = val('bfadj-a'), c = val('bfadj-c');
+                if (bad(a) || bad(c)) { g('bfadj-p').textContent = 'กรอกเป็นตัวเลข (ติดลบได้)'; g('bfadj-ok').disabled = true; return; }
+                g('bfadj-ok').disabled = false;
+                g('bfadj-p').textContent = 'ยกมาใหม่ = ' + (formatNumber(base.c + cleanNumberString(c)) || 0) + ' ราย · ' + (formatNumber(roundMoney(base.a + cleanNumberString(a))) || 0) + ' บาท'; };
+            const close = () => { ov.remove(); };
+            g('bfadj-a').oninput = upd; g('bfadj-c').oninput = upd; upd();
+            g('bfadj-x').onclick = close;
+            ov.addEventListener('click', e => { if (e.target === ov) close(); });
+            ov.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+            g('bfadj-ok').onclick = () => { const a = val('bfadj-a'), c = val('bfadj-c'), n = g('bfadj-n').value; if (bad(a) || bad(c)) return;
+                if (!cleanNumberString(a) && !cleanNumberString(c) && !(cur.a || cur.c)) { close(); return; }
+                close(); applyBfAdj(colIdx, a, c, n); };
+            if (g('bfadj-clr')) g('bfadj-clr').onclick = () => { if (!confirm('ล้างยอดปรับยกมาของเดือน' + m + '?')) return; close(); applyBfAdj(colIdx, 0, 0, ''); };
+            setTimeout(() => { try { g('bfadj-c').focus(); } catch (e) {} }, 30);
         }
 
         function trimEmptyRows() {
@@ -1343,8 +1438,9 @@
                 const previousDate = getLatestAvailablePreviousDate(currentDate);
                 const previousDay = previousDate ? db[previousDate] : null;
                 const hasPreviousMonth = previousDay && Array.isArray(previousDay.months) && previousDay.months.includes(val);
-                dayData.bf[colIdx] = hasPreviousMonth ? getMonthCarriedBalance(previousDate, val) : 0;
-                dayData.bfCount[colIdx] = hasPreviousMonth ? getMonthCarriedCount(previousDate, val) : 0;
+                const adjN = getBfAdj(currentDate, val);
+                dayData.bf[colIdx] = roundMoney((hasPreviousMonth ? getMonthCarriedBalance(previousDate, val) : 0) + adjN.a);
+                dayData.bfCount[colIdx] = (hasPreviousMonth ? getMonthCarriedCount(previousDate, val) : 0) + adjN.c;
                 if (!dayData.data[val]) {
                     dayData.data[val] = new Array(dayData.totalRows).fill(null).map((_, i) => ({ type: '', ticket: '', amount: '', count: '', origIdx: i, timestamp: '' }));
                 }
@@ -3010,7 +3106,8 @@
                 let bfVal = (dayData.bf && dayData.bf[idx] !== undefined && dayData.bf[idx] !== 0) ? formatNumber(dayData.bf[idx]) : '';
                 trBfRow += `
                     <td class="border border-slate-300 p-1 text-left text-[10px] font-normal text-emerald-900 bg-emerald-50/50">
-                        <span class="font-bold">ยกมา</span>
+                        <span class="font-bold">ยกมา</span>${m ? (() => { const aj = getBfAdj(currentDate, m); const has = aj.a || aj.c;
+                            return `<button type="button" class="bfadj-btn no-print" onclick="openBfAdj(${idx})" title="${has ? 'ยอดปรับยกมา: ' + escapeHtml((aj.a > 0 ? '+' : '') + formatNumber(aj.a) + ' บาท ' + (aj.c > 0 ? '+' : '') + aj.c + ' ราย' + (aj.note ? ' · ' + aj.note : '')) : 'ปรับยอดยกมา (+/−) เช่น ตั๋วที่อนุมัติกลับมา'}" style="margin-left:3px;border:1px solid ${has ? '#d97706' : '#a7f3d0'};background:${has ? '#fef3c7' : '#fff'};color:${has ? '#92400e' : '#047857'};border-radius:5px;padding:0 4px;font-size:10px;font-weight:700;line-height:14px;height:16px !important;min-height:0 !important;min-width:0 !important;vertical-align:middle;cursor:pointer">${has ? 'ปรับ' : '±'}</button>`; })() : ''}
                     </td>
                     <td class="border border-slate-300 p-0.5 bg-emerald-50/50">
                         <input type="text" value="${bfCountVal}" placeholder="จำนวนราย"

@@ -109,7 +109,7 @@
         if(typeof window[name]!=='function') return; var o=window[name];
         window[name]=function(){ var k=dateFn?dateFn.apply(this,arguments):currentDate; if(k&&isLocked(k)){ window.__askUnlock(null,k); return; } return o.apply(this,arguments); };
     }
-    ['addRow','deleteRow','clearCurrentDayData','addMonthCol','removeMonthCol','removeMonthAt','submitQuickScan','qsUnlink','auditEditRow','auditClearRow','applyBroughtForwardImport'].forEach(function(n){ gate(n); });
+    ['addRow','deleteRow','clearCurrentDayData','addMonthCol','removeMonthCol','removeMonthAt','openBfAdj','applyBfAdj','submitQuickScan','qsUnlink','auditEditRow','auditClearRow','applyBroughtForwardImport'].forEach(function(n){ gate(n); });
     gate('commitPDFImport',function(){ var e=document.getElementById('pdf-import-date'); return (e&&e.value)||currentDate; });
     ['applyPDFCompareFullCorrection','movePDFCompareMonth','applyPDFCompareCorrection'].forEach(function(n){ gate(n,function(){ var e=document.getElementById('pdf-compare-date'); return (e&&e.value)||currentDate; }); });
     /* ช่องกรอกในตาราง: ถ้าไม่มีการเปลี่ยนค่าจริงจะไม่ถาม (กันถาม PIN ตอนแค่คลิกเข้า-ออกช่อง) */
