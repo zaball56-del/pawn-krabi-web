@@ -1178,6 +1178,31 @@
             }
         }
 
+        // ลบคอลัมน์เดือนที่เลือก (เช่น เดือนที่ตั๋วหมดแล้ว) แล้วเลื่อนคอลัมน์ทางขวามาแทน
+        // ไม่แตะสูตร: ยอดยกมาจับคู่ด้วยชื่อเดือนอยู่แล้ว · ลบได้เฉพาะเดือนที่ยกไปเป็น 0 และวันนี้ไม่มีรายการ
+        function removeMonthAt(colIdx) {
+            const dayData = getCurrentDayData();
+            if (!Array.isArray(dayData.months) || colIdx < 0 || colIdx >= dayData.months.length) return;
+            if (dayData.months.length <= 1) { alert('ต้องเหลือคอลัมน์เดือนไว้อย่างน้อย 1 คอลัมน์ครับ'); return; }
+            const m = dayData.months[colIdx];
+            if (m) {
+                const rows = (dayData.data && Array.isArray(dayData.data[m])) ? dayData.data[m] : [];
+                const used = rows.some(d => d && (String(d.type || '').trim() !== '' || String(d.ticket || '').trim() !== '' || cleanNumberString(d.amount) !== 0));
+                if (used) { alert(`เดือน${m} มีรายการของวันนี้อยู่ ลบคอลัมน์ไม่ได้\nควรลบเดือนที่หมดแล้วตอนเริ่มวันใหม่ ก่อนลงรายการ`); return; }
+                const amt = getMonthCarriedBalance(currentDate, m);
+                const cnt = getMonthCarriedCount(currentDate, m);
+                if (amt !== 0 || cnt !== 0) { alert(`เดือน${m} ยังมียอดยกไป ${formatNumber(amt)} บาท (${formatNumber(cnt)} ราย) ลบคอลัมน์ไม่ได้\nต้องไถ่ถอน/ส่งขายให้ยอดเป็น 0 ก่อน`); return; }
+            }
+            if (!confirm(`ลบคอลัมน์เดือน${m || ' (ยังไม่เลือกเดือน)'} ออกจากวันนี้ใช่หรือไม่?\nคอลัมน์ทางขวาจะเลื่อนมาแทน (วันก่อนหน้าไม่เปลี่ยน)`)) return;
+            ['months', 'bf', 'bfCount', 'customTotals', 'customCarried'].forEach(f => { if (Array.isArray(dayData[f]) && dayData[f].length > colIdx) dayData[f].splice(colIdx, 1); });
+            if (m && dayData.data && dayData.data[m] && !dayData.months.includes(m)) delete dayData.data[m];
+            saveDB();
+            recalculateFutureBroughtForwardBalances(currentDate);
+            renderTable();
+            try { if (window.__audit) window.__audit('ลบคอลัมน์เดือน', m || '(ว่าง)'); } catch (e) {}
+            showToast(`ลบคอลัมน์เดือน${m || 'ว่าง'}แล้ว`);
+        }
+
         function trimEmptyRows() {
             let dayData = getCurrentDayData();
             let maxUsedIdx = 3;
@@ -2949,9 +2974,12 @@
                 let options = `<option value="" ${m === '' ? 'selected' : ''}>เลือกเดือน</option>` + 
                               thaiMonths.map(mo => `<option value="${mo}" ${mo === m ? 'selected' : ''}>${mo}</option>`).join('');
                 tr1 += `<th colspan="3" class="border border-slate-300 p-1 bg-slate-200">
-                    <select onchange="updateMonthName(${idx}, this.value)" class="w-full bg-white border border-slate-300 rounded px-1 py-0.5 text-xs font-bold text-slate-800 focus:outline-none text-center">
+                    <div class="mcol-h" style="display:flex;gap:3px;align-items:center">
+                    <select onchange="updateMonthName(${idx}, this.value)" class="w-full bg-white border border-slate-300 rounded px-1 py-0.5 text-xs font-bold text-slate-800 focus:outline-none text-center" style="flex:1;min-width:0">
                         ${options}
                     </select>
+                    <button type="button" class="mcol-del no-print" onclick="removeMonthAt(${idx})" title="ลบคอลัมน์เดือนนี้ (เดือนที่ตั๋วหมดแล้ว)" aria-label="ลบคอลัมน์เดือน ${m || 'ว่าง'}" style="flex:none;width:26px;min-height:30px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#b91c1c;font-weight:700;font-size:13px;line-height:1;cursor:pointer">✕</button>
+                    </div>
                 </th>`;
 
                 tr2 += `
