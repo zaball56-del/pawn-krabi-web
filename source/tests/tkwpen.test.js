@@ -59,5 +59,21 @@ const type=(w,el,v)=>{ el.value=v; el.dispatchEvent(new w.Event('input',{bubbles
   ok(imp&&imp[4]==='b'&&pen(5,3)==='r','13 นำเข้า สธ.3 ได้สีปากกาปัจจุบัน แถวเดิมไม่เปลี่ยน');
   // โหลดซ้ำ: สียังอยู่
   const raw=w.localStorage.getItem('pawn_tkw_v1'); ok(JSON.parse(raw)[DAY].r[5][3][4]==='r','10 บันทึกลง localStorage');
+  // ยกเลิกปิดบัญชีครั้งล่าสุด (ครั้งที่ 2 → กลับเป็นครั้งที่ 1): เลข/สีปากกาถอย, แถวหลังปิด (น้ำเงิน) กลับเป็นแดง, แถวเดิมไม่เปลี่ยน
+  ok(!$(w,'tkw-pcancel').hidden,'14 ปุ่มยกเลิกโผล่เมื่อปิดบัญชีไปแล้ว');
+  const before=JSON.stringify(store(w).r.map(c=>c.map(x=>[x[0],x[1]])));
+  w.confirm=()=>false; $(w,'tkw-pcancel').click(); await wait(50);
+  ok(store(w).cn===2,'15 กดยกเลิกแต่ตอบไม่ใช่ → ไม่ทำอะไร');
+  w.confirm=()=>true; $(w,'tkw-pcancel').click(); await wait(50);
+  ok(store(w).cn===1&&store(w).pen==='b'&&$(w,'tkw-pclose').textContent==='ปิดบัญชีครั้งที่ 2','16 ยกเลิก → กลับเป็นปิดครั้งที่ 1 ปากกากลับเป็นสีที่เลือกไว้ก่อนปิด (น้ำเงิน) ปุ่มปิดเป็นครั้งที่ 2');
+  ok(pen(5,5)==='b'&&pen(5,3)==='r'&&pen(5,0)==='k','17 แถวเดิมทุกสีไม่เปลี่ยน');
+  ok(JSON.stringify(store(w).r.map(c=>c.map(x=>[x[0],x[1]])))===before,'18 ตัวเลข/ยอดทุกช่องไม่เปลี่ยน');
+  ok((store(w).cls||[]).length===1,'19 ประวัติเวลาปิดเหลือ 1 ครั้ง');
+  // ปิดใหม่ → ครั้งที่ 2 ตามปกติ
+  $(w,'tkw-pclose').click(); await wait(50);
+  ok(store(w).cn===2&&store(w).pen==='b','20 ปิดใหม่ได้ ครั้งที่ 2 น้ำเงินเหมือนเดิม');
+  // ยกเลิกจนหมด → ไม่มีรอบปิด ปุ่มยกเลิกซ่อน
+  $(w,'tkw-pcancel').click(); await wait(50); $(w,'tkw-pcancel').click(); await wait(50);
+  ok(store(w).cn===0&&!store(w).cl&&$(w,'tkw-pcancel').hidden&&$(w,'tkw-pclose').textContent==='ปิดบัญชีครั้งที่ 1'&&store(w).pen==='k'&&pen(5,3)==='k'&&pen(5,0)==='k','21 ยกเลิกครบ → กลับสภาพก่อนปิด (ปากกาดำ แถวที่เขียนหลังปิดกลับเป็นดำ) ปุ่มยกเลิกซ่อน');
   console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0);
 })();
