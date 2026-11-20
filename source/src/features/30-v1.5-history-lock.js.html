@@ -143,8 +143,8 @@
         keys.forEach(function(k,ki){
             var d=db[k], b=srow(d,3);
             if((!b.ea&&num(b.a)<0)||(!b.ec&&num(b.c)<0)) F.push({sev:'bad',date:k,t:'ยอดคงเหลือติดลบ',x:'คงเหลือ '+fmt(num(b.c))+' ราย / '+fmt(num(b.a))+' บาท'});
-            if(ki>0){ var pk=keys[ki-1], pb=srow(db[pk],3), o=srow(d,0);
-                if(!(pb.ea&&pb.ec)&&(Math.round(num(pb.a)*100)!==Math.round(num(o.a)*100)||num(pb.c)!==num(o.c)))
+            if(ki>0){ var pk=keys[ki-1], pb=srow(db[pk],3), o=srow(d,0), dl={a:0,c:0}; try{ if(typeof getDayOpeningDelta==='function') dl=getDayOpeningDelta(k); }catch(e){}   /* ยอดปรับยกมา/ตัดหลุดทั้งเดือน */
+                if(!(pb.ea&&pb.ec)&&(Math.round((num(pb.a)+dl.a)*100)!==Math.round(num(o.a)*100)||num(pb.c)+dl.c!==num(o.c)))
                     F.push({sev:'warn',date:k,t:'ย/ม ไม่ตรงกับคงเหลือของวันก่อนหน้า',x:'คงเหลือวันที่ '+thDate(pk)+' = '+fmt(num(pb.c))+' ราย / '+fmt(num(pb.a))+' บาท แต่ ย/ม วันนี้ = '+fmt(num(o.c))+' ราย / '+fmt(num(o.a))+' บาท (อาจแก้ย้อนหลังแล้วยังไม่คำนวณต่อ)'}); }
             var inc=[];
             (d.months||[]).forEach(function(m){ if(!m) return; (d.data[m]||[]).forEach(function(r,i){ if(!r) return; var ty=String(r.type||'').trim(); if(RED.indexOf(ty)<0) return; var tk=String(r.ticket||'').trim();

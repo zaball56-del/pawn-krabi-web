@@ -2471,13 +2471,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 totalAmount = cleanNumberString(prevBalance.amount ?? 0);
                 // ยอดปรับยกมาของวันนี้ (ตั๋วที่อนุมัติกลับ) เข้า ย/ม ด้วยวิธีเดียวกับยกมารายเดือน → คงเหลือตรงกับยกไปรวมทุกเดือน
                 // ไม่มียอดปรับ = สูตรเดิมทุกประการ
-                if (day.bfAdj && typeof day.bfAdj === 'object') {
-                    day.months.forEach(monthName => {
-                        if (!monthName) return;
-                        const adj = getBfAdj(dateStr, monthName);
-                        if (adj.a || adj.c) { totalCount += adj.c; totalAmount = roundMoney(totalAmount + adj.a); }
-                    });
-                }
+                // และยอดตัดทรัพย์หลุดทั้งเดือนออกจาก ย/ม
+                const delta = getDayOpeningDelta(dateStr);
+                if (delta.a || delta.c) { totalCount += delta.c; totalAmount = roundMoney(totalAmount + delta.a); }
             } else {
                 // ถ้าไม่มีสรุปคงเหลือของวันก่อนหน้า ให้ใช้ผลรวมยอดยกมารายเดือนเป็น fallback
                 day.months.forEach((monthName, idx) => {
@@ -2513,6 +2509,27 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             return x ? { a: roundMoney(cleanNumberString(x.a)), c: cleanNumberString(x.c), note: String(x.note || ''), at: x.at || '' } : { a: 0, c: 0, note: '', at: '' };
         }
 
+        // ตัดเป็นทรัพย์หลุดทั้งเดือน (ครบกำหนดตามกฎหมาย): เก็บใน db[วัน].forfeit[ชื่อเดือน] = {a,c}
+        function getForfeit(dateStr, monthName) {
+            const d = db[dateStr];
+            const x = (d && d.forfeit && monthName) ? d.forfeit[monthName] : null;
+            return x ? { a: roundMoney(cleanNumberString(x.a)), c: cleanNumberString(x.c), at: x.at || '' } : null;
+        }
+        // เดือนนี้ถูกตัดหลุดทั้งเดือนระหว่างวันต้นทางกับวันนี้หรือไม่ → ถ้าใช่ ฐานยกมาเป็น 0 (ไม่ดึงยอดก่อนหลุดกลับมา)
+        function forfeitedSince(monthName, srcDate, dateStr) {
+            if (!monthName || !srcDate) return false;
+            return Object.keys(db).some(k => k > srcDate && k < dateStr && db[k] && db[k].forfeit && db[k].forfeit[monthName]);
+        }
+        // ส่วนที่ ย/ม ต่างจากคงเหลือวันก่อน: + ยอดปรับยกมา (อนุมัติกลับ) − ยอดตัดหลุดทั้งเดือน · ไม่มีทั้งสองอย่าง = 0 (สูตรเดิม)
+        function getDayOpeningDelta(dateStr) {
+            const d = db[dateStr]; let a = 0, c = 0;
+            if (!d) return { a, c };
+            const months = Array.isArray(d.months) ? d.months : [];
+            if (d.bfAdj && typeof d.bfAdj === 'object') months.forEach(m => { if (!m) return; const x = getBfAdj(dateStr, m); a = roundMoney(a + x.a); c += x.c; });
+            if (d.forfeit && typeof d.forfeit === 'object') Object.keys(d.forfeit).forEach(m => { if (months.includes(m)) return; const x = getForfeit(dateStr, m); if (x) { a = roundMoney(a - x.a); c -= x.c; } });
+            return { a, c };
+        }
+
         function syncBroughtForwardForDate(dateStr, forceUpdate = false) {
             const day = db[dateStr];
             if (!day || !Array.isArray(day.months)) return false;
@@ -2531,8 +2548,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     const srcDate = getPrevDateForMonth(dateStr, monthName);
                     const adj = getBfAdj(dateStr, monthName);
                     if (!srcDate && !adj.a && !adj.c) return;
-                    const baseAmt = srcDate ? getMonthCarriedBalance(srcDate, monthName) : 0;
-                    const baseCnt = srcDate ? getMonthCarriedCount(srcDate, monthName) : 0;
+                    const ff = forfeitedSince(monthName, srcDate, dateStr);
+                    const baseAmt = (srcDate && !ff) ? getMonthCarriedBalance(srcDate, monthName) : 0;
+                    const baseCnt = (srcDate && !ff) ? getMonthCarriedCount(srcDate, monthName) : 0;
                     const carried = (adj.a || adj.c) ? roundMoney(baseAmt + adj.a) : baseAmt;
                     const carriedCount = (adj.a || adj.c) ? baseCnt + adj.c : baseCnt;
                     // ป้องกันข้อมูลยอดยกมาที่ผู้ใช้บันทึกไว้หายเมื่อรีเฟรช:
@@ -2787,7 +2805,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 dayData.months.forEach((monthName, idx) => {
                     if (!monthName) return;
                     const srcDate = getPrevDateForMonth(currentDate, monthName);
-                    const previousHasMonth = !!srcDate;
+                    const previousHasMonth = !!srcDate && !forfeitedSince(monthName, srcDate, currentDate);
                     const adj = getBfAdj(currentDate, monthName);
                     const carried = previousHasMonth ? roundMoney(getMonthCarriedBalance(srcDate, monthName) + adj.a) : null;
                     const carriedCount = previousHasMonth ? getMonthCarriedCount(srcDate, monthName) + adj.c : null;
@@ -2894,29 +2912,44 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             if (!Array.isArray(dayData.months) || colIdx < 0 || colIdx >= dayData.months.length) return;
             if (dayData.months.length <= 1) { alert('ต้องเหลือคอลัมน์เดือนไว้อย่างน้อย 1 คอลัมน์ครับ'); return; }
             const m = dayData.months[colIdx];
+            let forfeit = false, amt = 0, cnt = 0;
             if (m) {
                 const rows = (dayData.data && Array.isArray(dayData.data[m])) ? dayData.data[m] : [];
                 const used = rows.some(d => d && (String(d.type || '').trim() !== '' || String(d.ticket || '').trim() !== '' || cleanNumberString(d.amount) !== 0));
                 if (used) { alert(`เดือน${m} มีรายการของวันนี้อยู่ ลบคอลัมน์ไม่ได้\nควรลบเดือนที่หมดแล้วตอนเริ่มวันใหม่ ก่อนลงรายการ`); return; }
-                const amt = getMonthCarriedBalance(currentDate, m);
-                const cnt = getMonthCarriedCount(currentDate, m);
-                if (amt !== 0 || cnt !== 0) { alert(`เดือน${m} ยังมียอดยกไป ${formatNumber(amt)} บาท (${formatNumber(cnt)} ราย) ลบคอลัมน์ไม่ได้\nต้องไถ่ถอน/ส่งขายให้ยอดเป็น 0 ก่อน`); return; }
+                amt = getMonthCarriedBalance(currentDate, m);
+                cnt = getMonthCarriedCount(currentDate, m);
+                if (amt !== 0 || cnt !== 0) {
+                    const aj = getBfAdj(currentDate, m);
+                    if (aj.a || aj.c) { alert(`เดือน${m} มียอดปรับยกมาของวันนี้อยู่ ตัดหลุดทั้งเดือนวันนี้ไม่ได้\nล้างยอดปรับก่อน หรือทำในวันถัดไป`); return; }
+                    if (!confirm(`เดือน${m} ยังเหลือ ${formatNumber(cnt) || 0} ราย / ${formatNumber(amt) || 0} บาท\n\nตัดเป็น "ทรัพย์หลุด" ทั้งเดือนใช่หรือไม่?\n• ยอดนี้จะออกจากคงเหลือ (หัก ย/ม วันนี้)\n• คอลัมน์เดือนนี้ถูกเอาออก คอลัมน์ทางขวาเลื่อนมาแทน\n• ถ้ากดผิด: เลือกเดือนนี้กลับมาในวันเดียวกัน ยอดจะคืน`)) return;
+                    forfeit = true;
+                }
             }
-            if (!confirm(`ลบคอลัมน์เดือน${m || ' (ยังไม่เลือกเดือน)'} ออกจากวันนี้ใช่หรือไม่?\nคอลัมน์ทางขวาจะเลื่อนมาแทน (วันก่อนหน้าไม่เปลี่ยน)`)) return;
+            if (!forfeit && !confirm(`ลบคอลัมน์เดือน${m || ' (ยังไม่เลือกเดือน)'} ออกจากวันนี้ใช่หรือไม่?\nคอลัมน์ทางขวาจะเลื่อนมาแทน (วันก่อนหน้าไม่เปลี่ยน)`)) return;
             ['months', 'bf', 'bfCount', 'customTotals', 'customCarried'].forEach(f => { if (Array.isArray(dayData[f]) && dayData[f].length > colIdx) dayData[f].splice(colIdx, 1); });
             if (m && dayData.data && dayData.data[m] && !dayData.months.includes(m)) delete dayData.data[m];
             if (m && dayData.bfAdj && dayData.bfAdj[m] && !dayData.months.includes(m)) delete dayData.bfAdj[m];
+            if (forfeit) {
+                if (!dayData.forfeit || typeof dayData.forfeit !== 'object') dayData.forfeit = {};
+                dayData.forfeit[m] = { a: amt, c: cnt, at: new Date().toISOString() };
+            }
             saveDB();
+            if (forfeit) {
+                syncDailyOpeningFromMonthlyBF(currentDate, true);
+                try { updateDailyBalanceCalculator(); } catch (e) {}
+            }
             recalculateFutureBroughtForwardBalances(currentDate);
             renderTable();
-            try { if (window.__audit) window.__audit('ลบคอลัมน์เดือน', m || '(ว่าง)'); } catch (e) {}
-            showToast(`ลบคอลัมน์เดือน${m || 'ว่าง'}แล้ว`);
+            try { if (window.__audit) window.__audit(forfeit ? 'ตัดทรัพย์หลุดทั้งเดือน' : 'ลบคอลัมน์เดือน', forfeit ? `เดือน${m} ${formatNumber(cnt) || 0} ราย / ${formatNumber(amt) || 0} บาท` : (m || '(ว่าง)')); } catch (e) {}
+            showToast(forfeit ? `ตัดทรัพย์หลุดเดือน${m} ${formatNumber(cnt) || 0} ราย / ${formatNumber(amt) || 0} บาท แล้ว` : `ลบคอลัมน์เดือน${m || 'ว่าง'}แล้ว`);
         }
 
         // ฐานยกมา (ไม่รวมยอดปรับ): จากวันล่าสุดที่มีเดือนนี้ หรือถ้าไม่มี = ยอดที่กรอกเองลบยอดปรับเดิม
         function bfAdjBase(dayData, colIdx) {
             const m = dayData.months[colIdx];
-            const src = m ? getPrevDateForMonth(currentDate, m) : null;
+            const src0 = m ? getPrevDateForMonth(currentDate, m) : null;
+            const src = (src0 && !forfeitedSince(m, src0, currentDate)) ? src0 : null;
             const old = getBfAdj(currentDate, m);
             if (src) return { a: getMonthCarriedBalance(src, m), c: getMonthCarriedCount(src, m), src };
             return { a: roundMoney(cleanNumberString(dayData.bf?.[colIdx] ?? 0) - old.a), c: cleanNumberString(dayData.bfCount?.[colIdx] ?? 0) - old.c, src: '' };
@@ -3127,6 +3160,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             }
             let oldMonth = dayData.months[colIdx];
             dayData.months[colIdx] = val;
+            // เลือกเดือนที่เพิ่งตัดหลุดทั้งเดือนวันนี้กลับมา = ยกเลิกการตัดหลุด (ยอดกลับเข้าคงเหลือ)
+            let restoredForfeit = false;
+            if (val && dayData.forfeit && dayData.forfeit[val]) { delete dayData.forfeit[val]; if (!Object.keys(dayData.forfeit).length) delete dayData.forfeit; restoredForfeit = true; }
 
             // เมื่อเลือกเดือนอย่างชัดเจน ให้ดึงยอดยกมาของเดือนเดียวกันจากวันก่อนหน้า
             // ทั้งจำนวนรายและจำนวนเงิน โดยไม่คัดลอกแถวรายการของเดือนเก่ามาปะปน
@@ -3148,6 +3184,12 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             }
 
             saveDB();
+            if (restoredForfeit) {
+                syncDailyOpeningFromMonthlyBF(currentDate, true);
+                try { updateDailyBalanceCalculator(); } catch (e) {}
+                try { if (window.__audit) window.__audit('ยกเลิกตัดทรัพย์หลุดทั้งเดือน', 'เดือน' + val); } catch (e) {}
+                showToast('ยกเลิกการตัดทรัพย์หลุดเดือน' + val + ' แล้ว ยอดกลับเข้าคงเหลือ');
+            }
             recalculateFutureBroughtForwardBalances(currentDate);
             renderTable();
         }
@@ -4772,7 +4814,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     <select onchange="updateMonthName(${idx}, this.value)" class="w-full bg-white border border-slate-300 rounded px-1 py-0.5 text-xs font-bold text-slate-800 focus:outline-none text-center" style="flex:1;min-width:0">
                         ${options}
                     </select>
-                    <button type="button" class="mcol-del no-print" onclick="removeMonthAt(${idx})" title="ลบคอลัมน์เดือนนี้ (เดือนที่ตั๋วหมดแล้ว)" aria-label="ลบคอลัมน์เดือน ${m || 'ว่าง'}" style="flex:none;width:26px;min-height:30px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#b91c1c;font-weight:700;font-size:13px;line-height:1;cursor:pointer">✕</button>
+                    <button type="button" class="mcol-del no-print" onclick="removeMonthAt(${idx})" title="เอาคอลัมน์เดือนนี้ออก (ตั๋วหมดแล้ว หรือตัดเป็นทรัพย์หลุดทั้งเดือน)" aria-label="ลบคอลัมน์เดือน ${m || 'ว่าง'}" style="flex:none;width:26px;min-height:30px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#b91c1c;font-weight:700;font-size:13px;line-height:1;cursor:pointer">✕</button>
                     </div>
                 </th>`;
 
@@ -5907,8 +5949,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         keys.forEach(function(k,ki){
             var d=db[k], b=srow(d,3);
             if((!b.ea&&num(b.a)<0)||(!b.ec&&num(b.c)<0)) F.push({sev:'bad',date:k,t:'ยอดคงเหลือติดลบ',x:'คงเหลือ '+fmt(num(b.c))+' ราย / '+fmt(num(b.a))+' บาท'});
-            if(ki>0){ var pk=keys[ki-1], pb=srow(db[pk],3), o=srow(d,0);
-                if(!(pb.ea&&pb.ec)&&(Math.round(num(pb.a)*100)!==Math.round(num(o.a)*100)||num(pb.c)!==num(o.c)))
+            if(ki>0){ var pk=keys[ki-1], pb=srow(db[pk],3), o=srow(d,0), dl={a:0,c:0}; try{ if(typeof getDayOpeningDelta==='function') dl=getDayOpeningDelta(k); }catch(e){}   /* ยอดปรับยกมา/ตัดหลุดทั้งเดือน */
+                if(!(pb.ea&&pb.ec)&&(Math.round((num(pb.a)+dl.a)*100)!==Math.round(num(o.a)*100)||num(pb.c)+dl.c!==num(o.c)))
                     F.push({sev:'warn',date:k,t:'ย/ม ไม่ตรงกับคงเหลือของวันก่อนหน้า',x:'คงเหลือวันที่ '+thDate(pk)+' = '+fmt(num(pb.c))+' ราย / '+fmt(num(pb.a))+' บาท แต่ ย/ม วันนี้ = '+fmt(num(o.c))+' ราย / '+fmt(num(o.a))+' บาท (อาจแก้ย้อนหลังแล้วยังไม่คำนวณต่อ)'}); }
             var inc=[];
             (d.months||[]).forEach(function(m){ if(!m) return; (d.data[m]||[]).forEach(function(r,i){ if(!r) return; var ty=String(r.type||'').trim(); if(RED.indexOf(ty)<0) return; var tk=String(r.ticket||'').trim();
@@ -10791,7 +10833,7 @@ html #tkw-page .tabs{padding-bottom:8px !important}
         var f2=function(v){ try{ return formatNumber(v)||'0'; }catch(e){ return String(v); } };
         var same=(mc===kc)&&Math.abs(ma-ka)<0.01;
         out.push(same?{id:'bal',st:'ok',t:'คงเหลือตรงกับยอดยกไปทุกเดือน',d:f2(kc)+' ราย / '+f2(ka)+' บาท',btn:'',act:null}
-          :{id:'bal',st:'warn',t:'คงเหลือไม่ตรงกับยอดยกไปรวมทุกเดือน',d:'สรุปประจำวัน '+f2(kc)+' ราย / '+f2(ka)+' · ยกไปรวม '+f2(mc)+' ราย / '+f2(ma)+' (ต่าง '+f2(mc-kc)+' ราย / '+f2(roundMoney(ma-ka))+') — ตรวจยอดรับจำนำ ยอดยกมา หรือคอลัมน์เดือนที่ขาด'+(function(){ var ac=0,aa=0; try{ Object.keys(d1.bfAdj||{}).forEach(function(m){ if((d1.months||[]).indexOf(m)<0) return; var x=getBfAdj(currentDate,m); ac+=x.c; aa=roundMoney(aa+x.a); }); }catch(e){} return (ac||aa)?' · วันนี้มียอดปรับยกมา '+(ac>0?'+':'')+f2(ac)+' ราย / '+(aa>0?'+':'')+f2(aa)+' บาท (รวมใน ย/ม แล้ว)':''; })(),btn:'',act:null}); } }catch(e){}
+          :{id:'bal',st:'warn',t:'คงเหลือไม่ตรงกับยอดยกไปรวมทุกเดือน',d:'สรุปประจำวัน '+f2(kc)+' ราย / '+f2(ka)+' · ยกไปรวม '+f2(mc)+' ราย / '+f2(ma)+' (ต่าง '+f2(mc-kc)+' ราย / '+f2(roundMoney(ma-ka))+') — ตรวจยอดรับจำนำ ยอดยกมา หรือคอลัมน์เดือนที่ขาด'+(function(){ var x={a:0,c:0}; try{ x=getDayOpeningDelta(currentDate); }catch(e){} return (x.a||x.c)?' · วันนี้มียอดปรับยกมา/ตัดหลุดทั้งเดือน สุทธิ '+(x.c>0?'+':'')+f2(x.c)+' ราย / '+(x.a>0?'+':'')+f2(x.a)+' บาท (รวมใน ย/ม แล้ว)':''; })(),btn:'',act:null}); } }catch(e){}
     var tn=0; try{ var tk=(JSON.parse(localStorage.getItem('pawn_tkw_v1')||'{}')||{})[currentDate]; if(tk&&tk.r) tk.r.forEach(function(c){ (c||[]).forEach(function(x){ if(x&&String(x[0]==null?'':x[0]).trim()) tn++; }); }); }catch(e){}
     var ln=0; try{ var dd=db[currentDate]; (dd.months||[]).forEach(function(m){ if(!m||m==='สรุปประจำวัน') return; (dd.data[m]||[]).forEach(function(r){ if(r&&String(r.ticket||'').trim()) ln++; }); }); }catch(e){}
     var mis=F.filter(function(x){ return /^รักษาของไม่ตรงกับตารางเขียนตั๋ว/.test(x.t)||/^ตั๋วเดียวกันซ้ำคนละเดือน/.test(x.t); });
