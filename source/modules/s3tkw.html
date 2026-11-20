@@ -1,6 +1,14 @@
 <script id="s3tkw-js">
 (function(){
   /* ติ๊ก "บัญชีรายวันเขียนตั๋ว" ในหน้านำเข้า สธ.3 → ส่งตั๋วเข้าตารางเขียนตั๋วด้วย (ติ๊กช่องรักษาของออก = ลงเฉพาะเขียนตั๋ว) */
+  /* เมื่อเบราว์เซอร์บล็อก confirm() เว็บจะถามในหน้าแทน แล้วเรียกฟังก์ชันนำเข้าตัวในซ้ำโดยตรง (ข้ามตัวห่อนี้)
+     → จำ "งานค้าง" ไว้ตอนกดยืนยัน แล้วรอจนรักษาของนำเข้าสำเร็จจริง (ข้อความ "นำเข้าสำเร็จ") ค่อยส่งต่อให้เขียนตั๋ว */
+  var pend=null;
+  function okText(){ var st=document.getElementById('pdf-import-status'); return !!(st&&/นำเข้าสำเร็จ/.test(st.textContent||'')); }
+  function runPend(){ if(!pend) return; var p=pend; pend=null; if(Date.now()-p.at>15*60000) return; p.run(); }
+  function watch(){ var st=document.getElementById('pdf-import-status'); if(!st||st.__s3w) return !!st; st.__s3w=1;
+    new MutationObserver(function(){ if(pend&&okText()) runPend(); }).observe(st,{childList:true,subtree:true,characterData:true}); return true; }
+  if(!watch()){ var w0=0,wt=setInterval(function(){ if(watch()||++w0>40) clearInterval(wt); },500); }
   function wrap(){
     if(typeof window.commitPDFImport!=='function'||window.commitPDFImport.__s3) return false;
     var orig=window.commitPDFImport;
@@ -15,10 +23,13 @@
       var forT=ready.filter(function(r){ return r.selected||r.reason==='มีเลขตั๋วนี้ในตารางแล้ว'; });
       var btn=document.getElementById('pdf-import-confirm');
       function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')+(r.filled?' · เติมเล่มที่ให้ '+r.filled+' ใบ':'')); }catch(e){} return r; }
+      pend=null;
       if(toL&&sel.length){
+        var st0=document.getElementById('pdf-import-status'); if(st0&&okText()) st0.innerHTML='';   /* ล้างข้อความสำเร็จรอบก่อน */
+        if(toT) pend={at:Date.now(),run:doT};
         orig.apply(this,arguments);
-        if(toT&&btn&&btn.disabled) doT();   /* ledger สำเร็จ (ปุ่มถูกปิด) จึงส่งต่อให้เขียนตั๋ว */
-        return;
+        if(pend&&btn&&btn.disabled) runPend();   /* ledger สำเร็จทันที (กล่องยืนยันของเบราว์เซอร์) */
+        return;      /* ถ้าถามในหน้า: ส่งต่อเมื่อรักษาของนำเข้าสำเร็จจริง (ตัวเฝ้าข้อความด้านบน) */
       }
       if(toT&&forT.length){
         if(typeof pdfImportDateOk==='function'&&!pdfImportDateOk(dk)) return;

@@ -76,6 +76,12 @@
     };
     f.__mv=1; window.preparePDFImport=f; return true;
   }
+  /* เบราว์เซอร์บล็อก confirm() → ถามในหน้าแล้วเรียกตัวนำเข้าซ้ำโดยตรง → รอข้อความ "นำเข้าสำเร็จ" แล้วค่อยย้าย */
+  var mvPend=null;
+  function mvOk(){ var st=document.getElementById('pdf-import-status'); return !!(st&&/นำเข้าสำเร็จ/.test(st.textContent||'')); }
+  function mvRun(){ if(!mvPend) return; var p=mvPend; mvPend=null; if(Date.now()-p.at>15*60000) return; p.run(); }
+  (function watch(){ var st=document.getElementById('pdf-import-status'); if(!st){ setTimeout(watch,500); return; } if(st.__mvw) return; st.__mvw=1;
+    new MutationObserver(function(){ if(mvPend&&mvOk()) mvRun(); }).observe(st,{childList:true,subtree:true,characterData:true}); })();
   function wrapCommit(){
     if(typeof window.commitPDFImport!=='function'||window.commitPDFImport.__mv) return false;
     var o=window.commitPDFImport;
@@ -83,16 +89,16 @@
       var cb=document.getElementById('s3mv-on'), L=document.getElementById('pdf-dest-ledger');
       var dk=(document.getElementById('pdf-import-date')||{}).value;
       var want=(S&&cb&&cb.checked&&(!L||L.checked)&&dk===S.dateKey)?S.moves.filter(function(m){ return m.rec.selected&&!m.rec.duplicate; }):[];
-      var r=o.apply(this,arguments);
-      try{
-        var btn=document.getElementById('pdf-import-confirm');
-        if(want.length&&btn&&btn.disabled){
+      var go=function(){ try{
           var n=apply(want,dk);
           if(n){ if(typeof saveDB==='function') saveDB(); if(dk===currentDate&&typeof renderTable==='function') renderTable();
             try{ showToast('ย้ายตั๋วที่คีย์ผิดเดือนไปเดือนที่ถูก '+n+' ใบ'); }catch(e){} }
           S=null; var bx=document.getElementById('s3mv-box'); if(bx) bx.remove();
-        }
-      }catch(e){ console.error('s3move',e); }
+        }catch(e){ console.error('s3move',e); } };
+      mvPend=want.length?{at:Date.now(),run:go}:null;
+      var r=o.apply(this,arguments);
+      var btn=document.getElementById('pdf-import-confirm');
+      if(mvPend&&btn&&btn.disabled) mvRun();   /* สำเร็จทันที · ถ้าถามในหน้า รอข้อความ "นำเข้าสำเร็จ" */
       return r;
     };
     f.__mv=1; f.__s3=o.__s3; window.commitPDFImport=f; return true;
