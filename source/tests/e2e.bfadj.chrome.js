@@ -60,6 +60,25 @@ const printOf=pg=>pg.evaluate(()=>{ renderTable(); openPrintPreview(); return do
   // วันที่ปิดยอด → ถาม PIN ไม่บันทึก
   ok(await pg.evaluate(()=>{ db['2026-11-17'].closing={closed:true}; let asked=0; const o=window.__askUnlock; window.__askUnlock=function(){ asked++; return Promise.resolve(false); };
      applyBfAdj(0,'9999','1',''); openBfAdj(0); const r=asked===2&&db['2026-11-17'].bf[0]===7000&&!document.getElementById('bfadj-modal'); window.__askUnlock=o; delete db['2026-11-17'].closing; return r; }),'18 วันที่ปิดยอดแล้ว → ถาม PIN ก่อน ไม่เปลี่ยนยอด');
+  // สรุปประจำวัน: ย/ม = คงเหลือวันก่อน + ยอดปรับ → คงเหลือ = ยกไปรวมทุกเดือน
+  const sm=await pg.evaluate(()=>{ const out={}; const S='สรุปประจำวัน';
+    const sumCarry=k=>db[k].months.filter(Boolean).reduce((t,m)=>({a:roundMoney(t.a+getMonthCarriedBalance(k,m)),c:t.c+getMonthCarriedCount(k,m)}),{a:0,c:0});
+    ['2026-11-16','2026-11-17','2026-11-18','2026-11-19'].forEach(k=>{ currentDate=k; syncBroughtForwardForDate(k,true); renderTable(); });
+    currentDate='2026-11-16'; renderTable(); const prev=db['2026-11-16'].data[S][3]; out.prevBal=prev.amount+'/'+prev.count;
+    currentDate='2026-11-17'; renderTable(); const y0=db['2026-11-17'].data[S][0]; out.ymBefore=y0.amount+'/'+y0.count;
+    out.ym18pre=db['2026-11-18'].data[S][0].amount;
+    applyBfAdj(0,'5000','1','ตั๋ว 601 อนุมัติกลับ'); renderTable(); out.ym18=db['2026-11-18'].data[S][0].amount;
+    const d=db['2026-11-17'].data[S]; out.ym=d[0].amount+'/'+d[0].count; out.bal=d[3].amount+'/'+d[3].count; const sc=sumCarry('2026-11-17'); out.sum=sc.a+'/'+sc.c;
+    ['2026-11-18','2026-11-19'].forEach(k=>{ currentDate=k; syncBroughtForwardForDate(k,false); renderTable(); });  /* เปิดวันถัดไปตามปกติ (เหมือน changeDate) */ const d19=db['2026-11-19'].data[S]; const s19=sumCarry('2026-11-19'); out.bal19=d19[3].amount+'/'+d19[3].count; out.sum19=s19.a+'/'+s19.c;
+    currentDate='2026-11-17'; applyBfAdj(0,0,0,''); renderTable(); out.ymCleared=db['2026-11-17'].data[S][0].amount+'/'+db['2026-11-17'].data[S][0].count;
+    return out; });
+  console.log('   ',JSON.stringify(sm));
+  ok(sm.ymBefore===sm.prevBal,'20 ไม่มียอดปรับ → ย/ม = คงเหลือวันก่อน (สูตรเดิม)');
+  ok(sm.ym===(Number(sm.prevBal.split('/')[0])+5000)+'/'+(Number(sm.prevBal.split('/')[1])+1),'21 มียอดปรับ → ย/ม = คงเหลือวันก่อน + 5,000 / +1 ราย');
+  ok(sm.bal===sm.sum,'22 คงเหลือในสรุปประจำวัน = ยกไปรวมทุกเดือน ('+sm.bal+')');
+  ok(sm.ym18===sm.ym18pre+5000,'23a ย/ม ของวันถัดไปรับยอดใหม่ทันทีหลังบันทึก');
+  ok(!!sm.bal19&&sm.bal19===sm.sum19,'23 วันถัดไปยังตรงกัน ('+sm.bal19+')');
+  ok(sm.ymCleared===sm.ymBefore,'24 ล้างยอดปรับ → ย/ม กลับเป็นเดิม');
   ok(!pg.errs.length,'19 ไม่มี error ในหน้า '+pg.errs.join('|'));
   await pg.b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0);
 })();

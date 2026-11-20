@@ -781,6 +781,15 @@
             if (prevBalance && (prevBalance.count !== '' || prevBalance.amount !== '')) {
                 totalCount = cleanNumberString(prevBalance.count ?? 0);
                 totalAmount = cleanNumberString(prevBalance.amount ?? 0);
+                // ยอดปรับยกมาของวันนี้ (ตั๋วที่อนุมัติกลับ) เข้า ย/ม ด้วยวิธีเดียวกับยกมารายเดือน → คงเหลือตรงกับยกไปรวมทุกเดือน
+                // ไม่มียอดปรับ = สูตรเดิมทุกประการ
+                if (day.bfAdj && typeof day.bfAdj === 'object') {
+                    day.months.forEach(monthName => {
+                        if (!monthName) return;
+                        const adj = getBfAdj(dateStr, monthName);
+                        if (adj.a || adj.c) { totalCount += adj.c; totalAmount = roundMoney(totalAmount + adj.a); }
+                    });
+                }
             } else {
                 // ถ้าไม่มีสรุปคงเหลือของวันก่อนหน้า ให้ใช้ผลรวมยอดยกมารายเดือนเป็น fallback
                 day.months.forEach((monthName, idx) => {
@@ -1242,6 +1251,7 @@
             dayData.bfCount[colIdx] = base.c + c;
             saveDB();
             syncDailyOpeningFromMonthlyBF(currentDate, true);
+            try { updateDailyBalanceCalculator(); } catch (e) {}   // คงเหลือของวันนี้ต้องอัปเดตก่อน เพื่อให้ ย/ม วันถัดไปรับยอดใหม่
             recalculateFutureBroughtForwardBalances(currentDate);
             renderTable();
             try { if (window.__audit) window.__audit(a || c ? 'ปรับยอดยกมา' : 'ล้างยอดปรับยกมา', `เดือน${m} ${a || c ? (a > 0 ? '+' : '') + formatNumber(a) + ' บาท ' + (c > 0 ? '+' : '') + c + ' ราย' : '(เดิม ' + formatNumber(old.a) + ' บาท ' + old.c + ' ราย)'}${note ? ' · ' + note : ''}`); } catch (e) {}
