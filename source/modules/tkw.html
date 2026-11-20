@@ -222,10 +222,27 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   function idbMirror(s){ if(typeof indexedDB==='undefined') return; clearTimeout(idbT); idbT=setTimeout(function(){ idbPut(s).then(function(){ idbOK=true; }).catch(function(e){ idbOK=false; try{ console.warn('tkw idb',e); }catch(_){} }); },400); }
   function save(){ window.__dv=(window.__dv||0)+1; var s=JSON.stringify(store); idbMirror(s);
     try{ localStorage.setItem(KEY,s); lastRaw=s; }catch(e){ lastRaw=null; try{ console.warn('tkw save',e); }catch(_){} try{ chip(idbOK?'⚠ พื้นที่ localStorage เต็ม · บันทึกในที่เก็บสำรองของเบราว์เซอร์แทน':'⚠ บันทึกในเครื่องไม่ได้ (พื้นที่เก็บเต็ม) · ข้อมูลยังอยู่ในหน้านี้จนกว่าจะรีเฟรช','er'); }catch(_){} } }
-  /* รวมสำเนาจาก IndexedDB (ใช้เมื่อ localStorage เต็ม/ถูกล้าง) — วันที่ใหม่กว่า (u) ชนะ */
+  /* วันที่มีอยู่แล้วตอนเปิดเว็บ (จาก localStorage) — วันที่เพิ่งถูกสร้างก่อนสำเนา IndexedDB โหลดเสร็จ (เช่น นำเข้า สธ.3 / พิมพ์ทันทีหลังเปิดเว็บ)
+     ถ้าในสำเนามีวันนั้นอยู่ด้วย ต้อง "รวมแถว" ไม่ใช่ให้ฉบับใหม่กว่าชนะ (เดิมแถวในสำเนาหายทั้งวัน) */
+  var bootKeys={}; Object.keys(store).forEach(function(k){ bootKeys[k]=1; });
+  function sameTk(a,b){ var ta=String(a[0]==null?'':a[0]).trim().replace(/^0+(?=\d)/,''), tb=String(b[0]==null?'':b[0]).trim().replace(/^0+(?=\d)/,''); if(!ta||ta!==tb) return false;
+    var ba=String(a[2]||'').trim(), bb=String(b[2]||'').trim(); return !ba||!bb||ba===bb; }
+  function unionDay(cur,old){ var d=JSON.parse(JSON.stringify(cur)), add=0;
+    (old.m||[]).forEach(function(m,gi){ var oc=(old.r||[])[gi]||[], g=d.m.indexOf(m);
+      if(g<0){ d.m.push(m); d.r.push(JSON.parse(JSON.stringify(oc))); add+=oc.filter(function(x){ return !tkEmpty(x); }).length; return; }
+      var col=d.r[g];
+      oc.forEach(function(x){ if(tkEmpty(x)) return;
+        var hit=col.some(function(y){ return !tkEmpty(y)&&(String(x[0]||'').trim()?sameTk(x,y):JSON.stringify(x)===JSON.stringify(y)); });
+        if(hit) return; var i=0; while(i<col.length&&!tkEmpty(col[i])) i++; while(col.length<=i) col.push(['','']); col[i]=x.slice(); add++; }); });
+    ['pen','cn','cl','cls','cpp'].forEach(function(f){ if(d[f]===undefined&&old[f]!==undefined) d[f]=JSON.parse(JSON.stringify(old[f])); });
+    d.u=Date.now(); return {d:d,add:add}; }
+  /* รวมสำเนาจาก IndexedDB (ใช้เมื่อ localStorage เต็ม/ถูกล้าง) — วันที่ใหม่กว่า (u) ชนะ · ยกเว้นวันที่เพิ่งสร้างก่อนสำเนาโหลดเสร็จ → รวมแถว */
   window.__tkwIdbReady=(typeof indexedDB==='undefined')?Promise.resolve(0):idbGet().then(function(raw){ var o={}, n=0; try{ o=JSON.parse(raw||'{}')||{}; }catch(e){ o={}; }
-      Object.keys(o).forEach(function(k){ var l=o[k], m=store[k]; if(!l) return; if(!m||(l.u||0)>(m.u||0)){ store[k]=l; n++; } });
-      if(n){ try{ restoreSync(); }catch(e){} save(); try{ if(key&&store[key]&&document.body.classList.contains('tkw-open')){ day=store[key]; render(); } }catch(e){} }
+      var fresh=[];
+      Object.keys(o).forEach(function(k){ var l=o[k], m=store[k]; if(!l) return;
+        if(m&&!bootKeys[k]&&hasData(l)&&hasData(m)&&JSON.stringify(l)!==JSON.stringify(m)){ var u=unionDay(m,l); if(u.add){ store[k]=u.d; n++; fresh.push(k); } return; }
+        if(!m||(l.u||0)>(m.u||0)){ store[k]=l; n++; } });
+      if(n){ try{ restoreSync(); }catch(e){} save(); fresh.forEach(function(k){ try{ markDirty(k); }catch(e){} }); try{ if(key&&store[key]&&document.body.classList.contains('tkw-open')){ day=store[key]; render(); } }catch(e){} }
       return n; }).catch(function(){ return 0; });
   function pad(n){return (n<10?'0':'')+n}
   function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
