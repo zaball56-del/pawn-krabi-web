@@ -828,9 +828,21 @@
             return x ? { a: roundMoney(cleanNumberString(x.a)), c: cleanNumberString(x.c), at: x.at || '' } : null;
         }
         // เดือนนี้ถูกตัดหลุดทั้งเดือนระหว่างวันต้นทางกับวันนี้หรือไม่ → ถ้าใช่ ฐานยกมาเป็น 0 (ไม่ดึงยอดก่อนหลุดกลับมา)
+        // รายชื่อวันที่มีการตัดหลุด: จำไว้ระหว่างคำนวณรอบเดียว (ไม่ต้องไล่ทุกวันซ้ำ) แล้วล้างเองเมื่อจบงานรอบนั้น
+        let forfeitDatesCache = null;
+        function forfeitDates() {
+            if (forfeitDatesCache) return forfeitDatesCache;
+            forfeitDatesCache = Object.keys(db).filter(k => db[k] && db[k].forfeit && typeof db[k].forfeit === 'object' && Object.keys(db[k].forfeit).length);
+            const clear = () => { forfeitDatesCache = null; };
+            try { queueMicrotask(clear); } catch (e) { setTimeout(clear, 0); }
+            return forfeitDatesCache;
+        }
+        function forfeitDatesChanged() { forfeitDatesCache = null; }
         function forfeitedSince(monthName, srcDate, dateStr) {
             if (!monthName || !srcDate) return false;
-            return Object.keys(db).some(k => k > srcDate && k < dateStr && db[k] && db[k].forfeit && db[k].forfeit[monthName]);
+            const ks = forfeitDates();
+            if (!ks.length) return false;
+            return ks.some(k => k > srcDate && k < dateStr && db[k] && db[k].forfeit && db[k].forfeit[monthName]);
         }
         // ส่วนที่ ย/ม ต่างจากคงเหลือวันก่อน: + ยอดปรับยกมา (อนุมัติกลับ) − ยอดตัดหลุดทั้งเดือน · ไม่มีทั้งสองอย่าง = 0 (สูตรเดิม)
         function getDayOpeningDelta(dateStr) {
@@ -838,8 +850,15 @@
             if (!d) return { a, c };
             const months = Array.isArray(d.months) ? d.months : [];
             if (d.bfAdj && typeof d.bfAdj === 'object') months.forEach(m => { if (!m) return; const x = getBfAdj(dateStr, m); a = roundMoney(a + x.a); c += x.c; });
-            if (d.forfeit && typeof d.forfeit === 'object') Object.keys(d.forfeit).forEach(m => { if (months.includes(m)) return; const x = getForfeit(dateStr, m); if (x) { a = roundMoney(a - x.a); c -= x.c; } });
+            if (d.forfeit && typeof d.forfeit === 'object') Object.keys(d.forfeit).forEach(m => { if (months.includes(m)) return; const x = getForfeitLive(dateStr, m); if (x) { a = roundMoney(a - x.a); c -= x.c; } });
             return { a, c };
+        }
+        // ยอดที่หลุดคิดสดจากยอดยกไปของเดือนนั้นในวันก่อนหลุด (ถ้าแก้ย้อนหลังวันก่อน ๆ ยอดหลุดจะตามให้เอง ไม่ใช้ตัวเลขที่จดไว้ตอนกด)
+        function getForfeitLive(dateStr, monthName) {
+            if (!getForfeit(dateStr, monthName)) return null;
+            const src = getPrevDateForMonth(dateStr, monthName);
+            if (!src || forfeitedSince(monthName, src, dateStr)) return { a: 0, c: 0 };
+            return { a: getMonthCarriedBalance(src, monthName), c: getMonthCarriedCount(src, monthName) };
         }
 
         function syncBroughtForwardForDate(dateStr, forceUpdate = false) {
@@ -1245,6 +1264,7 @@
             if (forfeit) {
                 if (!dayData.forfeit || typeof dayData.forfeit !== 'object') dayData.forfeit = {};
                 dayData.forfeit[m] = { a: amt, c: cnt, at: new Date().toISOString() };
+                forfeitDatesChanged();
             }
             saveDB();
             if (forfeit) {
@@ -1474,7 +1494,7 @@
             dayData.months[colIdx] = val;
             // เลือกเดือนที่เพิ่งตัดหลุดทั้งเดือนวันนี้กลับมา = ยกเลิกการตัดหลุด (ยอดกลับเข้าคงเหลือ)
             let restoredForfeit = false;
-            if (val && dayData.forfeit && dayData.forfeit[val]) { delete dayData.forfeit[val]; if (!Object.keys(dayData.forfeit).length) delete dayData.forfeit; restoredForfeit = true; }
+            if (val && dayData.forfeit && dayData.forfeit[val]) { delete dayData.forfeit[val]; if (!Object.keys(dayData.forfeit).length) delete dayData.forfeit; restoredForfeit = true; forfeitDatesChanged(); }
 
             // เมื่อเลือกเดือนอย่างชัดเจน ให้ดึงยอดยกมาของเดือนเดียวกันจากวันก่อนหน้า
             // ทั้งจำนวนรายและจำนวนเงิน โดยไม่คัดลอกแถวรายการของเดือนเก่ามาปะปน

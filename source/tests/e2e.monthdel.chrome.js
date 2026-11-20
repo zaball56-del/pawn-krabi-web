@@ -60,6 +60,11 @@ const printHTML=pg=>pg.evaluate(()=>{ openPrintPreview(); return document.getEle
    removeMonthAt(1);   // กุมภาพันธ์ 45,000 / 4 ราย → ตัดหลุด
    const d=db[B]; out.months=d.months.filter(Boolean).join(','); out.ff=JSON.stringify({a:d.forfeit['กุมภาพันธ์'].a,c:d.forfeit['กุมภาพันธ์'].c});
    out.ymB=d.data[S][0].amount+'/'+d.data[S][0].count; out.balB=d.data[S][3].amount+'/'+d.data[S][3].count; const sb=sumCarry(B); out.sumB=sb.a+'/'+sb.c;
+   // แก้ย้อนหลังวันก่อนหลุด: ไถ่กุมภาพันธ์เพิ่ม 5,000 ในวัน A → ยอดหลุดต้องเหลือ 40,000 / 3 อัตโนมัติ และคงเหลือยังตรง
+   currentDate=A; db[A].data['กุมภาพันธ์'][1]={type:'ถ',ticket:'202',book:'1',amount:5000,count:'',origIdx:1,timestamp:''}; saveDB(); renderTable(); recalculateFutureBroughtForwardBalances(A);
+   open(B); const balA2=db[A].data[S][3]; out.retro=JSON.stringify(getForfeitLive(B,'กุมภาพันธ์'))+' ym='+db[B].data[S][0].amount+' exp='+(balA2.amount-40000)+' bal='+db[B].data[S][3].amount+' sum='+sumCarry(B).a;
+   // ย้อนกลับรายการ เพื่อให้ขั้นต่อไปใช้ยอดเดิม
+   currentDate=A; db[A].data['กุมภาพันธ์'][1]={type:'',ticket:'',book:'',amount:'',count:'',origIdx:1,timestamp:''}; saveDB(); renderTable(); recalculateFutureBroughtForwardBalances(A); open(B);
    // วันถัดไป: เดือนที่หลุดไม่ถูกดึงกลับ แม้เลือกเดือนนั้นกลับมาภายหลัง
    currentDate=C; const c=getCurrentDayData(); syncBroughtForwardForDate(C,true); renderTable(); out.cMonths=c.months.filter(Boolean).join(',');
    const sc=sumCarry(C); out.balC=c.data[S][3].amount+'/'+c.data[S][3].count; out.sumC=sc.a+'/'+sc.c;
@@ -72,16 +77,29 @@ const printHTML=pg=>pg.evaluate(()=>{ openPrintPreview(); return document.getEle
    currentDate=B; renderTable(); const bi=db[B].months.indexOf(''); updateMonthName(bi,'กุมภาพันธ์'); renderTable();
    out.restore=db[B].bf[bi]+'/'+db[B].bfCount[bi]+' ff='+!!(db[B].forfeit&&db[B].forfeit['กุมภาพันธ์'])+' ym='+db[B].data[S][0].amount+'/'+db[B].data[S][0].count;
    out.delta=JSON.stringify(getDayOpeningDelta(B));
+   // รวม 2 เครื่อง (ใช้ตัวรวมรายวันตัวจริง mergeDay): เครื่อง 1 ตัดหลุด ก.พ. · เครื่อง 2 ลงไถ่ในมีนาคม → ได้ทั้งสองอย่าง ยอดตรง
+   const cp=x=>JSON.parse(JSON.stringify(x)); const SM=window.__syncMerge;
+   const base=cp(db[B]); currentDate=B; renderTable(); const fi=db[B].months.indexOf('กุมภาพันธ์'); removeMonthAt(fi); const local=cp(db[B]);
+   const remote=cp(base); remote.data['มีนาคม'][0]={type:'ถ',ticket:'399',book:'1',amount:2000,count:'',origIdx:0,timestamp:''};
+   db[B]=SM.mergeDay(base,local,remote).day; forfeitDatesChanged(); recalculateFutureBroughtForwardBalances(A); open(B);
+   out.merge=db[B].months.filter(Boolean).join(',')+' ff='+!!(db[B].forfeit&&db[B].forfeit['กุมภาพันธ์'])+' r399='+!!(db[B].data['มีนาคม'][0]&&db[B].data['มีนาคม'][0].ticket==='399')+' bal='+db[B].data[S][3].amount+' sum='+sumCarry(B).a;
+   // เครื่อง 2 ลงไถ่ในเดือนที่เครื่อง 1 ตัดหลุดพร้อมกัน → รายการถูกซ่อน ต้องมีคำเตือน
+   const remote2=cp(base); remote2.data['กุมภาพันธ์'][0]={type:'ถ',ticket:'299',book:'1',amount:1000,count:'',origIdx:0,timestamp:''};
+   db[B]=SM.mergeDay(base,local,remote2).day; open(B);
+   out.hidden=window.__ckList().filter(x=>x.date===B&&/ไม่ได้แสดงในตาราง/.test(x.t)).map(x=>x.x).join('|');
    return out; }));
  console.log('   ',JSON.stringify(f));
  ok(f.ymB0===f.balA,'11 ก่อนตัดหลุด ย/ม = คงเหลือวันก่อน');
  ok(f.months==='มกราคม,มีนาคม,เมษายน,พฤษภาคม'&&f.ff==='{"a":45000,"c":4}','12 ตัดหลุดกุมภาพันธ์ 45,000 / 4 ราย → คอลัมน์ออก เก็บยอดหลุดไว้');
  ok(f.ymB===(Number(f.balA.split('/')[0])-45000)+'/'+(Number(f.balA.split('/')[1])-4),'13 ย/ม = คงเหลือวันก่อน − ยอดหลุด');
  ok(f.balB===f.sumB,'14 คงเหลือ = ยกไปรวมทุกเดือน ('+f.balB+')');
+ ok(/^\{"a":40000,"c":3\}/.test(f.retro)&&(()=>{ const m=f.retro.match(/ym=(\d+) exp=(\d+) bal=(\d+) sum=(\d+)/); return m&&m[1]===m[2]&&m[3]===m[4]; })(),'14a แก้ย้อนหลังวันก่อนหลุด → ยอดหลุดตามเป็น 40,000 / 3 เอง คงเหลือยังตรง ('+f.retro+')');
  ok(f.cMonths==='มกราคม,มีนาคม,เมษายน,พฤษภาคม'&&f.balC===f.sumC,'15 วันถัดไปไม่มีเดือนที่หลุด และคงเหลือยังตรง ('+f.balC+')');
  ok(f.reC==='0/0','16 เลือกเดือนที่หลุดกลับมาในวันหลัง → ยกมา 0 (ไม่ดึงยอดก่อนหลุดกลับ) ใช้ยอดปรับ + สำหรับรายที่อนุมัติ');
  ok(f.appr==='5000/1 bal=95000 sum=95000','16a เดือนที่หลุดแล้ว อนุมัติกลับรายเดียว → ยกมา 5,000 / 1 ราย คงเหลือ = ยกไปรวม');
  ok(f.ck==='','16b ตัวตรวจความสอดคล้องไม่เตือน ย/ม (นับยอดหลุด/ยอดปรับแล้ว)'+(f.ck?' → '+f.ck:''));
+ ok(/ff=true r399=true/.test(f.merge)&&/^มกราคม,มีนาคม,เมษายน,พฤษภาคม/.test(f.merge)&&(()=>{ const m=f.merge.match(/bal=(\d+) sum=(\d+)/); return m&&m[1]===m[2]; })(),'17a รวม 2 เครื่อง: ตัดหลุด + รายการอีกเดือน ได้ครบ ยอดตรง ('+f.merge+')');
+ ok(/กุมภาพันธ์ 1 แถว/.test(f.hidden),'17b รายการที่ลงในเดือนที่ถูกตัดหลุดพร้อมกัน → ตัวตรวจเตือน "ไม่ได้แสดงในตาราง"');
  ok(f.restore==='45000/4 ff=false ym='+f.ymB0&&f.delta==='{"a":0,"c":0}','17 กดผิด → เลือกเดือนกลับมาในวันเดียวกัน ยอดคืนครบ ย/ม กลับเป็นเดิม');
  ok(!r.errs.length,'10 ไม่มี error ในหน้า '+r.errs.join('|'));
  console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0);

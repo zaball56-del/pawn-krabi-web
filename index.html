@@ -2516,9 +2516,21 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             return x ? { a: roundMoney(cleanNumberString(x.a)), c: cleanNumberString(x.c), at: x.at || '' } : null;
         }
         // เดือนนี้ถูกตัดหลุดทั้งเดือนระหว่างวันต้นทางกับวันนี้หรือไม่ → ถ้าใช่ ฐานยกมาเป็น 0 (ไม่ดึงยอดก่อนหลุดกลับมา)
+        // รายชื่อวันที่มีการตัดหลุด: จำไว้ระหว่างคำนวณรอบเดียว (ไม่ต้องไล่ทุกวันซ้ำ) แล้วล้างเองเมื่อจบงานรอบนั้น
+        let forfeitDatesCache = null;
+        function forfeitDates() {
+            if (forfeitDatesCache) return forfeitDatesCache;
+            forfeitDatesCache = Object.keys(db).filter(k => db[k] && db[k].forfeit && typeof db[k].forfeit === 'object' && Object.keys(db[k].forfeit).length);
+            const clear = () => { forfeitDatesCache = null; };
+            try { queueMicrotask(clear); } catch (e) { setTimeout(clear, 0); }
+            return forfeitDatesCache;
+        }
+        function forfeitDatesChanged() { forfeitDatesCache = null; }
         function forfeitedSince(monthName, srcDate, dateStr) {
             if (!monthName || !srcDate) return false;
-            return Object.keys(db).some(k => k > srcDate && k < dateStr && db[k] && db[k].forfeit && db[k].forfeit[monthName]);
+            const ks = forfeitDates();
+            if (!ks.length) return false;
+            return ks.some(k => k > srcDate && k < dateStr && db[k] && db[k].forfeit && db[k].forfeit[monthName]);
         }
         // ส่วนที่ ย/ม ต่างจากคงเหลือวันก่อน: + ยอดปรับยกมา (อนุมัติกลับ) − ยอดตัดหลุดทั้งเดือน · ไม่มีทั้งสองอย่าง = 0 (สูตรเดิม)
         function getDayOpeningDelta(dateStr) {
@@ -2526,8 +2538,15 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             if (!d) return { a, c };
             const months = Array.isArray(d.months) ? d.months : [];
             if (d.bfAdj && typeof d.bfAdj === 'object') months.forEach(m => { if (!m) return; const x = getBfAdj(dateStr, m); a = roundMoney(a + x.a); c += x.c; });
-            if (d.forfeit && typeof d.forfeit === 'object') Object.keys(d.forfeit).forEach(m => { if (months.includes(m)) return; const x = getForfeit(dateStr, m); if (x) { a = roundMoney(a - x.a); c -= x.c; } });
+            if (d.forfeit && typeof d.forfeit === 'object') Object.keys(d.forfeit).forEach(m => { if (months.includes(m)) return; const x = getForfeitLive(dateStr, m); if (x) { a = roundMoney(a - x.a); c -= x.c; } });
             return { a, c };
+        }
+        // ยอดที่หลุดคิดสดจากยอดยกไปของเดือนนั้นในวันก่อนหลุด (ถ้าแก้ย้อนหลังวันก่อน ๆ ยอดหลุดจะตามให้เอง ไม่ใช้ตัวเลขที่จดไว้ตอนกด)
+        function getForfeitLive(dateStr, monthName) {
+            if (!getForfeit(dateStr, monthName)) return null;
+            const src = getPrevDateForMonth(dateStr, monthName);
+            if (!src || forfeitedSince(monthName, src, dateStr)) return { a: 0, c: 0 };
+            return { a: getMonthCarriedBalance(src, monthName), c: getMonthCarriedCount(src, monthName) };
         }
 
         function syncBroughtForwardForDate(dateStr, forceUpdate = false) {
@@ -2933,6 +2952,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             if (forfeit) {
                 if (!dayData.forfeit || typeof dayData.forfeit !== 'object') dayData.forfeit = {};
                 dayData.forfeit[m] = { a: amt, c: cnt, at: new Date().toISOString() };
+                forfeitDatesChanged();
             }
             saveDB();
             if (forfeit) {
@@ -3162,7 +3182,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             dayData.months[colIdx] = val;
             // เลือกเดือนที่เพิ่งตัดหลุดทั้งเดือนวันนี้กลับมา = ยกเลิกการตัดหลุด (ยอดกลับเข้าคงเหลือ)
             let restoredForfeit = false;
-            if (val && dayData.forfeit && dayData.forfeit[val]) { delete dayData.forfeit[val]; if (!Object.keys(dayData.forfeit).length) delete dayData.forfeit; restoredForfeit = true; }
+            if (val && dayData.forfeit && dayData.forfeit[val]) { delete dayData.forfeit[val]; if (!Object.keys(dayData.forfeit).length) delete dayData.forfeit; restoredForfeit = true; forfeitDatesChanged(); }
 
             // เมื่อเลือกเดือนอย่างชัดเจน ให้ดึงยอดยกมาของเดือนเดียวกันจากวันก่อนหน้า
             // ทั้งจำนวนรายและจำนวนเงิน โดยไม่คัดลอกแถวรายการของเดือนเก่ามาปะปน
@@ -5957,6 +5977,10 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 if(!tk||num(r.amount)===0) inc.push('['+m+'] แถว '+(i+1)+(tk?' ตั๋ว '+tk:' (ไม่มีเลขตั๋ว)')+(num(r.amount)===0?' ไม่มียอดเงิน':''));
                 if(tk){ var key=m+'|'+normT(r.book)+'|'+normT(tk); (seen[key]=seen[key]||[]).push({k:k,m:m,t:tk}); } }); });
             if(inc.length) F.push({sev:'warn',date:k,t:'แถวไถ่ถอนข้อมูลไม่ครบ ('+inc.length+' แถว)',x:inc.slice(0,4).join(' · ')+(inc.length>4?' …':'')});
+            /* รายการค้างในเดือนที่ไม่ได้แสดงในตาราง (เช่น 2 เครื่อง: เครื่องหนึ่งเอาคอลัมน์ออก/ตัดหลุด อีกเครื่องลงรายการเดือนนั้นพร้อมกัน) → ไม่ถูกนับ */
+            try{ var hid=[]; Object.keys(d.data||{}).forEach(function(m){ if(m==='สรุปประจำวัน'||(d.months||[]).indexOf(m)>=0||!Array.isArray(d.data[m])) return;
+                var n=d.data[m].filter(function(r){ return r&&(String(r.ticket||'').trim()||String(r.type||'').trim()||num(r.amount)!==0); }).length; if(n) hid.push(m+' '+n+' แถว'); });
+              if(hid.length) F.push({sev:'bad',date:k,t:'มีรายการในเดือนที่ไม่ได้แสดงในตาราง',x:hid.join(' · ')+' — รายการนี้ไม่ถูกนับในยอด เลือกเดือนนั้นกลับมาในคอลัมน์ว่างเพื่อตรวจ'}); }catch(e){}
             if(k===currentDate){ /* ตรวจเพิ่ม (v2): เฉพาะวันที่เปิดอยู่ */
                 var nb=[],nn=[],nd={};
                 (d.months||[]).forEach(function(m){ if(!m||m==='สรุปประจำวัน') return; (d.data[m]||[]).forEach(function(r,i){ if(!r) return; var tk=String(r.ticket||'').trim(), nt=String(r.newTicket||'').trim();
@@ -6887,6 +6911,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     out.totalRows=need; Object.keys(out.data||{}).forEach(function(m){ var a=out.data[m]; if(m==='สรุปประจำวัน'||!Array.isArray(a)) return; while(a.length<need) a.push(blankRow(a.length)); a.forEach(function(x,i){ if(x&&typeof x==='object') x.origIdx=i; }); });
     return {day:out,conflicts:ctx.conflicts,moved:ctx.moved};
   }
+  try{ SM.mergeDay=mergeDay; }catch(e){}   /* ให้ชุดทดสอบเรียกตัวรวมรายวันตัวจริงได้ */
 
   /* หลังรวมข้อมูล 2 เครื่องของวันใดวันหนึ่ง: คำนวณยอดยกมาของวันถัดไปใหม่จากฉบับรวม (ใช้ฟังก์ชันเดียวกับตอนแก้ข้อมูลย้อนหลัง — ไม่เปลี่ยนสูตร)
      ไม่ทำ = วันถัดไปหักไถ่ถอนของเครื่องเดียว ยอดยกมาผิด */

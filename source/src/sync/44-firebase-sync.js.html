@@ -118,6 +118,7 @@
     out.totalRows=need; Object.keys(out.data||{}).forEach(function(m){ var a=out.data[m]; if(m==='สรุปประจำวัน'||!Array.isArray(a)) return; while(a.length<need) a.push(blankRow(a.length)); a.forEach(function(x,i){ if(x&&typeof x==='object') x.origIdx=i; }); });
     return {day:out,conflicts:ctx.conflicts,moved:ctx.moved};
   }
+  try{ SM.mergeDay=mergeDay; }catch(e){}   /* ให้ชุดทดสอบเรียกตัวรวมรายวันตัวจริงได้ */
 
   /* หลังรวมข้อมูล 2 เครื่องของวันใดวันหนึ่ง: คำนวณยอดยกมาของวันถัดไปใหม่จากฉบับรวม (ใช้ฟังก์ชันเดียวกับตอนแก้ข้อมูลย้อนหลัง — ไม่เปลี่ยนสูตร)
      ไม่ทำ = วันถัดไปหักไถ่ถอนของเครื่องเดียว ยอดยกมาผิด */

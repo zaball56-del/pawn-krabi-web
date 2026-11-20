@@ -151,6 +151,10 @@
                 if(!tk||num(r.amount)===0) inc.push('['+m+'] แถว '+(i+1)+(tk?' ตั๋ว '+tk:' (ไม่มีเลขตั๋ว)')+(num(r.amount)===0?' ไม่มียอดเงิน':''));
                 if(tk){ var key=m+'|'+normT(r.book)+'|'+normT(tk); (seen[key]=seen[key]||[]).push({k:k,m:m,t:tk}); } }); });
             if(inc.length) F.push({sev:'warn',date:k,t:'แถวไถ่ถอนข้อมูลไม่ครบ ('+inc.length+' แถว)',x:inc.slice(0,4).join(' · ')+(inc.length>4?' …':'')});
+            /* รายการค้างในเดือนที่ไม่ได้แสดงในตาราง (เช่น 2 เครื่อง: เครื่องหนึ่งเอาคอลัมน์ออก/ตัดหลุด อีกเครื่องลงรายการเดือนนั้นพร้อมกัน) → ไม่ถูกนับ */
+            try{ var hid=[]; Object.keys(d.data||{}).forEach(function(m){ if(m==='สรุปประจำวัน'||(d.months||[]).indexOf(m)>=0||!Array.isArray(d.data[m])) return;
+                var n=d.data[m].filter(function(r){ return r&&(String(r.ticket||'').trim()||String(r.type||'').trim()||num(r.amount)!==0); }).length; if(n) hid.push(m+' '+n+' แถว'); });
+              if(hid.length) F.push({sev:'bad',date:k,t:'มีรายการในเดือนที่ไม่ได้แสดงในตาราง',x:hid.join(' · ')+' — รายการนี้ไม่ถูกนับในยอด เลือกเดือนนั้นกลับมาในคอลัมน์ว่างเพื่อตรวจ'}); }catch(e){}
             if(k===currentDate){ /* ตรวจเพิ่ม (v2): เฉพาะวันที่เปิดอยู่ */
                 var nb=[],nn=[],nd={};
                 (d.months||[]).forEach(function(m){ if(!m||m==='สรุปประจำวัน') return; (d.data[m]||[]).forEach(function(r,i){ if(!r) return; var tk=String(r.ticket||'').trim(), nt=String(r.newTicket||'').trim();
