@@ -37,18 +37,33 @@
     window.uiAlert=function(msg){ return new Promise(function(res){ show(msg,false,res); }); };
     /* confirm: ถ้าเบราว์เซอร์ตอบ "ไม่" เร็วผิดปกติ (<40ms) แปลว่าถูกบล็อก -> ถามในหน้า แล้วเรียกฟังก์ชันเดิมซ้ำโดยถือว่าตอบ "ยืนยัน" */
     var blockedInRun=false;
+    /* คำถามแบบเลือก 2 ทาง (ตกลง/ยกเลิก ทำต่อทั้งคู่): ใช้ confirmChoice แล้วเช็ก window.__confirmBlocked → ถ้าถูกบล็อกให้หยุดก่อน
+       เว็บจะถามในหน้าแล้วเรียกซ้ำพร้อมคำตอบ (ทั้งตอบตกลงและยกเลิก) */
+    var choiceKeys={}, rejected={};
+    window.confirmChoice=function(msg){ choiceKeys[String(msg)]=1; return window.confirm(msg); };
     window.confirm=function(msg){
-        var key=String(msg);
+        var key=String(msg); window.__confirmBlocked=false;
         if(approved[key]){ return true; }
+        if(rejected[key]){ return false; }
         var t0=performance.now(), r=nativeConfirm(msg);
         if(r||performance.now()-t0>=40) return r;
         var fn=null,args=null,self=null; try{ fn=arguments.callee.caller; args=fn&&fn.arguments?Array.prototype.slice.call(fn.arguments):[]; }catch(e){ fn=null; }
+        /* ไต่ขึ้นไปหาฟังก์ชันชั้นนอกสุดที่ยังทำงานอยู่ (เช่น onclick ของปุ่ม) แล้วเรียกซ้ำจากตรงนั้น
+           เดิมเรียกซ้ำแค่ฟังก์ชันที่ถาม → ถ้าคำถามอยู่ในฟังก์ชันย่อย (เช่น pdfImportDateOk) งานหลักไม่ทำต่อ และตัวห่อ (เช่น ส่งต่อเขียนตั๋ว) ถูกข้าม */
+        try{ var up=fn, top=null, topArgs=null, g=0;
+            while(up&&g++<30){ var pr=null; try{ pr=up.caller; }catch(e){ pr=null; } if(!pr||pr===window.confirm) break;
+                var pa=null; try{ pa=pr.arguments?Array.prototype.slice.call(pr.arguments):[]; }catch(e){ break; }
+                top=pr; topArgs=pa; up=pr; }
+            if(typeof top==='function'){ fn=top; args=topArgs; }
+        }catch(e){}
         if(typeof fn!=='function'||fn===window.confirm){ show('ไม่สามารถเปิดกล่องยืนยันได้ในหน้านี้ กรุณาเปิดไฟล์ในเบราว์เซอร์หรือโปรแกรม Windows',false); return false; }
-        blockedInRun=true;
-        show(msg,true,function(ok){ if(!ok){ approved={}; return; }
+        blockedInRun=true; window.__confirmBlocked=true;
+        show(msg,true,function(ok){
+            if(!ok&&choiceKeys[key]){ rejected[key]=true; blockedInRun=false; try{ fn.apply(self,args); } finally{ if(!blockedInRun){ approved={}; rejected={}; } } return; }
+            if(!ok){ approved={}; rejected={}; return; }
             /* เก็บคำตอบ "ยืนยัน" ไว้ตลอดการเรียกซ้ำรอบนี้ เพื่อให้ฟังก์ชันที่ถามหลายขั้นไม่วนถามซ้ำ; เมื่อรอบที่ไม่มีคำถามใหม่จบ จึงล้างทิ้ง */
             approved[key]=true; blockedInRun=false;
-            try{ fn.apply(self,args); } finally{ if(!blockedInRun) approved={}; } });
+            try{ fn.apply(self,args); } finally{ if(!blockedInRun){ approved={}; rejected={}; } } });
         return false;
     };
     /* alert: ถ้ากลับมาเร็วผิดปกติ แปลว่าถูกบล็อก -> แสดงในหน้า */

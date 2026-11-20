@@ -433,8 +433,11 @@
                 const r = rows[idx];
                 if (r.type && r.type !== type && !confirm('แถวที่ ' + (idx + 1) + ' มีประเภท "' + r.type + '" อยู่แล้ว\nต้องการเปลี่ยนเป็น "' + type + '" หรือไม่?')) return false;
                 const tableAmt = cleanNumberString(r.amount), typedAmt = cleanNumberString(oldAmountRaw);
-                if (oldAmountRaw !== '' && tableAmt !== 0 && tableAmt !== typedAmt &&
-                    !confirm('ยอดในตารางคือ ' + formatNumber(tableAmt) + ' แต่ที่กรอกคือ ' + formatNumber(typedAmt) + '\nตกลง = ใช้ยอดที่กรอก · ยกเลิก = คงยอดในตาราง')) useTypedAmount = false;
+                if (oldAmountRaw !== '' && tableAmt !== 0 && tableAmt !== typedAmt) {
+                    const keepTyped = (window.confirmChoice || window.confirm)('ยอดในตารางคือ ' + formatNumber(tableAmt) + ' แต่ที่กรอกคือ ' + formatNumber(typedAmt) + '\nตกลง = ใช้ยอดที่กรอก · ยกเลิก = คงยอดในตาราง');
+                    if (window.__confirmBlocked) return false;   // กล่องถูกบล็อก: เว็บถามในหน้าแล้วจะบันทึกซ้ำตามคำตอบ (เดิมบันทึกยอดในตารางไปก่อนเลย)
+                    if (!keepTyped) useTypedAmount = false;
+                }
                 if (newTicket && r.newTicket && qsIdKey(r.newBook, r.newTicket) !== qsIdKey(newBook, newTicket) &&
                     !confirm('แถวนี้ผูกตั๋วใหม่ ' + r.newTicket + ' ไว้แล้ว\nต้องการเปลี่ยนเป็น ' + newTicket + ' หรือไม่?')) return false;
             }
