@@ -45,4 +45,6 @@ html body #app-sidebar#app-sidebar .sb-ver:not(#_x):not(#_y){background:#fff !im
 html body #app-sidebar#app-sidebar .sb-ver b:not(#_x){color:#14213D !important}
 @media (min-width:1024px){html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-gb:not(#_x):not(#_y):not(#_z){background:#FFFDF7 !important;border:1px solid #E3DCC4 !important;border-radius:16px !important;padding:6px !important;box-shadow:0 14px 34px rgba(20,33,61,.22) !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important}html body #app-sidebar#app-sidebar .sb-gw:not(.first) .sb-grp .ch:not(#_x){display:none !important}}
 @media (prefers-reduced-motion:reduce){html body #app-sidebar#app-sidebar *{transition:none !important}}
+/* ปุ่มเฉพาะโปรแกรม Windows (ตั้งค่า/USB/อัปเดต, ตรวจอัปเดต): ซ่อนบนเว็บ (เดิมกฎด้านบนบังคับแสดง → กดแล้ว error) · โปรแกรม Windows ใส่ .sb-on ให้ */
+html body #app-sidebar#app-sidebar .sb-item.sb-desktop-only:not(.sb-on):not(#_x):not(#_y):not(#_z){display:none !important}
 </style>

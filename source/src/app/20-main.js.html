@@ -3474,7 +3474,7 @@
                 const r = i0.apply(this, arguments);
                 try {
                     if (window.pawnDesktop && typeof window.pawnDesktop.openSettings === 'function')
-                        document.querySelectorAll('.sb-desktop-only').forEach(b => { b.style.display = 'flex'; });
+                        document.querySelectorAll('.sb-desktop-only').forEach(b => { b.style.display = 'flex'; b.classList.add('sb-on'); });
                     goPage('home'); updateSidebarSaved();
                 } catch (e) { console.error('shell init', e); }
                 return r;
