@@ -105,8 +105,11 @@
       var cut=''; try{ var cp=String(currentDate).split('-'); var cd=new Date(+cp[0],+cp[1]-1,+cp[2],12); cd.setDate(cd.getDate()-365); if(!isNaN(cd.getTime())) cut=cd.getFullYear()+'-'+p2(cd.getMonth()+1)+'-'+p2(cd.getDate()); }catch(e){}
       c=c.filter(function(x){ return (!cut||x.date>cut)&&(!b||nt(x.book)===b)&&(!mn||x.month===mn); });
       if(!c.length) return null;
-      if(!b){ var bs={}; c.forEach(function(x){bs[x.book||'-']=1}); if(Object.keys(bs).length>1) return {status:'multibook'}; }
       c.sort(function(x,y){return x.date<y.date?1:x.date>y.date?-1:0});
+      /* เลขตั๋วขึ้นใหม่ทุกเดือน เล่มขึ้นใหม่ข้ามปี → เลข+เดือนเดียวกันซ้ำได้แค่คนละปี: ดูเฉพาะตั๋วที่ลงวันที่ห่างจากใบล่าสุดไม่เกิน ~8 เดือน (ตั๋วมีอายุไม่เกิน 4–6 เดือน)
+         ไม่งั้นช่วงปลายเดือนที่หน้าต่าง 365 วันคร่อม 2 ปี ตั๋วปีก่อนทำให้ขึ้น "หลายเล่ม"/ยอดขัดกัน แล้วข้ามการเทียบยอดไป */
+      try{ var t0=new Date(c[0].date+'T12:00:00').getTime(); if(!isNaN(t0)) c=c.filter(function(x){ var t1=new Date(x.date+'T12:00:00').getTime(); return isNaN(t1)||(t0-t1)<=240*864e5; }); }catch(e){}
+      if(!b){ var bs={}; c.forEach(function(x){bs[x.book||'-']=1}); if(Object.keys(bs).length>1) return {status:'multibook'}; }
       var best=c[0], diff=c.some(function(x){return Number(x.amount)!==Number(best.amount)});
       var r={status:'ok',amount:String(best.amount),date:best.date,month:TH[best.month-1]||'',src:best.kind==='new'?'ตั๋วใหม่':'ตั๋ว',differs:diff,book:best.book,reg:true};
       if(best.kind==='old') r.base={book:best.book,month:best.month,amount:best.amount};
