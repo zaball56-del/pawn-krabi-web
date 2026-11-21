@@ -2135,17 +2135,38 @@
                     if (!ok2) return;
                 }
 
+                /* วันที่ปิดยอดแล้ว (ล็อกด้วย PIN) ที่การนำเข้าจะทับ/ลบ → ขอ PIN ครั้งเดียว · ไม่ใส่/ผิด = ข้ามเฉพาะวันเหล่านั้น (นำเข้าวันอื่นต่อ) */
+                const skipLocked = new Set();
+                if (mode !== 'add' && typeof window.__isLocked === 'function') {
+                    const touched = (mode === 'replace' ? diffKeys.concat(dropKeys) : diffKeys).filter(k => { try { return window.__isLocked(k); } catch (_) { return false; } }).sort();
+                    if (touched.length) {
+                        let granted = false;
+                        if (window.uiPrompt && window.__pinOk) {
+                            const v = await window.uiPrompt(`การนำเข้านี้จะทับ/ลบวันที่ปิดยอดแล้ว ${touched.length} วัน (${range(touched)})\nใส่ PIN เพื่ออนุญาต · ยกเลิกหรือใส่ผิด = ข้ามวันเหล่านี้ (นำเข้าวันอื่นต่อ)`, '', 'password');
+                            if (v !== null) { if (window.__pinOk(String(v).trim())) granted = true; else showToast('PIN ไม่ถูกต้อง'); }
+                        }
+                        if (granted) { try { if (window.__audit) window.__audit('นำเข้าทับวันที่ปิดยอดแล้ว', `ใส่ PIN อนุญาต ${touched.length} วัน (${range(touched)})`); } catch (_) {} }
+                        else touched.forEach(k => skipLocked.add(k));
+                    }
+                }
+                const diffUse = diffKeys.filter(k => !skipLocked.has(k));
+
                 // ห้ามเปลี่ยนฐานข้อมูลปัจจุบันจนกว่าจะบันทึกจุดกู้คืนสำเร็จ
                 await savePreImportRecoverySnapshot(db);
 
                 let nextDb;
-                if (mode === 'replace') nextDb = normalizedDb;
-                else { nextDb = Object.assign({}, db); (mode === 'add' ? addKeys : addKeys.concat(diffKeys)).forEach(k => { nextDb[k] = normalizedDb[k]; }); }
+                if (mode === 'replace') { nextDb = Object.assign({}, normalizedDb); skipLocked.forEach(k => { if (k in db) nextDb[k] = db[k]; }); }
+                else { nextDb = Object.assign({}, db); (mode === 'add' ? addKeys : addKeys.concat(diffUse)).forEach(k => { nextDb[k] = normalizedDb[k]; }); }
                 const previousDb = db;
                 db = nextDb;
                 if (!saveDB()) {
                     db = previousDb;
                     throw new Error('บันทึกข้อมูลใหม่ไม่สำเร็จ จึงยกเลิกการนำเข้า');
+                }
+                /* วันที่เพิ่ม/แทนจากไฟล์ → ยกมา ย/ม คงเหลือของวันถัดไปต้องคิดตามใหม่ (เดิมค้างค่าเก่า) · แบบแทนที่ทั้งหมดใช้โซ่ตามไฟล์ ไม่แตะ */
+                if (mode !== 'replace') {
+                    const changedKeys = (mode === 'add' ? addKeys : addKeys.concat(diffUse)).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+                    if (changedKeys.length) { try { recalculateFutureBroughtForwardBalances(changedKeys[0]); } catch (e) { console.warn('recalc after import', e); } }
                 }
                 let nT2 = 0, nH2 = 0;
                 if (extra) {
@@ -2153,8 +2174,8 @@
                     try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
                 }
                 renderTable();
-                const nDays = mode === 'replace' ? fileKeys.length : (mode === 'add' ? addKeys.length : addKeys.length + diffKeys.length);
-                showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
+                const nDays = mode === 'replace' ? fileKeys.filter(k => !skipLocked.has(k)).length : (mode === 'add' ? addKeys.length : addKeys.length + diffUse.length);
+                showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
             } catch (err) {
                 console.error('Import JSON failed:', err);
                 alert('นำเข้าข้อมูลไม่สำเร็จ: ' + (err.message || 'ไฟล์ JSON ไม่ถูกต้อง'));
