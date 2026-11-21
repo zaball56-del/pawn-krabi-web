@@ -52,7 +52,13 @@
       if(b&&x.book!==b) return false;
       if(x.tkw&&x.date===curK) return false;
       return true; });
-    if(!c.length) return {status:'none'};
+    if(!c.length){
+      /* พบเลขตั๋ว+เดือนนี้ แต่อยู่คนละเล่ม → บอกเล่มที่พบ (เดิมข้อความ "เล่มไม่ตรง" ของหน้าสแกนไม่เคยขึ้น เพราะไม่มีสถานะนี้) */
+      if(b){ var bks={};
+        try{ var cr2=(typeof window.centralFind==='function')?window.centralFind(ticket,'',mn):null; if(cr2&&cr2.status==='ok'&&cr2.book&&window.ticketNorm(cr2.book)!==b) bks[cr2.book]=1; }catch(e){}
+        (index()[t]||[]).forEach(function(x){ if((!cutKey||x.date>cutKey)&&(!mName||x.mname===mName)&&x.book&&x.book!==b&&!(x.tkw&&x.date===curK)) bks[x.book]=1; });
+        var ks=Object.keys(bks); if(ks.length) return {status:'bookmismatch',books:ks.join(', ')}; }
+      return {status:'none'}; }
     // สธ.3 ชนะเสมอ: มีรายการจากรายงาน (PDF) ใช้เฉพาะรายการนั้น ที่คีย์เองใช้เมื่อไม่มีรายงานเท่านั้น
     var pool=c.filter(function(x){return !x.man}); if(!pool.length) pool=c;
     if(!b){ var bs={}; pool.forEach(function(x){ if(x.book) bs[x.book]=1; }); if(Object.keys(bs).length>1) return {status:'multibook'}; }   // รายการที่ไม่มีเล่ม ไม่นับเป็นอีกเล่ม

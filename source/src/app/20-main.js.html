@@ -424,7 +424,7 @@
                 const r = rows[i];
                 if (!r || !String(r.ticket || '').trim()) continue;
                 if (normalizeCompareTicket(r.ticket) !== normalizeCompareTicket(oldTicket)) continue;
-                if (r.book && oldBook && normalizeCompareTicket(r.book) !== normalizeCompareTicket(oldBook)) continue;
+                { const rb = r.book || r.importBook; if (rb && oldBook && normalizeCompareTicket(rb) !== normalizeCompareTicket(oldBook)) continue; }   // แถวนำเข้า สธ.3 เก็บเล่มไว้ที่ importBook — เดิมไม่ดู จึงจับคู่ผิดใบเมื่อเลขเดียวกันคนละเล่ม
                 idx = i; break;
             }
             const updating = idx >= 0;

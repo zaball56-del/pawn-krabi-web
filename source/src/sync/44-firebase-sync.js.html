@@ -201,7 +201,7 @@
       setLast(k,w.json);
       mergeNote.n++; mergeNote.moved+=w.res.moved;
       if(w.res.conflicts.length){ mergeNote.conf=mergeNote.conf.concat(w.res.conflicts.map(function(x){ return k+' '+x; })); SM.logConflict('push',k,w.srv,w.res.conflicts); }
-      try{ origSave(); }catch(e){}
+      try{ origSave(); }catch(e){} window.__dv=(window.__dv||0)+1;
       recalcAfterMerge([k]);
       if(k===currentDate||(typeof currentDate==='string'&&currentDate>k)) refresh();
     }catch(e){ console.warn('adopt',k,e); setLast(k,sent); }
@@ -316,7 +316,7 @@
       (cloud.chunkKeys[id]||[]).forEach(function(k){ if(!now[k]){ dropKey(k,st,id); if(cloud.where[k]===id) delete cloud.where[k]; } });
       cloud.chunkKeys[id]=Object.keys(now);
     });
-    if(st.save||st.cur){ try{ origSave(); }catch(e){} }
+    if(st.save||st.cur){ try{ origSave(); }catch(e){} window.__dv=(window.__dv||0)+1; }
     if(st.mk&&st.mk.length){ recalcAfterMerge(st.mk); st.cur=true; }
     if(st.cur) refresh();
     if(st.conf&&st.conf.length) toast('2 เครื่องแก้ช่องเดียวกัน ('+st.conf.slice(0,2).join(', ')+(st.conf.length>2?' …':'')+') · ใช้ของเครื่องนี้ และเก็บของอีกเครื่องไว้แล้ว');
@@ -361,7 +361,7 @@
     Object.keys(hs).forEach(function(k){ if(!keep[k] && !outw[k] && inWin(k)) delete hs[k]; });
     Object.keys(r.last).forEach(function(k){ if(!keep[k]) hs[k]=hash(r.last[k]); });
     saveHs();
-    try{ origSave(); }catch(e){}
+    try{ origSave(); }catch(e){} window.__dv=(window.__dv||0)+1;
     if(startMerged.length) recalcAfterMerge(startMerged);
     if(conflicts.length){ toast('วันที่ '+conflicts.slice(0,3).join(', ')+' ถูกแก้ทั้งสองฝั่งตอนออฟไลน์ ใช้ของเครื่องนี้ · เก็บของอีกเครื่องไว้แล้ว'); conflicts=[]; }
     else if(startMerged.length){ toast('รวมข้อมูลจาก 2 เครื่องแล้ว (วันที่ '+startMerged.slice(0,3).join(', ')+')'); }
@@ -433,7 +433,7 @@
     cloud.last[k]=json; st.push=true;                    // ฐาน = ฉบับบนเซิร์ฟเวอร์ แล้วส่งของเครื่องนี้ขึ้นไป
   }
   function finishOld(st){
-    if(st.save||st.cur){ try{ origSave(); }catch(e){} }
+    if(st.save||st.cur){ try{ origSave(); }catch(e){} window.__dv=(window.__dv||0)+1; }
     if(st.cur) refresh();
     if(oldNote.conf.length){ toast('วันที่ '+oldNote.conf.slice(0,3).join(', ')+' ถูกแก้ทั้งสองเครื่อง ใช้ของเครื่องนี้ · เก็บของอีกเครื่องไว้แล้ว'); oldNote.conf=[]; }
     if(st.push){ clearTimeout(cloud.timer); cloud.timer=setTimeout(push,700); }

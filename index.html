@@ -2112,7 +2112,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 const r = rows[i];
                 if (!r || !String(r.ticket || '').trim()) continue;
                 if (normalizeCompareTicket(r.ticket) !== normalizeCompareTicket(oldTicket)) continue;
-                if (r.book && oldBook && normalizeCompareTicket(r.book) !== normalizeCompareTicket(oldBook)) continue;
+                { const rb = r.book || r.importBook; if (rb && oldBook && normalizeCompareTicket(rb) !== normalizeCompareTicket(oldBook)) continue; }   // แถวนำเข้า สธ.3 เก็บเล่มไว้ที่ importBook — เดิมไม่ดู จึงจับคู่ผิดใบเมื่อเลขเดียวกันคนละเล่ม
                 idx = i; break;
             }
             const updating = idx >= 0;
@@ -6633,7 +6633,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       if(!tk){ if(A.classList.contains('qs-auto')){A.value='';A.classList.remove('qs-auto')} hint.textContent='';hint.className='qs-amt-hint'; return; }
       var r=qsLookupKnownAmount(tk,B.value.trim());
       if(r.status==='ok'){
-        if(r.base&&!B.value.trim()){ B.value=r.base.book; }
+        if(!B.value.trim()){ var kb=(r.base&&r.base.book)||r.book||''; if(kb) B.value=String(kb); }   /* เดิมเติมเฉพาะ r.base (ตั๋วที่มาจาก สธ.3) — ตั๋วที่มาจาก สธ.2 ไม่ได้เล่ม ทั้งที่หน้าเขียนตั๋วเติมให้ */
         var ME=document.getElementById('qs-month'); if(ME&&(!ME.value||r.monthFallback)){ var mo=r.base?+r.base.month:((['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'].indexOf(String(r.month||'').trim()))); if(mo>=1&&mo<=12){ ME.value=String(mo); try{qsMonthHint()}catch(e){} } }
         if(editable){ A.value=formatNumber(r.amount); A.classList.add('qs-auto');
           if(r.base){ hint.className='qs-amt-hint'; hint.textContent='ดึงยอดจากทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+') แก้ไขได้'; }
@@ -7021,7 +7021,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       setLast(k,w.json);
       mergeNote.n++; mergeNote.moved+=w.res.moved;
       if(w.res.conflicts.length){ mergeNote.conf=mergeNote.conf.concat(w.res.conflicts.map(function(x){ return k+' '+x; })); SM.logConflict('push',k,w.srv,w.res.conflicts); }
-      try{ origSave(); }catch(e){}
+      try{ origSave(); }catch(e){} window.__dv=(window.__dv||0)+1;
       recalcAfterMerge([k]);
       if(k===currentDate||(typeof currentDate==='string'&&currentDate>k)) refresh();
     }catch(e){ console.warn('adopt',k,e); setLast(k,sent); }
@@ -7136,7 +7136,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       (cloud.chunkKeys[id]||[]).forEach(function(k){ if(!now[k]){ dropKey(k,st,id); if(cloud.where[k]===id) delete cloud.where[k]; } });
       cloud.chunkKeys[id]=Object.keys(now);
     });
-    if(st.save||st.cur){ try{ origSave(); }catch(e){} }
+    if(st.save||st.cur){ try{ origSave(); }catch(e){} window.__dv=(window.__dv||0)+1; }
     if(st.mk&&st.mk.length){ recalcAfterMerge(st.mk); st.cur=true; }
     if(st.cur) refresh();
     if(st.conf&&st.conf.length) toast('2 เครื่องแก้ช่องเดียวกัน ('+st.conf.slice(0,2).join(', ')+(st.conf.length>2?' …':'')+') · ใช้ของเครื่องนี้ และเก็บของอีกเครื่องไว้แล้ว');
@@ -7181,7 +7181,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     Object.keys(hs).forEach(function(k){ if(!keep[k] && !outw[k] && inWin(k)) delete hs[k]; });
     Object.keys(r.last).forEach(function(k){ if(!keep[k]) hs[k]=hash(r.last[k]); });
     saveHs();
-    try{ origSave(); }catch(e){}
+    try{ origSave(); }catch(e){} window.__dv=(window.__dv||0)+1;
     if(startMerged.length) recalcAfterMerge(startMerged);
     if(conflicts.length){ toast('วันที่ '+conflicts.slice(0,3).join(', ')+' ถูกแก้ทั้งสองฝั่งตอนออฟไลน์ ใช้ของเครื่องนี้ · เก็บของอีกเครื่องไว้แล้ว'); conflicts=[]; }
     else if(startMerged.length){ toast('รวมข้อมูลจาก 2 เครื่องแล้ว (วันที่ '+startMerged.slice(0,3).join(', ')+')'); }
@@ -7253,7 +7253,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     cloud.last[k]=json; st.push=true;                    // ฐาน = ฉบับบนเซิร์ฟเวอร์ แล้วส่งของเครื่องนี้ขึ้นไป
   }
   function finishOld(st){
-    if(st.save||st.cur){ try{ origSave(); }catch(e){} }
+    if(st.save||st.cur){ try{ origSave(); }catch(e){} window.__dv=(window.__dv||0)+1; }
     if(st.cur) refresh();
     if(oldNote.conf.length){ toast('วันที่ '+oldNote.conf.slice(0,3).join(', ')+' ถูกแก้ทั้งสองเครื่อง ใช้ของเครื่องนี้ · เก็บของอีกเครื่องไว้แล้ว'); oldNote.conf=[]; }
     if(st.push){ clearTimeout(cloud.timer); cloud.timer=setTimeout(push,700); }
@@ -9944,7 +9944,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       if(b&&x.book!==b) return false;
       if(x.tkw&&x.date===curK) return false;
       return true; });
-    if(!c.length) return {status:'none'};
+    if(!c.length){
+      /* พบเลขตั๋ว+เดือนนี้ แต่อยู่คนละเล่ม → บอกเล่มที่พบ (เดิมข้อความ "เล่มไม่ตรง" ของหน้าสแกนไม่เคยขึ้น เพราะไม่มีสถานะนี้) */
+      if(b){ var bks={};
+        try{ var cr2=(typeof window.centralFind==='function')?window.centralFind(ticket,'',mn):null; if(cr2&&cr2.status==='ok'&&cr2.book&&window.ticketNorm(cr2.book)!==b) bks[cr2.book]=1; }catch(e){}
+        (index()[t]||[]).forEach(function(x){ if((!cutKey||x.date>cutKey)&&(!mName||x.mname===mName)&&x.book&&x.book!==b&&!(x.tkw&&x.date===curK)) bks[x.book]=1; });
+        var ks=Object.keys(bks); if(ks.length) return {status:'bookmismatch',books:ks.join(', ')}; }
+      return {status:'none'}; }
     // สธ.3 ชนะเสมอ: มีรายการจากรายงาน (PDF) ใช้เฉพาะรายการนั้น ที่คีย์เองใช้เมื่อไม่มีรายงานเท่านั้น
     var pool=c.filter(function(x){return !x.man}); if(!pool.length) pool=c;
     if(!b){ var bs={}; pool.forEach(function(x){ if(x.book) bs[x.book]=1; }); if(Object.keys(bs).length>1) return {status:'multibook'}; }   // รายการที่ไม่มีเล่ม ไม่นับเป็นอีกเล่ม

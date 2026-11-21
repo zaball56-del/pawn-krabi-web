@@ -3,7 +3,7 @@
 // - พื้นที่เต็ม: สมุดบัญชีย้ายไป IndexedDB แล้วลบสำเนาเก่าใน localStorage · เขียนตั๋วรอดการรีเฟรชผ่าน IndexedDB
 // build ก่อน: python3 tools/build.py ../index.html   รัน: NODE_PATH=<node_modules ที่มี playwright> node tests/e2e.sync.chrome.js
 const path=require('path'); const {chromium}=require('playwright');
-const URL='file://'+path.join(__dirname,'../../index.html'); const M='พฤศจิกายน';
+const URL='file://'+(process.env.FILE||path.join(__dirname,'../../index.html')); const M='พฤศจิกายน';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let fail=0; const ok=(c,m)=>{ if(!c){fail++;console.log('FAIL',m);} else console.log('ok  ',m); };
 const d=new Date(); const p2=n=>String(n).padStart(2,'0'); const K=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
@@ -31,7 +31,7 @@ function fakeFirebase(initDocs){
   const fb={apps:[],initializeApp(){ fb.apps.push({}); },firestore:()=>fs,auth:()=>({currentUser:user,onAuthStateChanged:cb=>setTimeout(()=>cb(user),10),signInWithEmailAndPassword:()=>Promise.resolve()})};
   fb.firestore.FieldValue={delete:()=>DEL,serverTimestamp:()=>new Date().toISOString()}; fb.firestore.FieldPath={documentId:()=>'__id'};
   Object.defineProperty(window,'firebase',{get:()=>fb,set(){},configurable:true});
-  window.__srv={docs};
+  window.__srv={docs,notify:(c)=>subs.filter(x=>x.c===c).forEach(x=>x.cb(snap(c,null,undefined)))};   /* เครื่องอื่นเขียนแล้วแจ้งเครื่องนี้ (onSnapshot) */
 }
 function shiftDays(n){ const RD=Date, off=n*864e5; window.Date=class extends RD{ constructor(...a){ a.length?super(...a):super(RD.now()+off); } static now(){ return RD.now()+off; } }; }
 async function open(ctx,initDocs,extra){
@@ -179,6 +179,15 @@ const srvTickets=(docs)=>{ const j=((docs.ledger||{})[WID]||{})[FLD]; if(!j) ret
     const srv=await pg.evaluate(()=>{ const t=(window.__srv.docs.tkw||{})['2026-11']; return t?JSON.stringify(t).includes('7701'):false; });
     ok(!before&&srv,'8.0 นำเข้า สธ.3 โดยไม่เปิดหน้าเขียนตั๋ว → ตั๋วขึ้นคลาวด์ (เดิมค้างในเครื่อง)');
     ok(!pg.errs.length,'8.1 ไม่มี error '+pg.errs.join(' | ')); await ctx.close(); }
+  { /* 9) ข้อมูลที่รับจากอีกเครื่อง (ซิงก์) ต้องค้นเจอทันทีตอนสแกน — เดิมตัวค้นตั๋วใช้แคชเก่าได้นานสุด 30 วินาที (ซิงก์ไม่ผ่านตัวห่อ saveDB) */
+    const ctx=await b.newContext(); const pg=await open(ctx,'{}');
+    await pg.evaluate(()=>{ window.__r0=window.ticketFind('555','3',11,{soft:false}).status; });   // สร้างแคชไว้ก่อน (ยังไม่มีตั๋วนี้)
+    await pg.evaluate(([WID,FLD,M])=>{ const day={months:[M],bf:[0],bfCount:[0],data:{[M]:[{type:'',ticket:'555',book:'',amount:'7000',count:'',origIdx:0,timestamp:'',importSource:'PDF',importBook:'3'}],'สรุปประจำวัน':[]},totalRows:60};
+      const L=window.__srv.docs.ledger=window.__srv.docs.ledger||{}; L[WID]=L[WID]||{}; L[WID][FLD]=JSON.stringify(day); window.__srv.notify('ledger'); },[WID,FLD,M]);
+    await sleep(2500);
+    const r=await pg.evaluate(()=>({r0:window.__r0,r1:window.ticketFind('555','3',11,{soft:false})}));
+    ok(r.r0==='none'&&r.r1.status==='ok'&&r.r1.amount==='7000','9.0 ตั๋วที่เพิ่งรับจากอีกเครื่อง ค้นเจอทันที (ไม่รอแคช 30 วิ) '+JSON.stringify(r.r1));
+    ok(!pg.errs.length,'9.1 ไม่มี error '+pg.errs.join(' | ')); await ctx.close(); }
   await b.close();
   console.log(fail?`❌ ล้มเหลว ${fail}`:'✅ ผ่านทั้งหมด'); process.exit(fail?1:0);
 })();
