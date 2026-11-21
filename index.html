@@ -6195,7 +6195,10 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         flush(); var s=stk(k), src=dir<0?s.undo:s.redo; if(!src.length){ toast(dir<0?'ไม่มีรายการให้เลิกทำ':'ไม่มีรายการให้ทำซ้ำ'); return; }
         if(lockedNow(k)){ window.__askUnlock&&window.__askUnlock(null,k); return; }
         var e=src.pop(); applying=true;
-        try{ db[k]=JSON.parse(dir<0?e.before:e.after); (dir<0?s.redo:s.undo).push(e); last[k]=dir<0?e.before:e.after; sigs[k]=sigOf(k);
+        try{ db[k]=JSON.parse(dir<0?e.before:e.after); (dir<0?s.redo:s.undo).push(e);
+            /* ฉบับที่เก็บไว้อาจมียอดยกมา/ย/ม เก่า (ถ้าวันก่อนหน้าถูกแก้หลังจากนั้น) → คิดยกมา ย/ม คงเหลือของวันนี้ใหม่จากวันก่อนหน้า ก่อนส่งต่อวันถัดไป */
+            try{ syncBroughtForwardForDate(k,true); if(typeof recomputeStoredBalance==='function') recomputeStoredBalance(k); }catch(x){}
+            last[k]=full(k); sigs[k]=sigOf(k);
             saveDB(); try{ recalculateFutureBroughtForwardBalances(k); }catch(x){}
             if(k===currentDate){ try{ renderTable(); }catch(x){} try{ renderHome(); }catch(x){} }
             if(window.__audit) window.__audit(dir<0?'เลิกทำ':'ทำซ้ำ','ย้อนการแก้ไขของวันที่ '+thDate(k)+' (บันทึกเมื่อ '+tm(e.ts)+')',k);
