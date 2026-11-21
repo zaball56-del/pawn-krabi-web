@@ -915,6 +915,18 @@
 
         // เมื่อยอดของวันย้อนหลังเปลี่ยน ให้คำนวณวันถัดไปตามลำดับวันที่
         // รวมทั้ง ย/ม รายวันและยอดยกมารายเดือน โดยไม่ต้องล้างข้อมูล
+        function recomputeStoredBalance(dateStr) {
+            const day = db[dateStr];
+            const rows = day && day.data && day.data['สรุปประจำวัน'];
+            if (!Array.isArray(rows) || rows.length < 4 || day.balanceManual === true) return false;
+            const g = (r, f) => cleanNumberString(rows[r] ? rows[r][f] : 0);
+            const c = g(0, 'count') + g(1, 'count') - g(2, 'count');
+            const a = roundMoney(g(0, 'amount') + g(1, 'amount') - g(2, 'amount'));
+            const ch = cleanNumberString(rows[3].count) !== c || cleanNumberString(rows[3].amount) !== a;
+            rows[3].type = 'คงเหลือ'; rows[3].count = c; rows[3].amount = a;
+            return ch;
+        }
+
         function recalculateFutureBroughtForwardBalances(fromDate) {
             const futureDates = Object.keys(db)
                 .filter(dateStr => dateStr > fromDate && db[dateStr] && Array.isArray(db[dateStr].months))
@@ -922,6 +934,9 @@
             let changed = false;
             futureDates.forEach(dateStr => {
                 if (syncBroughtForwardForDate(dateStr, true)) changed = true;
+                // คงเหลือของวันนั้น = ย/ม + รับจำนำ − ไถ่ถอน (สูตรเดียวกับ updateDailyBalanceCalculator) เพื่อให้วันถัดไปรับ ย/ม ถูก
+                // ข้ามวันที่ผู้ใช้กรอกคงเหลือเอง (balanceManual)
+                if (recomputeStoredBalance(dateStr)) changed = true;
             });
             if (changed) saveDB();
         }
