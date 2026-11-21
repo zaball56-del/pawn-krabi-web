@@ -10431,6 +10431,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
 <script>
 (function(){
   var P=document.getElementById('tp-pop'), T=document.getElementById('tp-t'), B=document.getElementById('tp-b'), cur=null;
+  function locked(){ try{ return !!(window.__isLocked&&window.__isLocked(currentDate)); }catch(e){ return false; } }
   function dig(s){ return String(s||'').replace(/[^0-9]/g,''); }
   function row(c,r){ var d=getCurrentDayData(), m=d.months[c]; return {d:d,m:m,row:(d.data[m]||[])[r]||{}}; }
   function open(c,r){
@@ -10447,7 +10448,9 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
   function ok(){
     if(!cur) return; var c=cur.c, r=cur.r, t=dig(T.value), b=dig(B.value);
     if(!t){ T.focus(); return; }
-    var x=row(c,r); if(x.row.ticket!==t) updateCellData(c,r,'ticket',t,document.querySelector('.ticket-input-'+c+'-'+r));
+    var x=row(c,r);
+    /* วันที่ปิดยอดแล้ว: แก้เลขตั๋ว/เล่มต้องใส่ PIN (ไม่เปลี่ยนค่า = แค่ปิดหน้าต่าง ไม่ถาม) */
+    if(locked()){ var cb=String(x.row.book||x.row.importBook||''); if(b!==cb||String(x.row.ticket||'')!==t){ try{ window.__askUnlock(null,currentDate); }catch(e){} } close(); return; } if(x.row.ticket!==t) updateCellData(c,r,'ticket',t,document.querySelector('.ticket-input-'+c+'-'+r));
     var d=getCurrentDayData(), rec=(d.data[x.m]||[])[r]; if(rec){ rec.book=b; }
     try{ saveDB(); }catch(e){} close();
     try{ renderTable(); }catch(e){}
@@ -10463,6 +10466,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
   }
   document.getElementById('tp-del').onclick=function(){
     if(!cur) return;
+    if(locked()){ try{ window.__askUnlock(null,currentDate); }catch(e){} close(); return; }
     if(!this.classList.contains('sure')){ this.classList.add('sure'); this.textContent='แตะอีกครั้งเพื่อยืนยันลบ'; return; }
     var c=cur.c, r=cur.r, d=getCurrentDayData(), m=d.months[c], rec=(d.data[m]||[])[r]; if(!rec){ close(); return; }
     var bak=JSON.parse(JSON.stringify(rec)), tk=rec.ticket;
@@ -10818,6 +10822,8 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
     if(kind==='tkw'){ k=($('tkw-date')||{}).value; n=window.tkwCountDay?window.tkwCountDay():0; label='บัญชีรายวันเขียนตั๋ว'; }
     else { k=currentDate; n=ledgerCount(k); label='บัญชีรายวันรักษาของ'; }
     if(!k) return;
+    /* วันที่ปิดยอดแล้วลบทั้งวันต้องใส่ PIN ก่อน (เหมือนแก้ไขช่องอื่น) */
+    if(kind!=='tkw'&&typeof window.__isLocked==='function'&&window.__isLocked(k)){ try{ window.__askUnlock(null,k); }catch(e){} return; }
     if(!n){ toast('วันที่ '+be(k)+' ยังไม่มีข้อมูลใน'+label); return; }
     var ov=document.createElement('div'); ov.id='dd-ov';
     ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px';

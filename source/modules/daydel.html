@@ -18,6 +18,8 @@
     if(kind==='tkw'){ k=($('tkw-date')||{}).value; n=window.tkwCountDay?window.tkwCountDay():0; label='บัญชีรายวันเขียนตั๋ว'; }
     else { k=currentDate; n=ledgerCount(k); label='บัญชีรายวันรักษาของ'; }
     if(!k) return;
+    /* วันที่ปิดยอดแล้วลบทั้งวันต้องใส่ PIN ก่อน (เหมือนแก้ไขช่องอื่น) */
+    if(kind!=='tkw'&&typeof window.__isLocked==='function'&&window.__isLocked(k)){ try{ window.__askUnlock(null,k); }catch(e){} return; }
     if(!n){ toast('วันที่ '+be(k)+' ยังไม่มีข้อมูลใน'+label); return; }
     var ov=document.createElement('div'); ov.id='dd-ov';
     ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px';

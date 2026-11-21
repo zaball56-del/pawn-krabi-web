@@ -28,6 +28,7 @@
 <script>
 (function(){
   var P=document.getElementById('tp-pop'), T=document.getElementById('tp-t'), B=document.getElementById('tp-b'), cur=null;
+  function locked(){ try{ return !!(window.__isLocked&&window.__isLocked(currentDate)); }catch(e){ return false; } }
   function dig(s){ return String(s||'').replace(/[^0-9]/g,''); }
   function row(c,r){ var d=getCurrentDayData(), m=d.months[c]; return {d:d,m:m,row:(d.data[m]||[])[r]||{}}; }
   function open(c,r){
@@ -44,7 +45,9 @@
   function ok(){
     if(!cur) return; var c=cur.c, r=cur.r, t=dig(T.value), b=dig(B.value);
     if(!t){ T.focus(); return; }
-    var x=row(c,r); if(x.row.ticket!==t) updateCellData(c,r,'ticket',t,document.querySelector('.ticket-input-'+c+'-'+r));
+    var x=row(c,r);
+    /* วันที่ปิดยอดแล้ว: แก้เลขตั๋ว/เล่มต้องใส่ PIN (ไม่เปลี่ยนค่า = แค่ปิดหน้าต่าง ไม่ถาม) */
+    if(locked()){ var cb=String(x.row.book||x.row.importBook||''); if(b!==cb||String(x.row.ticket||'')!==t){ try{ window.__askUnlock(null,currentDate); }catch(e){} } close(); return; } if(x.row.ticket!==t) updateCellData(c,r,'ticket',t,document.querySelector('.ticket-input-'+c+'-'+r));
     var d=getCurrentDayData(), rec=(d.data[x.m]||[])[r]; if(rec){ rec.book=b; }
     try{ saveDB(); }catch(e){} close();
     try{ renderTable(); }catch(e){}
@@ -60,6 +63,7 @@
   }
   document.getElementById('tp-del').onclick=function(){
     if(!cur) return;
+    if(locked()){ try{ window.__askUnlock(null,currentDate); }catch(e){} close(); return; }
     if(!this.classList.contains('sure')){ this.classList.add('sure'); this.textContent='แตะอีกครั้งเพื่อยืนยันลบ'; return; }
     var c=cur.c, r=cur.r, d=getCurrentDayData(), m=d.months[c], rec=(d.data[m]||[])[r]; if(!rec){ close(); return; }
     var bak=JSON.parse(JSON.stringify(rec)), tk=rec.ticket;

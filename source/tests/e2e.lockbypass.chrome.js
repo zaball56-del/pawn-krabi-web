@@ -1,0 +1,20 @@
+// ทดสอบล็อก PIN: วันที่ปิดยอดแล้ว ห้ามลบทั้งวัน/ลบแถว/แก้เล่มผ่านหน้าต่างเลขตั๋ว โดยไม่ใส่ PIN · ปลดล็อกแล้วทำได้
+const path=require('path'); const {chromium}=require('playwright'); let fail=0; const ok=(c,m,x)=>{ if(!c){fail++;console.log('FAIL',m,x===undefined?'':JSON.stringify(x));} else console.log('ok  ',m); };
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{ const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+ const pg=await (await b.newContext({viewport:{width:1366,height:900}})).newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(String(e)));
+ await pg.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort());
+ await pg.goto('file://'+(process.env.FILE||path.join(__dirname,'../../index.html')),{waitUntil:'domcontentloaded'}); await sleep(2500);
+ const setup=()=>pg.evaluate(()=>{ document.querySelectorAll('#login-modal').forEach(e=>e.style.display='none'); const ac=document.getElementById('app-container'); ac.classList.remove('hidden'); ac.style.display='flex'; goPage('ledger'); window.alert=()=>{}; window.confirm=()=>true; window.__asked=0; window.uiPrompt=async()=>{ window.__asked++; return null; };
+  Object.keys(db).forEach(k=>delete db[k]); const M='ตุลาคม'; currentDate='2026-11-16'; const d=getCurrentDayData(); d.months=[M,'','','','','']; d.data[M]=[{type:'ถ',ticket:'601',book:'1',amount:1500,count:'',origIdx:0,timestamp:''},{type:'ถ',ticket:'602',book:'1',amount:500,count:'',origIdx:1,timestamp:''}]; d.bf=[10000,0,0,0,0,0]; syncDailyOpeningFromMonthlyBF('2026-11-16'); updateSummaryColumn(); d.closing={opening:'',adj:'',adjNote:'',counted:'1',note:'',closed:true,closedAt:'x'}; window.__unlocked={}; saveDB(); renderTable(); });
+ const st=()=>pg.evaluate(()=>{ const d=db['2026-11-16']; const r=d&&d.data['ตุลาคม']; return {closed:!!(d&&d.closing&&d.closing.closed),t1:r&&r[1]&&r[1].ticket,b1:r&&r[1]&&r[1].book,asked:window.__asked}; });
+ const del=async()=>{ await pg.evaluate(()=>dayDelAsk('ledger')); await sleep(200); await pg.evaluate(()=>{ const y=document.getElementById('dd-yes'); y&&y.click(); }); await sleep(300); };
+ const pop=(book,del)=>pg.evaluate(async([book,del])=>{ const el=document.querySelector('.ticket-input-0-1'); el.focus(); await new Promise(r=>setTimeout(r,400)); if(!document.getElementById('tp-pop').classList.contains('on')) return 'nopop';
+   if(del){ const d=document.getElementById('tp-del'); d.click(); d.click(); } else { document.getElementById('tp-b').value=book; document.getElementById('tp-o').click(); } await new Promise(r=>setTimeout(r,300)); return 'done'; },[book,del]);
+ await setup(); await del(); let r=await st(); ok(r.closed&&r.t1==='602'&&r.asked===1,'1 ลบทั้งวันที่ปิดยอดแล้ว: ถาม PIN (ไม่ใส่) → ไม่ลบ ข้อมูลและสถานะปิดยอดอยู่ครบ',r);
+ await setup(); ok(await pop('9',false)==='done','1.5 เปิดหน้าต่างเลขตั๋วได้'); r=await st(); ok(r.b1==='1'&&r.asked===1,'2 แก้เล่มผ่านหน้าต่างเลขตั๋วในวันที่ปิดยอดแล้ว: ถาม PIN → ไม่เปลี่ยน',r);
+ await setup(); await pop('',true); r=await st(); ok(r.t1==='602'&&r.asked===1,'3 ลบแถวผ่านหน้าต่างเลขตั๋วในวันที่ปิดยอดแล้ว: ถาม PIN → ไม่ลบ',r);
+ await setup(); await pop('1',false); r=await st(); ok(r.asked===0&&r.b1==='1','4 เปิดแล้วปิดโดยไม่เปลี่ยนค่า: ไม่ถาม PIN',r);
+ await setup(); await pg.evaluate(()=>{ window.__unlocked['2026-11-16']=true; }); await pop('',true); r=await st(); ok(r.t1===''&&r.asked===0,'5 ปลดล็อกแล้ว: ลบแถวได้ตามปกติ',r);
+ await setup(); await pg.evaluate(()=>{ window.__unlocked['2026-11-16']=true; }); await pop('9',false); r=await st(); ok(r.b1==='9','6 ปลดล็อกแล้ว: แก้เล่มได้ตามปกติ',r);
+ ok(!errs.length,'7 ไม่มี error',errs); await b.close(); process.exit(fail?1:0); })();
