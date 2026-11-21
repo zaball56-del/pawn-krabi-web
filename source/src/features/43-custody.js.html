@@ -32,8 +32,9 @@
   };
   // ตรวจว่าตั๋วนี้ถูกไถ่ถอนไปแล้วหรือไม่ (อ่านอย่างเดียว)
   function redeemedOn(ticket,book){
-    var t=norm(ticket), b=norm(book), hit=null;
-    try{ for(var k in db){ if(k.length!==10||k.indexOf('-')<0) continue; var d=db[k]; if(!d||!d.months||!d.data) continue;
+    /* ดูย้อนหลัง 240 วัน (ช่วงเดียวกับทะเบียนกลาง): เล่ม+เลขตั๋วเดียวกันของปีก่อนเป็นคนละใบ ไม่เตือน */
+    var t=norm(ticket), b=norm(book), hit=null, lim=''; try{ var ld=new Date(); ld.setDate(ld.getDate()-240); lim=ld.getFullYear()+'-'+pad(ld.getMonth()+1)+'-'+pad(ld.getDate()); }catch(e){}
+    try{ for(var k in db){ if(k.length!==10||k.indexOf('-')<0||(lim&&k<lim)) continue; var d=db[k]; if(!d||!d.months||!d.data) continue;
       d.months.forEach(function(m){ (d.data[m]||[]).forEach(function(r){ if(r&&r.type==='ถ'&&norm(r.ticket)===t&&(!b||!r.book||norm(r.book)===b)){ if(!hit||k>hit) hit=k; } }); }); } }catch(e){}
     return hit;
   }

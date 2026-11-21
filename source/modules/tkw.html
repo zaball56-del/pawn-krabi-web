@@ -369,7 +369,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   T.addEventListener('input',function(e){ var el=e.target; if(el.tagName!=='INPUT') return; var g=+el.dataset.g,i=+el.dataset.i,f=+el.dataset.f; var k=g+'/'+i+'/'+f; if(undo._k!==k){ snap(); undo._k=k; } ensure(g,i); day.r[g][i][f]=el.value; if(f===0&&(day.r[g][i][2]||day.r[g][i][3])){ day.r[g][i][2]=''; day.r[g][i][3]=''; var sm=el.parentNode.querySelector('small,.bk-tag'); if(sm) sm.remove(); el.classList.remove('hb'); } commit(); tot(); tabs(); });
   T.addEventListener('focusin',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value.replace(/,/g,''); } });
   T.addEventListener('focusout',function(e){ var el=e.target; if(el.tagName==='INPUT'&&el.dataset.f==='1'){ el.value=el.value===''?'':fmt(num(el.value)); } undo._k=''; });
-  T.addEventListener('change',function(e){ var s=e.target; if(s.tagName==='SELECT'){ snap(); var g=+s.dataset.m; if(s.value==='del'){ delCol(g); render(); return; } day.m[g]=+s.value; commit(); render(); } });
+  T.addEventListener('change',function(e){ var s=e.target; if(s.tagName==='SELECT'){ snap(); var g=+s.dataset.m; if(s.value==='del'){ delCol(g); render(); return; } var nm=+s.value, dg=day.m.indexOf(nm); if(dg>=0&&dg!==g){ undo.pop(); try{ showToast('มีคอลัมน์เดือน'+MN[nm]+'อยู่แล้ว (คอลัมน์ที่ '+(dg+1)+') เลือกเดือนซ้ำไม่ได้'); }catch(_){} render(); return; } day.m[g]=nm; commit(); render(); } });
   function delCol(g){ if(NG()<=1) return; var has=totals(g).c>0; if(has && !window.confirm('ลบคอลัมน์เดือน '+MN[day.m[g]]+' และข้อมูลในคอลัมน์นี้ใช่ไหม? (กดเลิกทำเพื่อเอากลับได้)')) return; snap(); day.m.splice(g,1); day.r.splice(g,1); if(cur>=g&&cur>0) cur--; commit(); render(); }
   T.addEventListener('click',function(e){
     var cx=e.target.closest('[data-cx]'); if(cx){ var q=cx.dataset.cx.split(','); cellDel(+q[0],+q[1]); return; }
@@ -454,7 +454,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   $('tkw-delcol').onclick=function(){ delCol(cur); };
   /* เลื่อนแถวว่างขึ้น: เฉพาะคอลัมน์เดือนที่เลือก (cur) เดือนอื่นไม่ขยับ ลำดับเดิมคงเดิม แถวว่างไปอยู่ท้าย เลิกทำได้ */
   function cUsed(x){ return !!(x&&(String(x[0]==null?'':x[0]).trim()!==''||String(x[1]==null?'':x[1]).trim()!=='')); }
-  function delShift(g,i){ var col=JSON.parse(JSON.stringify(day.r[g]||[])); var n=col.length; day.r[g][i]=['','','','']; var keep=day.r[g].filter(cUsed); var out=keep.slice(); while(out.length<n) out.push(['','']); day.r[g]=out; return col; }
+  /* ลบแถว i: เฉพาะแถวใต้แถวนั้นเลื่อนขึ้น 1 แถว · แถวว่างที่เว้นไว้ที่อื่นคงตำแหน่งเดิม (ยุบทั้งคอลัมน์ใช้ปุ่ม "เลื่อนแถวว่างขึ้น") */
+  function delShift(g,i){ var col=JSON.parse(JSON.stringify(day.r[g]||[])); var n=col.length; var out=(day.r[g]||[]).slice(); out.splice(i,1); while(out.length<n) out.push(['','']); day.r[g]=out; return col; }
   function delUndo(g,col){ return function(){ snap(); day.r[g]=JSON.parse(JSON.stringify(col)); commit(); render(); }; }
   function compactCol(g){ var col=day.r[g]; if(!col) return 0; var keep=col.filter(cUsed), gaps=0, last=-1; col.forEach(function(x,i){ if(cUsed(x)) last=i; }); gaps=last+1-keep.length; if(gaps<=0) return 0;
     snap(); var out=keep.slice(); while(out.length<col.length) out.push(['','']); day.r[g]=out; commit(); render(); return gaps; }
@@ -500,7 +501,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var ov=document.createElement('div'); ov.id='tkw-cx-ov';
     ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px';
     var det='ตั๋ว <b>'+esc(x[0])+'</b>'+(x[2]?' · เล่ม '+esc(x[2]):'')+(String(x[1]||'').trim()?' · ยอด '+esc(fmt(num(x[1]))):'');
-    ov.innerHTML='<div style="background:#fff;color:#0f172a;border-radius:20px;max-width:340px;width:100%;padding:18px;font-family:Sarabun,sans-serif;box-shadow:0 20px 50px rgba(0,0,0,.4)"><div style="font-size:17px;font-weight:800;color:#b91c1c">🗑 ลบรายการนี้</div><div style="margin-top:8px;font-size:15px;line-height:1.55">'+MN[day.m[g]]+' · แถว '+(i+1)+'<br>'+det+'</div><div style="margin-top:6px;font-size:12px;color:#475569">ลบเฉพาะช่องนี้ แถวอื่นและเดือนอื่นไม่ขยับ</div><div style="display:flex;gap:10px;margin-top:14px"><button type="button" id="tkw-cx-no" style="flex:1;border:1px solid #cbd5e1;background:#fff;border-radius:12px;padding:11px;font:700 15px Sarabun,sans-serif">ยกเลิก</button><button type="button" id="tkw-cx-yes" style="flex:1;border:0;background:#dc2626;color:#fff;border-radius:12px;padding:11px;font:800 15px Sarabun,sans-serif">ลบ</button></div></div>';
+    ov.innerHTML='<div style="background:#fff;color:#0f172a;border-radius:20px;max-width:340px;width:100%;padding:18px;font-family:Sarabun,sans-serif;box-shadow:0 20px 50px rgba(0,0,0,.4)"><div style="font-size:17px;font-weight:800;color:#b91c1c">🗑 ลบรายการนี้</div><div style="margin-top:8px;font-size:15px;line-height:1.55">'+MN[day.m[g]]+' · แถว '+(i+1)+'<br>'+det+'</div><div style="margin-top:6px;font-size:12px;color:#475569">แถวด้านล่างในเดือนนี้จะเลื่อนขึ้น 1 แถว · เดือนอื่นไม่ขยับ</div><div style="display:flex;gap:10px;margin-top:14px"><button type="button" id="tkw-cx-no" style="flex:1;border:1px solid #cbd5e1;background:#fff;border-radius:12px;padding:11px;font:700 15px Sarabun,sans-serif">ยกเลิก</button><button type="button" id="tkw-cx-yes" style="flex:1;border:0;background:#dc2626;color:#fff;border-radius:12px;padding:11px;font:800 15px Sarabun,sans-serif">ลบ</button></div></div>';
     document.body.appendChild(ov);
     document.getElementById('tkw-cx-no').onclick=function(){ ov.remove(); };
     document.getElementById('tkw-cx-yes').onclick=function(){
@@ -548,9 +549,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   ST.addEventListener('input',onTk); ST.addEventListener('change',onTk);
   SM.addEventListener('input',mhint); SM.addEventListener('input',function(){ monTyped=true; var v=+SM.value; if(v>=1&&v<=12) lastMon=String(v); });
   /* ตั๋วซ้ำข้ามวัน/ข้ามเดือน (ย้อนหลัง 1 ปี) · เล่มต่างกันชัดเจน = คนละใบ */
-  function dupElse(t,b,m){ var out=[]; if(!t) return out; var lim=shift(key,-366);
+  /* เทียบเลขตั๋ว/เล่มแบบเดียวกับการนำเข้า สธ.3: "0134" = "134" */
+  function nzT(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); }
+  /* ตั๋วเดือน m ออกได้ตั้งแต่วันที่ 1 ของเดือนนั้นรอบล่าสุด (ไม่เกินวันที่เปิดอยู่) → รายการก่อนหน้านั้นเป็นตั๋วของปีก่อน ไม่นับว่าซ้ำ */
+  function mStartOf(m){ var p=String(key).split('-'), y=+p[0], cm=+p[1]; if(!(m>=1&&m<=12)||!y) return ''; return (m<=cm?y:y-1)+'-'+('0'+m).slice(-2)+'-01'; }
+  function dupElse(t,b,m){ var out=[]; if(!t) return out; var lim=shift(key,-366), ms=mStartOf(m); if(ms&&ms>lim) lim=ms; var nt=nzT(t), nb=nzT(b);
     Object.keys(store).forEach(function(k){ if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||k>key||k<lim) return; var d=store[k]; if(!d||!d.m||!d.r) return;
-      d.m.forEach(function(mm,g){ if(k===key&&mm===m) return; (d.r[g]||[]).forEach(function(x,i){ if(!x||x[0]!==t) return; if(b&&x[2]&&x[2]!==b) return; out.push({k:k,m:mm,i:i,b:x[2]||''}); }); }); });
+      d.m.forEach(function(mm,g){ if(k===key&&mm===m) return; (d.r[g]||[]).forEach(function(x,i){ if(!x||nzT(x[0])!==nt) return; if(nb&&x[2]&&nzT(x[2])!==nb) return; out.push({k:k,m:mm,i:i,b:x[2]||''}); }); }); });
     out.sort(function(a,c){ return a.k<c.k?1:-1; }); return out; }
   function dupTxt(L){ var x=L[0]; return 'ตั๋วนี้เคยบันทึกแล้ว: '+(x.k===key?'วันนี้':dth(x.k))+' · เดือน'+MN[x.m]+' · แถว '+(x.i+1)+(x.b?' · เล่ม '+x.b:'')+(L.length>1?' (และอีก '+(L.length-1)+' ที่)':''); }
   function dupHint(){ var t=ST.value.trim(); if(!t) return; var L=dupElse(t,lastBook,+SM.value); if(L.length) hint('⚠ '+dupTxt(L),true); }
@@ -575,7 +580,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     if(!a||!(num(a)>0)){ msg('ใส่ยอดเงินก่อน','er'); SA.focus(); return; }
     var g=day.m.indexOf(m); snap();
     if(g<0){ if(NG()>=MAXG){ undo.pop(); msg('คอลัมน์เดือนเต็ม 12 คอลัมน์แล้ว','er'); return; } day.m.push(m); day.r.push(emptyCol()); g=NG()-1; }
-    var col=day.r[g]; for(var i=0;i<col.length;i++){ if(col[i][0]===t&&(!lastBook||!col[i][2]||col[i][2]===lastBook)){ undo.pop(); msg('ตั๋ว '+t+(lastBook?' เล่ม '+lastBook:'')+' มีอยู่แล้วในเดือน'+MN[m]+' (แถว '+(i+1)+') ไม่บันทึกซ้ำ','er'); ST.select(); return; } }
+    var col=day.r[g]; for(var i=0;i<col.length;i++){ if(nzT(col[i][0])===nzT(t)&&(!lastBook||!col[i][2]||nzT(col[i][2])===nzT(lastBook))){ undo.pop(); msg('ตั๋ว '+t+(lastBook?' เล่ม '+lastBook:'')+' มีอยู่แล้วในเดือน'+MN[m]+' (แถว '+(i+1)+') ไม่บันทึกซ้ำ','er'); ST.select(); return; } }
     var DL=dupElse(t,lastBook,m), sig=t+'|'+lastBook+'|'+m;
     if(DL.length&&(fromAuto||dupOk!==sig)){ undo.pop(); if(!fromAuto) dupOk=sig; msg('⚠ '+dupTxt(DL)+(fromAuto?' — ไม่บันทึกอัตโนมัติ ตรวจก่อน แล้วกดบันทึกเองถ้าถูกต้อง':' — ถ้าถูกต้องกด "บันทึก" อีกครั้งเพื่อยืนยัน'),'dup');
       try{ navigator.vibrate&&navigator.vibrate([120,80,120]); }catch(e){} try{ window.__scanBeep&&window.__scanBeep('er'); }catch(e){} $('tkw-sq-save').focus(); return; }

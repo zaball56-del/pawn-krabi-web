@@ -788,7 +788,9 @@
             const prevDate = getLatestAvailablePreviousDate(dateStr);
             const prevDay = prevDate ? db[prevDate] : null;
             const prevSummary = prevDay && prevDay.data ? prevDay.data[summaryKey] : null;
-            const prevBalance = Array.isArray(prevSummary) ? prevSummary[3] : null;
+            let prevBalance = Array.isArray(prevSummary) ? prevSummary[3] : null;
+            // วันแรกที่เหลือหลัง "ลบข้อมูลเก่า": ใช้คงเหลือของวันก่อนหน้าที่จดไว้ตอนลบ (openAnchor) แทนวันที่ถูกลบ → ยอดเท่าเดิมทุกบาท
+            if (!prevDay && day.openAnchor && typeof day.openAnchor === 'object') prevBalance = day.openAnchor;
             if (prevBalance && (prevBalance.count !== '' || prevBalance.amount !== '')) {
                 totalCount = cleanNumberString(prevBalance.count ?? 0);
                 totalAmount = cleanNumberString(prevBalance.amount ?? 0);
@@ -2187,13 +2189,15 @@
         function exportToExcel() {
             let dayData = getCurrentDayData();
             let csvContent = "\uFEFF";
+            // ช่อง CSV: ค่าว่าง/undefined = ว่าง · เครื่องหมาย " ในข้อความต้องเบิ้ล ไม่งั้นคอลัมน์เลื่อน
+            const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
             
             let header1 = ["ที่"];
             dayData.months.forEach(m => {
                 header1.push(m || 'ไม่ระบุ', "", "");
             });
             header1.push("ยอดสรุปประจำวัน", "", "");
-            csvContent += header1.join(",") + "\n";
+            csvContent += header1.map(q).join(",") + "\n";
 
             let header2 = [""];
             dayData.months.forEach((m, idx) => {
@@ -2201,16 +2205,19 @@
                 header2.push("ยกมา:", bfVal, "");
             });
             header2.push("", "", "");
-            csvContent += header2.join(",") + "\n";
+            csvContent += header2.map(q).join(",") + "\n";
 
             let header3 = [""];
             dayData.months.forEach(() => {
                 header3.push("ประเภท", "เลขตั๋ว", "จำนวนเงิน");
             });
             header3.push("ประเภท", "จำนวนราย", "เงิน");
-            csvContent += header3.join(",") + "\n";
+            csvContent += header3.map(q).join(",") + "\n";
 
-            for (let r = 0; r < dayData.totalRows; r++) {
+            // แถวที่มีข้อมูลแต่อยู่เกินจำนวนแถวของตาราง (เช่นจากนำเข้า/ซิงก์) ต้องออกในไฟล์ด้วย ยอดรวมท้ายไฟล์นับแถวเหล่านี้อยู่แล้ว
+            let nRows = dayData.totalRows;
+            dayData.months.forEach(m => { const rs = (m && dayData.data[m]) || []; for (let i = rs.length - 1; i >= nRows; i--) { const x = rs[i]; if (x && (String(x.type || '').trim() || String(x.ticket || '').trim() || String(x.amount == null ? '' : x.amount).trim())) { nRows = i + 1; break; } } });
+            for (let r = 0; r < nRows; r++) {
                 let rowData = [r + 1];
                 
                 dayData.months.forEach((m) => {
@@ -2228,7 +2235,7 @@
                 let sAmount = (sD.amount !== '' && cleanNumberString(sD.amount) !== 0) ? sD.amount : '';
                 rowData.push(sType, sCount, sAmount);
 
-                csvContent += rowData.map(val => `"${val}"`).join(",") + "\n";
+                csvContent += rowData.map(q).join(",") + "\n";
             }
             
             // ใช้ยอดรวมรายการชุดเดียวกับหน้าจอ เพื่อไม่ให้ไฟล์ส่งออกมียอดต่างกัน
@@ -2251,8 +2258,8 @@
             foot1.push("-", "-", "-");
             foot2.push("-", "-", "-");
 
-            csvContent += foot1.map(val => `"${val}"`).join(",") + "\n";
-            csvContent += foot2.map(val => `"${val}"`).join(",") + "\n";
+            csvContent += foot1.map(q).join(",") + "\n";
+            csvContent += foot2.map(q).join(",") + "\n";
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);

@@ -45,9 +45,12 @@
     // 1) ทะเบียนทรัพย์รับจำนำ
     try{ if(typeof window.centralFind==='function'){ var cr=window.centralFind(ticket,book,mn); if(cr) return cr; } }catch(e){}
     var cutKey=''; try{ var cp=String(currentDate).split('-'); if(cp.length===3){ var cd=new Date(Number(cp[0]),Number(cp[1])-1,Number(cp[2]),12); cd.setDate(cd.getDate()-365); cutKey=cd.getFullYear()+'-'+pad(cd.getMonth()+1)+'-'+pad(cd.getDate()); } }catch(e){}
+    /* ระบุเดือน: นับเฉพาะรายการที่ลงวันที่ตั้งแต่วันที่ 1 ของเดือนนั้นรอบล่าสุด (ไม่เกินวันที่เปิดอยู่) — ตั๋วเลขเดิมเดือนเดียวกันของปีก่อนไม่ถูกดึงมา */
+    var mStart=''; try{ if(mn){ var cq=String(currentDate).split('-'), cy=Number(cq[0]), cm=Number(cq[1]); if(cy&&cm) mStart=(mn<=cm?cy:cy-1)+'-'+pad(mn)+'-01'; } }catch(e){}
     var curK=(opts.tkwCtx&&typeof window.tkwKey==='function')?window.tkwKey():'';
     var c=(index()[t]||[]).filter(function(x){
       if(cutKey&&x.date<=cutKey) return false;
+      if(mStart&&x.date<mStart) return false;
       if(mName&&x.mname!==mName) return false;
       if(b&&x.book!==b) return false;
       if(x.tkw&&x.date===curK) return false;
@@ -56,7 +59,7 @@
       /* พบเลขตั๋ว+เดือนนี้ แต่อยู่คนละเล่ม → บอกเล่มที่พบ (เดิมข้อความ "เล่มไม่ตรง" ของหน้าสแกนไม่เคยขึ้น เพราะไม่มีสถานะนี้) */
       if(b){ var bks={};
         try{ var cr2=(typeof window.centralFind==='function')?window.centralFind(ticket,'',mn):null; if(cr2&&cr2.status==='ok'&&cr2.book&&window.ticketNorm(cr2.book)!==b) bks[cr2.book]=1; }catch(e){}
-        (index()[t]||[]).forEach(function(x){ if((!cutKey||x.date>cutKey)&&(!mName||x.mname===mName)&&x.book&&x.book!==b&&!(x.tkw&&x.date===curK)) bks[x.book]=1; });
+        (index()[t]||[]).forEach(function(x){ if((!cutKey||x.date>cutKey)&&(!mStart||x.date>=mStart)&&(!mName||x.mname===mName)&&x.book&&x.book!==b&&!(x.tkw&&x.date===curK)) bks[x.book]=1; });
         var ks=Object.keys(bks); if(ks.length) return {status:'bookmismatch',books:ks.join(', ')}; }
       return {status:'none'}; }
     // สธ.3 ชนะเสมอ: มีรายการจากรายงาน (PDF) ใช้เฉพาะรายการนั้น ที่คีย์เองใช้เมื่อไม่มีรายงานเท่านั้น
