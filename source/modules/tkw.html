@@ -607,7 +607,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       var m=+p.month, b=String(p.book||'').trim(), a=String(p.amount==null?'':p.amount).replace(/,/g,'');
       var g=d.m.indexOf(m); if(g<0){ d.m.push(m); d.r.push(emptyCol()); g=d.m.length-1; }
       var col=d.r[g];
-      var hit=null; col.some(function(x){ if(x[0]===t&&(!b||!x[2]||x[2]===b)){ hit=x; return true; } return false; });
+      var hit=null, nz=function(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); }; col.some(function(x){ if(nz(x[0])===nz(t)&&(!b||!x[2]||nz(x[2])===nz(b))){ hit=x; return true; } return false; });   /* เทียบแบบตัดช่องว่าง/ศูนย์นำหน้า เหมือน sameTk — เดิมใช้ === ตั๋วที่คีย์ "0123" หรือมีเว้นวรรค จะถูกลงซ้ำ */
       if(hit){ skip++; if(b&&!hit[2]){ hit[2]=b; fill++; } return; }   /* มีเลขตั๋วอยู่แล้วแต่ยังไม่มีเล่มที่ → เติมเล่มที่จาก สธ.3 ให้ */
       var i=0; while(i<col.length&&(col[i][0]||col[i][1])) i++;
       while(col.length<=i) col.push(['','']);

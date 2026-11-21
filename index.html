@@ -7787,10 +7787,11 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
       }
       o.lrow=found; o.where=TH[r.oldM-1]+' แถว '+(foundI+1);
       var conflict=false;
-      try{ var bs=window.__assetFind&&window.__assetFind(r.oldM,r.oldT,window.__assetYearFor(r.oldM,dateKey));
-        if(bs){ o.base=bs;
-          if(String(found.amount||'').trim()!==''&&Math.abs(num(found.amount)-bs.amount)>0.009){conflict=true;o.msgs.push('ยอดตั๋วเดิมในบัญชี '+fmt(num(found.amount))+' แต่ฐานข้อมูลกลาง = '+fmt(bs.amount));}
-          if(String(found.book||'').trim()&&nt(found.book)!==nt(bs.book)){conflict=true;o.msgs.push('เล่มตั๋วเดิมในบัญชี '+found.book+' แต่ฐานข้อมูลกลาง = '+bs.book);} }
+      /* เทียบตั๋วเดิมกับฐานข้อมูลกลาง (ทะเบียนทรัพย์รับจำนำ: สธ.3 + สธ.2 ที่นำเข้าไว้ก่อน) — ต้องมีข้อมูลที่ไม่ขัดกันเอง (differs=false) และเล่มชัดเจนจึงเทียบ
+         (เดิมเรียก __assetFind ซึ่งถูกลบไปพร้อมฐานตั๋วเก่า ทำให้การเทียบนี้ไม่เคยทำงาน) */
+      try{ var cr=(typeof window.centralFind==='function')?window.centralFind(r.oldT,String(found.book||'').trim(),r.oldM):null;
+        if(cr&&cr.status==='ok'&&!cr.differs){ var cA=num(cr.amount); o.base={year:Number(String(cr.date||dateKey).slice(0,4)),book:cr.book,amount:cA};
+          if(String(found.amount||'').trim()!==''&&Math.abs(num(found.amount)-cA)>0.009){conflict=true;o.msgs.push('ยอดตั๋วเดิมในบัญชี '+fmt(num(found.amount))+' แต่ฐานข้อมูลกลาง = '+fmt(cA));} }
       }catch(e){}
       if(found.type&&found.type!==r.type){conflict=true;o.msgs.push('บัญชีลงประเภท '+found.type+' แต่ สธ.2 = '+r.type);} else if(!found.type) o.fill.push('ประเภท '+r.type);
       var ln=String(found.newTicket||'').trim();
@@ -9713,7 +9714,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       var m=+p.month, b=String(p.book||'').trim(), a=String(p.amount==null?'':p.amount).replace(/,/g,'');
       var g=d.m.indexOf(m); if(g<0){ d.m.push(m); d.r.push(emptyCol()); g=d.m.length-1; }
       var col=d.r[g];
-      var hit=null; col.some(function(x){ if(x[0]===t&&(!b||!x[2]||x[2]===b)){ hit=x; return true; } return false; });
+      var hit=null, nz=function(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); }; col.some(function(x){ if(nz(x[0])===nz(t)&&(!b||!x[2]||nz(x[2])===nz(b))){ hit=x; return true; } return false; });   /* เทียบแบบตัดช่องว่าง/ศูนย์นำหน้า เหมือน sameTk — เดิมใช้ === ตั๋วที่คีย์ "0123" หรือมีเว้นวรรค จะถูกลงซ้ำ */
       if(hit){ skip++; if(b&&!hit[2]){ hit[2]=b; fill++; } return; }   /* มีเลขตั๋วอยู่แล้วแต่ยังไม่มีเล่มที่ → เติมเล่มที่จาก สธ.3 ให้ */
       var i=0; while(i<col.length&&(col[i][0]||col[i][1])) i++;
       while(col.length<=i) col.push(['','']);
