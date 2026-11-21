@@ -188,6 +188,22 @@ const srvTickets=(docs)=>{ const j=((docs.ledger||{})[WID]||{})[FLD]; if(!j) ret
     const r=await pg.evaluate(()=>({r0:window.__r0,r1:window.ticketFind('555','3',11,{soft:false})}));
     ok(r.r0==='none'&&r.r1.status==='ok'&&r.r1.amount==='7000','9.0 ตั๋วที่เพิ่งรับจากอีกเครื่อง ค้นเจอทันที (ไม่รอแคช 30 วิ) '+JSON.stringify(r.r1));
     ok(!pg.errs.length,'9.1 ไม่มี error '+pg.errs.join(' | ')); await ctx.close(); }
+  { /* 10) 2 เครื่องแก้วันเดียวกัน: สรุปประจำวันของวันที่รวมต้องคิดจากแถวที่รวมแล้ว (เดิมค้างค่าเครื่องเดียว → ย/ม วันถัดไปผิด) + เงินเบิกล่วงหน้าของทั้ง 2 เครื่องอยู่ครบ */
+    const D0=new Date(Date.now()-864e5), Y=`${D0.getFullYear()}-${p2(D0.getMonth()+1)}-${p2(D0.getDate())}`;
+    const FY='d'+Y.replace(/-/g,''), WY='w'+Math.floor(Date.UTC(D0.getFullYear(),D0.getMonth(),D0.getDate())/864e5/7);
+    const ctx=await b.newContext(); const pg=await open(ctx);
+    const SUM=(o,p,r,b)=>[{type:'ย/ม',count:o[0],amount:o[1]},{type:'รับจำนำ',count:p[0],amount:p[1]},{type:'ไถ่ถอน',count:r[0],amount:r[1]},{type:'คงเหลือ',count:b[0],amount:b[1]}];
+    await pg.evaluate(([Y,K,M,S])=>{ db[Y]={months:[M],bf:[100000],bfCount:[10],data:{[M]:[{type:'ถ',ticket:'1110',book:'243',amount:1000,count:'',timestamp:'10:00:00',origIdx:0}],'สรุปประจำวัน':S},totalRows:60};
+      db[K]={months:[M],bf:[0],bfCount:[0],data:{[M]:[],'สรุปประจำวัน':[]},totalRows:60}; syncBroughtForwardForDate(K,true); saveDB(); },[Y,K,M,SUM([10,100000],['',''],[1,1000],[9,99000])]);
+    await sleep(3000);
+    await pg.evaluate(([WY,FY,M,S])=>{ const L=window.__srv.docs.ledger; const dy=JSON.parse(L[WY][FY]); dy.data[M][1]={type:'ถ',ticket:'3333',book:'243',amount:900,count:'',timestamp:'11:05:00',origIdx:1}; dy.data['สรุปประจำวัน']=S; dy.advances=[{id:'b1',amount:700,who:'B',note:'',at:'',settled:false,settledOn:''}]; L[WY][FY]=JSON.stringify(dy); },[WY,FY,M,SUM([10,100000],['',''],[2,1900],[8,98100])]);
+    await pg.evaluate(([Y,M,S])=>{ db[Y].data[M][1]={type:'ถ',ticket:'2222',book:'243',amount:700,count:'',timestamp:'11:00:00',origIdx:1}; db[Y].data['สรุปประจำวัน']=S; db[Y].advances=[{id:'a1',amount:1000,who:'A',note:'',at:'',settled:false,settledOn:''}]; saveDB(); },[Y,M,SUM([10,100000],['',''],[2,1700],[8,98300])]);
+    await sleep(5000);
+    const r=await pg.evaluate(([Y,K])=>{ const s=db[Y].data['สรุปประจำวัน'], k=db[K].data['สรุปประจำวัน']; return {r:s[2].count+'/'+s[2].amount,b:s[3].count+'/'+s[3].amount,next:(k[0]?k[0].count+'/'+k[0].amount:''),adv:(db[Y].advances||[]).map(a=>a.id).sort().join(',')}; },[Y,K]);
+    ok(r.r==='3/2600'&&r.b==='7/97400','10.0 สรุปของวันที่รวม: ไถ่ถอน 3 ราย/2,600 · คงเหลือ 7/97,400 (ได้ '+r.r+' · '+r.b+')');
+    ok(r.next==='7/97400','10.1 ย/ม วันถัดไปรับจากฉบับรวม = 7/97,400 (ได้ '+r.next+')');
+    ok(r.adv==='a1,b1','10.2 เงินเบิกล่วงหน้าของทั้ง 2 เครื่องอยู่ครบ (ได้ '+r.adv+')');
+    ok(!pg.errs.length,'10.3 ไม่มี error '+pg.errs.join(' | ')); await ctx.close(); }
   await b.close();
   console.log(fail?`❌ ล้มเหลว ${fail}`:'✅ ผ่านทั้งหมด'); process.exit(fail?1:0);
 })();
