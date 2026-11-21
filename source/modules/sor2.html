@@ -123,6 +123,15 @@
     return out;
   }
 
+  function mnOf(dk){ return /^\d{4}-\d\d-\d\d$/.test(dk||'')?TH[Number(dk.slice(5,7))-1]:''; }
+  function colMissing(day,dk){ var m=mnOf(dk); return !!(m&&day&&Array.isArray(day.months)&&day.months.indexOf(m)<0); }
+  /* เพิ่มคอลัมน์เดือนของตั๋วใหม่ (ยกมา 0) ลงช่องว่างแรก หรือต่อท้าย */
+  function addMonthColumn(day,m){ if(!day||!Array.isArray(day.months)||day.months.indexOf(m)>=0) return false;
+    var i=day.months.indexOf(''); ['bf','bfCount','customTotals','customCarried'].forEach(function(f){ if(!Array.isArray(day[f])) day[f]=day.months.map(function(){ return f==='bf'||f==='bfCount'?0:''; }); });
+    if(i<0){ day.months.push(m); day.bf.push(0); day.bfCount.push(0); day.customTotals.push(''); day.customCarried.push(''); }
+    else { day.months[i]=m; day.bf[i]=0; day.bfCount[i]=0; day.customTotals[i]=''; day.customCarried[i]=''; }
+    day.data=day.data||{}; day.data[m]=day.data[m]||[]; return true; }
+  window.sor2AddCol=function(v){ S.addCol=!!v; };
   function monthRows(day,mi){var nm=TH[mi-1]; return (day&&day.data&&Array.isArray(day.data[nm]))?day.data[nm]:null}
   function analyze(parsed,dateKey){
     var day=(typeof db!=='undefined'&&db[dateKey])?db[dateKey]:null;
@@ -215,6 +224,9 @@
       +'<br>สรุปประจำวัน แถว "รับจำนำ" ตอนนี้: '+(curC||curA?fmt0(curC)+' ราย / '+fmt(curA)+' บาท'+(diff?' <b style="color:#b45309">⚠ ไม่ตรงกับ สธ.2</b>':' ✓ ตรงกับ สธ.2'):'ยังว่าง')
       +'<label class="chk"><input type="checkbox" id="s2-setsum" '+(S.setSummary?'checked':'')+' onchange="sor2SetSum(this.checked)"> ตั้งยอด "รับจำนำ" ในสรุปประจำวันเป็น '+fmt0(n)+' ราย / '+fmt(sum)+' บาท</label>'
       +(function(){ var nb=blankRows(day,S.res).length; return nb?'<label class="chk"'+(S.fillLock?' style="opacity:.55"':'')+'><input type="checkbox" id="s2-fillt" '+(S.fillT?'checked':'')+(S.fillLock?' disabled':'')+' onchange="sor2FillT(this.checked)"> เติมประเภท <b>ถ</b> (ไถ่ถอน) ให้แถวที่มีเลขตั๋วแต่ไม่อยู่ใน สธ.2 อีก <b>'+fmt0(nb)+'</b> แถว'+(S.fillLock?' <b style="color:#b91c1c">· ปิดไว้ เพราะ'+(okN===null?'ไม่พบยอดรวมท้ายรายงานให้เทียบ':'อ่านไฟล์ได้ไม่ครบ (ยอดไม่ตรงท้ายรายงาน)')+'</b>':'')+'</label>':''; })();
+    if(S.addCol===undefined) S.addCol=true;
+    if(colMissing(day,dk)) $('s2-sum').innerHTML+='<div style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fef3c7;border:1px solid #fcd34d;color:#78350f"><b>⚠ บัญชีวันที่ '+esc(dk)+' ยังไม่มีคอลัมน์เดือน'+esc(mnOf(dk))+'</b> — ตั๋วใหม่จาก สธ.2 จะเข้ายอดของเดือนนี้ ถ้ายังไม่มีคอลัมน์ ยอดยกไปรวมจะไม่ตรงคงเหลือ'
+      +'<label class="chk" style="display:block;margin-top:4px"><input type="checkbox" id="s2-addcol" '+(S.addCol?'checked':'')+' onchange="sor2AddCol(this.checked)"> เพิ่มคอลัมน์เดือน'+esc(mnOf(dk))+'ให้ตอนบันทึก (ยกมา 0)</label></div>';
     var ex=$('s2-extra'); if(S.extra.length){ex.style.display='block';ex.innerHTML='<b>⚠ ในบัญชีมีตั๋วใหม่ที่ไม่อยู่ใน สธ.2 ('+S.extra.length+')</b><br>'+S.extra.map(function(e){return 'ตั๋วเดิม '+esc(e.type||'')+' '+esc(e.old)+' ('+esc(e.mn)+') → ตั๋วใหม่ '+esc(e.tk)+(e.book?'/'+esc(e.book):'')}).join('<br>');} else ex.style.display='none';
     var tabs=[['all','ทั้งหมด',n],['new','จำนำใหม่',cnt.new],['renew','ต่อตั๋ว',n-cnt.new],['warn','เตือน',cnt.conflict+cnt.nofound]];
     $('s2-tabs').innerHTML=tabs.map(function(t){return '<button type="button" class="s2-tab'+(S.filter===t[0]?' on':'')+'" onclick="sor2Filter(\''+t[0]+'\')">'+t[1]+' ('+t[2]+')</button>'}).join('');
@@ -254,7 +266,7 @@
     return items.length;
   }
   window.sor2Read=async function(ev){
-    var f=ev.target.files&&ev.target.files[0]; if(!f) return; S.file=f.name; S.parsed=null; S.fillT=undefined; S.fillLock=false; $('s2-go').disabled=true; $('s2-main').style.display='none';
+    var f=ev.target.files&&ev.target.files[0]; if(!f) return; S.file=f.name; S.parsed=null; S.fillT=undefined; S.fillLock=false; S.addCol=undefined; $('s2-go').disabled=true; $('s2-main').style.display='none';
     $('s2-st').textContent='กำลังอ่าน PDF...';
     try{
       var P=await parse(await f.arrayBuffer());
@@ -277,6 +289,7 @@
     a.res.forEach(function(o,i){ if(o.kind==='fill'||o.kind==='ok'){ if(o.fill.length) willFill++; } else if(o.kind==='conflict'&&S.fix[i]) willFix++; });
     if(!confirm('ยืนยันบันทึก สธ.2 วันที่ '+dk+'\nรวม '+n+' ราย '+fmt(sum)+' บาท (จำนำใหม่ '+nNew.length+' ราย)\n• เติมข้อมูลตั๋ว '+willFill+' แถว\n• แก้ตาม สธ.2 '+willFix+' แถว\n• ข้ามรายการที่ขัดกับบัญชี/ไม่พบตั๋วเดิมที่ไม่ได้ติ๊ก')) return;
     var day=db[dk]||getCurrentDayDataForDate(dk);
+    var addedCol=(S.addCol!==false&&colMissing(day,dk))?addMonthColumn(day,mnOf(dk)):false;
     a=analyze(P,dk);
     a.res.forEach(function(o,i){
       var r=o.row,lr=o.lrow; if(!lr) return;
@@ -290,16 +303,23 @@
     var tN=0; if(S.fillT&&!S.fillLock){ blankRows(day,a.res).forEach(function(r){ r.type='ถ'; tN++; }); }
     day.sor2={v:1,file:S.file,at:Date.now(),mn:(['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(dk.slice(5,7))-1]),n:n,amt:sum,newN:nNew.length,newAmt:newAmt,month:P.month,goldBuy:P.goldBuy,goldSell:P.goldSell,
       tN:tN,rows:P.rows.map(function(r){return [r.type,r.oldT,r.oldM,r.ticket,r.book,r.weight,r.amount]})};
-    if(S.setSummary){ var sr=day.data&&day.data['สรุปประจำวัน']; if(sr&&sr[1]){sr[1].count=n;sr[1].amount=sum;} }
+    if(S.setSummary){ var sr=day.data&&day.data['สรุปประจำวัน']; if(sr&&sr[1]){sr[1].count=n;sr[1].amount=(typeof roundMoney==='function'?roundMoney(sum):sum);} }   /* ปัดสตางค์ กันเศษทศนิยมเพี้ยนจากการบวกหลายแถว */
     try{
       if(dk===currentDate){ renderTable(); updateSummaryColumn(); }
-      else { var tt=getDailyRedemptionTotals(day), sr2=day.data&&day.data['สรุปประจำวัน']; if(sr2&&sr2[2]){ sr2[2].count=tt.count||''; sr2[2].amount=tt.amount||''; } }
+      else { var tt=getDailyRedemptionTotals(day), sr2=day.data&&day.data['สรุปประจำวัน']; if(sr2&&sr2[2]){ sr2[2].count=tt.count||''; sr2[2].amount=tt.amount||''; }
+        /* นำเข้าวันที่ไม่ได้เปิดอยู่: คำนวณ "คงเหลือ" ของวันนั้นด้วยสูตรเดียวกับหน้าจอ (ย/ม + รับจำนำ − ไถ่ถอน) — เดิมค้างค่าเก่า ทำให้ ย/ม วันถัดไปผิด */
+        if(sr2&&sr2[3]&&day.balanceManual!==true){ var cn=function(v){ return (typeof cleanNumberString==='function')?cleanNumberString(v):(parseFloat(String(v==null?'':v).replace(/,/g,''))||0); };
+          sr2[3].count=cn(sr2[0]&&sr2[0].count)+cn(sr2[1]&&sr2[1].count)-cn(sr2[2]&&sr2[2].count);
+          sr2[3].amount=roundMoney(cn(sr2[0]&&sr2[0].amount)+cn(sr2[1]&&sr2[1].amount)-cn(sr2[2]&&sr2[2].amount)); } }
     }catch(e){console.error(e)}
     try{ recalculateFutureBroughtForwardBalances(dk); }catch(e){}
     saveDB();
-    try{ showToast('นำเข้า สธ.2 แล้ว '+n+' ราย'+(tN?' · เติม ถ '+tN+' แถว':'')); }catch(e){}
+    try{ showToast('นำเข้า สธ.2 แล้ว '+n+' ราย'+(tN?' · เติม ถ '+tN+' แถว':'')+(addedCol?' · เพิ่มคอลัมน์เดือน'+mnOf(dk):'')); }catch(e){}
     closeSor2Modal();
   };
+  /* วันที่ปิดยอดแล้ว: ต้องใส่ PIN ก่อนนำเข้า สธ.2 ทับ (เหมือนนำเข้า สธ.3) — เดิมไม่ถูกล็อก */
+  (function(){ var o=window.sor2Commit; window.sor2Commit=function(){ var dk=$('s2-date').value;
+    if(dk&&typeof window.__isLocked==='function'&&window.__isLocked(dk)){ try{ window.__askUnlock(null,dk); }catch(e){} return; } return o.apply(this,arguments); }; })();
   window.__sor2={parse:parse,analyze:analyze,dec:dec,test:function(P,dk){ S.parsed=P; $('s2-date').value=dk; var a=analyze(P,dk); S.res=a.res;S.extra=a.extra;S.fix={};S.filter='all';S.setSummary=undefined; render(); return showAlert(); }};
   function enable(){
     [].slice.call(document.querySelectorAll('button[disabled]')).forEach(function(b){
