@@ -86,6 +86,7 @@
       ks.forEach(function(k){ delete db[k]; });
       if(anc) window.__pruneAnchorApply(anc);
       try{ saveDB(); }catch(e){ console.warn(e); }
+      try{ if(window.__audit) window.__audit('ลบข้อมูลเก่า','ลบ '+ks.length+' วัน ('+ks[0]+' ถึง '+ks[ks.length-1]+') · สำเนาถาวร: '+arcWhere); }catch(e){}
       close(); toast('ลบข้อมูลเก่า '+ks.length+' วันแล้ว · สำเนาถาวร: '+arcWhere);
     });
     refresh();

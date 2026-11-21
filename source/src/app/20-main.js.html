@@ -118,7 +118,9 @@
                 tx.objectStore(DB_STORAGE_STORE).put({
                     id: 'pre_import',
                     savedAt: Date.now(),
-                    data: JSON.parse(JSON.stringify(data))
+                    data: JSON.parse(JSON.stringify(data)),
+                    // ตารางเขียนตั๋ว/วันหยุดก่อนนำเข้า (การนำเข้าเขียนทับตารางเขียนตั๋วด้วย) → กู้คืนได้ครบ
+                    extra: (() => { try { return { v: 1, tkw: typeof window.tkwExportAll === 'function' ? window.tkwExportAll() : null }; } catch (_) { return null; } })()
                 });
                 tx.oncomplete = () => resolve(true);
                 tx.onerror = () => reject(tx.error || new Error('บันทึกจุดกู้คืนไม่สำเร็จ'));
@@ -136,17 +138,37 @@
                     request.onerror = () => reject(request.error || new Error('อ่านจุดกู้คืนไม่สำเร็จ'));
                 });
                 if (!recovery || !recovery.data || typeof recovery.data !== 'object') {
-                    alert('ยังไม่มีจุดกู้คืนจากการนำเข้าครั้งล่าสุด');
+                    showToast('ยังไม่มีจุดกู้คืนจากการนำเข้าครั้งล่าสุด');
                     return;
                 }
+                const nd = recovery.data;
                 const savedTime = new Date(Number(recovery.savedAt || 0)).toLocaleString('th-TH');
-                if (!confirm(`ต้องการกู้คืนข้อมูลที่บันทึกไว้ก่อนนำเข้าครั้งล่าสุดหรือไม่?\nจุดกู้คืน: ${savedTime}\n\nข้อมูลปัจจุบันจะถูกแทนที่`)) return;
+                const keysNow = Object.keys(db).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+                const same = (a, b) => { try { return JSON.stringify(a, stripTrailingBlankRows) === JSON.stringify(b, stripTrailingBlankRows); } catch (_) { return false; } };
+                const dropKeys = keysNow.filter(k => !(k in nd));
+                const changed = keysNow.filter(k => (k in nd) && !same(db[k], nd[k])).concat(dropKeys);
+                const msg = `ต้องการกู้คืนข้อมูลที่บันทึกไว้ก่อนนำเข้าครั้งล่าสุดหรือไม่?\nจุดกู้คืน: ${savedTime}`
+                    + (dropKeys.length ? `\n⚠ จะลบ ${dropKeys.length} วันที่ไม่มีในจุดกู้คืนนี้ ออกจากฐานข้อมูลกลางและทุกเครื่องด้วย` : '')
+                    + (recovery.extra && recovery.extra.tkw ? '\nตารางเขียนตั๋วจะกลับเป็นแบบก่อนนำเข้าด้วย' : '');
+                const ok = window.uiConfirm ? await window.uiConfirm(msg, { ok: 'กู้คืน', cancel: 'ยกเลิก' }) : confirm(msg);
+                if (!ok) return;
+                /* วันที่ปิดยอดแล้วที่จะถูกทับ/ลบ → ต้องใส่ PIN (กู้คืนทั้งก้อน: PIN ไม่ถูก = ไม่กู้คืน) */
+                const locked = typeof window.__isLocked === 'function' ? changed.filter(k => { try { return window.__isLocked(k); } catch (_) { return false; } }).sort() : [];
+                if (locked.length) {
+                    const v = window.uiPrompt ? await window.uiPrompt(`การกู้คืนนี้จะทับ/ลบวันที่ปิดยอดแล้ว ${locked.length} วัน\nใส่ PIN เพื่ออนุญาต`, '', 'password') : null;
+                    if (v === null) return;
+                    if (!(window.__pinOk && window.__pinOk(String(v).trim()))) { showToast('PIN ไม่ถูกต้อง ยังไม่ได้กู้คืน'); return; }
+                }
+                try { if (window.__snapshotNow) await window.__snapshotNow('ก่อนกู้คืนก่อนนำเข้า', true); } catch (_) {}
                 const previousDb = db;
-                db = recovery.data;
+                db = JSON.parse(JSON.stringify(nd));
                 if (!saveDB()) {
                     db = previousDb;
                     throw new Error('บันทึกข้อมูลที่กู้คืนไม่สำเร็จ');
                 }
+                try { if (recovery.extra && recovery.extra.tkw && typeof window.tkwRestoreAll === 'function') window.tkwRestoreAll(recovery.extra.tkw); } catch (e) { console.warn('restore tkw', e); }
+                try { if (window.__resetUndo) window.__resetUndo(); } catch (_) {}
+                try { if (window.__audit) window.__audit('กู้คืนก่อนนำเข้า', `กู้คืนข้อมูลเป็นจุดก่อนนำเข้า ${savedTime}` + (dropKeys.length ? ` · ลบ ${dropKeys.length} วัน` : '') + (locked.length ? ` · ใส่ PIN ทับวันที่ปิดยอดแล้ว ${locked.length} วัน` : '')); } catch (_) {}
                 renderTable();
                 showToast('กู้คืนข้อมูลก่อนนำเข้าสำเร็จ');
             } catch (error) {
@@ -357,7 +379,10 @@
         function qsIdKey(book, ticket) { return normalizeCompareTicket(book) + '|' + normalizeCompareTicket(ticket); }
         function qsFindLinkedNew(book, ticket, exceptRow) {
             const key = qsIdKey(book, ticket);
+            // ย้อนหลัง 240 วัน: เล่มขึ้นใหม่ทุกปี ตั๋วใหม่เล่ม+เลขเดียวกันของปีก่อนเป็นคนละใบ
+            let lim = ''; try { const p = String(currentDate).split('-'), ld = new Date(+p[0], +p[1] - 1, +p[2] - 240); lim = ld.getFullYear() + '-' + String(ld.getMonth() + 1).padStart(2, '0') + '-' + String(ld.getDate()).padStart(2, '0'); } catch (_) {}
             for (const dKey in db) {
+                if (lim && /^\d{4}-\d{2}-\d{2}$/.test(dKey) && dKey < lim) continue;
                 const d = db[dKey];
                 if (!d || !Array.isArray(d.months) || !d.data) continue;
                 for (const m of d.months) {
@@ -394,9 +419,11 @@
             const m = btn.dataset.m, i = Number(btn.dataset.i);
             const row = db[currentDate] && db[currentDate].data && db[currentDate].data[m] && db[currentDate].data[m][i];
             if (!row || !row.newTicket) return;
-            if (!confirm('ยกเลิกการผูกตั๋วใหม่ ' + row.newTicket + ' ออกจากตั๋วเดิม ' + row.ticket + ' ?\n(แถวในตารางยังอยู่เหมือนเดิม)')) return;
-            delete row.newTicket; delete row.newBook; delete row.newAmount;
-            saveDB(); renderTable(); qsRenderRecent(); qsSetMsg('ยกเลิกการติดตั๋วใหม่แล้ว', 'ok');
+            const q = 'ยกเลิกการผูกตั๋วใหม่ ' + row.newTicket + ' ออกจากตั๋วเดิม ' + row.ticket + ' ?\n(แถวในตารางยังอยู่เหมือนเดิม)';
+            const go = () => { delete row.newTicket; delete row.newBook; delete row.newAmount;
+                saveDB(); renderTable(); qsRenderRecent(); qsSetMsg('ยกเลิกการติดตั๋วใหม่แล้ว', 'ok'); };
+            if (window.uiConfirm) window.uiConfirm(q, { ok: 'ยกเลิกการติด', cancel: 'กลับ' }).then(ok => { if (ok) go(); });
+            else if (confirm(q)) go();
         }
         function submitQuickScan() {
             const type = qsEl('qs-type').value;
@@ -2166,6 +2193,10 @@
                     throw new Error('บันทึกข้อมูลใหม่ไม่สำเร็จ จึงยกเลิกการนำเข้า');
                 }
                 /* วันที่เพิ่ม/แทนจากไฟล์ → ยกมา ย/ม คงเหลือของวันถัดไปต้องคิดตามใหม่ (เดิมค้างค่าเก่า) · แบบแทนที่ทั้งหมดใช้โซ่ตามไฟล์ ไม่แตะ */
+                if (mode === 'replace' && skipLocked.size) {
+                    // แทนที่ทั้งหมดแต่คงวันที่ปิดยอดแล้วบางวันไว้ (ไม่ได้ใส่ PIN) → โซ่ยอดหลังวันเหล่านั้นต้องคิดตามวันที่คงไว้
+                    try { recalculateFutureBroughtForwardBalances([...skipLocked].sort()[0]); } catch (e) { console.warn('recalc after replace', e); }
+                }
                 if (mode !== 'replace') {
                     const changedKeys = (mode === 'add' ? addKeys : addKeys.concat(diffUse)).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
                     if (changedKeys.length) { try { recalculateFutureBroughtForwardBalances(changedKeys[0]); } catch (e) { console.warn('recalc after import', e); } }
@@ -2175,6 +2206,7 @@
                     try { if (extra.tkw && typeof window.tkwImportAll === 'function') nT2 = window.tkwImportAll(extra.tkw, mode === 'add' ? 'add' : 'over'); } catch (e) { console.warn('import tkw', e); }
                     try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
                 }
+                try { if (window.__audit) window.__audit('นำเข้าไฟล์ข้อมูล', `${file.name} · ` + ({ add: 'เพิ่มเฉพาะวันที่ยังไม่มี', over: 'แทนวันที่ไม่ตรงกัน', replace: 'แทนที่ทั้งหมด' }[mode] || mode) + ` · เพิ่ม ${addKeys.length} วัน` + (mode !== 'add' ? ` · แทน ${diffUse.length} วัน` : '') + (mode === 'replace' ? ` · ลบ ${dropKeys.filter(k => !skipLocked.has(k)).length} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '')); } catch (_) {}
                 renderTable();
                 const nDays = mode === 'replace' ? fileKeys.filter(k => !skipLocked.has(k)).length : (mode === 'add' ? addKeys.length : addKeys.length + diffUse.length);
                 showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');

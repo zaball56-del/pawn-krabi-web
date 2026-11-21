@@ -29,7 +29,8 @@
             out.exactRow=exact?exact.r:null;
         }
         /* เคยถูกไถ่แล้วในวันอื่น (เทียบเล่ม+เลข เฉพาะแถวที่ระบุประเภท ถ/ส/พ/ผ) */
-        if(oldB){ Object.keys(db).forEach(function(k){ if(k===currentDate) return; var x=db[k]; if(!x||!Array.isArray(x.months)||!x.data) return;
+        if(oldB){ var lim240=''; try{ var cq=String(currentDate).split('-'), ld=new Date(+cq[0],+cq[1]-1,+cq[2]-240); lim240=ld.getFullYear()+'-'+('0'+(ld.getMonth()+1)).slice(-2)+'-'+('0'+ld.getDate()).slice(-2); }catch(e){}   /* ย้อนหลัง 240 วัน: เล่มขึ้นใหม่ทุกปี เล่ม+เลขเดียวกันของปีก่อนเป็นคนละใบ */
+          Object.keys(db).forEach(function(k){ if(k===currentDate||(lim240&&k<lim240)) return; var x=db[k]; if(!x||!Array.isArray(x.months)||!x.data) return;
             x.months.forEach(function(m){ if(!m||!Array.isArray(x.data[m])) return; x.data[m].forEach(function(r){ if(r&&RED.indexOf(String(r.type||'').trim())>=0&&String(r.ticket||'').trim()&&nt(r.ticket)===tkey&&nt(rowBook(r))===bkey) warn.push('ตั๋วนี้เคยถูกไถ่/ส่งขายแล้ว เมื่อวันที่ '+thDate(k)+' ('+m+')'); }); }); }); }
         out.warn=warn; return out;
     }

@@ -640,6 +640,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       dj.u=Date.now(); store[k]=dj; n++; try{ markDirty(k); }catch(e){}
       if(key===k){ day=dj; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } });
     if(n){ save(); try{ startSync(); }catch(e){} } return n; };   /* นำเข้าไฟล์สำรอง → ส่งขึ้นคลาวด์ด้วย */
+  /* กู้คืนทั้งตาราง (จุดกู้คืนก่อนนำเข้า): วันที่มีข้อมูลแต่ไม่มีในชุดที่กู้คืน → ล้างเป็นว่าง แล้วใช้ข้อมูลตามชุดนั้น */
+  window.tkwRestoreAll=function(obj){ load(); obj=obj||{}; var n=0;
+    Object.keys(store).forEach(function(k){ if(!/^\d{4}-\d\d-\d\d$/.test(k)||obj[k]||!hasData(store[k])) return;
+      var b=blank(k); b.u=Date.now(); store[k]=b; n++; try{ markDirty(k); }catch(e){}
+      if(key===k){ day=b; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } });
+    if(n){ save(); try{ startSync(); }catch(e){} }
+    return n+window.tkwImportAll(obj,'over'); };
   window.tkwReadDay=function(k){ load(); var d=store[k]; if((!d||!d.r||!d.m)&&k===key&&day&&day.r&&day.m&&hasData(day)) d=day; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
   /* ให้หน้าเทียบ สธ.3 เรียกก่อนอ่าน: รวมข้อมูลในเครื่องล่าสุด + เริ่มซิงก์คลาวด์ (เดิมเริ่มเฉพาะตอนเปิดหน้าเขียนตั๋ว) แล้วรอข้อมูลชุดแรกสูงสุด ms */
   window.tkwEnsure=function(ms){ load(); try{ startSync(); }catch(e){}

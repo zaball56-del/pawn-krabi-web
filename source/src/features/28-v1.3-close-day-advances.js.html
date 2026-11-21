@@ -88,6 +88,9 @@
         };
         modal.querySelectorAll('[data-settle]').forEach(function(b){ b.onclick=function(){ var f=find(b.getAttribute('data-settle')); if(!f) return; f.a.settled=true; f.a.settledOn=currentDate; if(window.__audit) window.__audit('หักจ่ายเงินเบิกแล้ว',fmt(num(f.a.amount))+' บาท · '+(f.a.who||'-')+' (เบิกวันที่ '+thDate(f.k||'')+')'); try{saveDB();}catch(e){} toast('ตัดยอดหักจ่ายแล้ว'); render(); }; });
         modal.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){ var f=find(b.getAttribute('data-del')); if(!f) return;
+            /* รายการของวันที่ปิดยอดแล้ว (เปิดดูวันอื่นอยู่) → ต้องใส่ PIN ก่อน เพราะยอดที่ควรมีของวันนั้นจะเปลี่ยน */
+            var fk=b.getAttribute('data-del').split('|')[0];
+            if(window.__isLocked&&window.__isLocked(fk)&&!(window.__unlocked&&window.__unlocked[fk])&&window.__askUnlock){ window.__askUnlock('รายการเบิกนี้เป็นของวันที่ '+thDate(fk)+' ซึ่งปิดยอดแล้ว\nใส่ PIN เพื่อปลดล็อกก่อนลบ',fk).then(function(ok){ if(ok) b.onclick(); }); return; }
             window.uiConfirm('ลบรายการเบิก '+fmt(num(f.a.amount))+' บาท ของ '+(f.a.who||'-')+' ?\nการลบจะทำให้ยอดเงินสดที่ควรมีของวันที่เบิกเปลี่ยนไป').then(function(ok){ if(!ok) return; f.d.advances.splice(f.i,1); if(window.__audit) window.__audit('ลบรายการเบิกเงิน',fmt(num(f.a.amount))+' บาท · '+(f.a.who||'-')); try{saveDB();}catch(e){} render(); }); }; });
         g('cl-close').onclick=function(){ var k=calc(d); if(!k.has){ toast('กรุณากรอกยอดเงินสดที่นับได้จริงก่อนปิดยอด'); return; }
             c.closed=true; c.closedAt=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); c.expected=k.expected; c.diff=k.diff; delete window.__unlocked[currentDate]; try{saveDB();}catch(e){} if(window.__audit) window.__audit('ปิดยอดวัน','ที่ควรมี '+fmt(k.expected)+' นับจริง '+fmt(k.counted)+' ส่วนต่าง '+fmt(k.diff)); toast('ปิดยอดวันนี้แล้ว'); render(); };

@@ -232,7 +232,12 @@
             q('ds-font').addEventListener('change',function(){ set('fontScale',Number(this.value)); });
             q('ds-sound').addEventListener('change',function(){ set('sound',this.checked); });
             q('ds-warn').addEventListener('change',function(){ set('warnBackup',this.checked); if(this.checked&&typeof checkBackupReminder==='function') try{checkBackupReminder();}catch(e){} });
-            q('ds-reset').addEventListener('click',function(){ uiConfirm('รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น (รวมถึง PIN)?\nข้อมูลบัญชีจะไม่ถูกลบ').then(function(ok){ if(!ok) return; try{ localStorage.removeItem(KEY); }catch(e){} applyAll(); toast('รีเซ็ตการตั้งค่าแล้ว'); render(); }); });
+            q('ds-reset').addEventListener('click',function(){ uiConfirm('รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น (รวมถึง PIN)?\nข้อมูลบัญชีจะไม่ถูกลบ').then(function(ok){ if(!ok) return;
+                /* ถาม PIN ปัจจุบันก่อน (เดิมรีเซ็ต PIN กลับเป็นค่าเริ่มต้นได้โดยไม่ถาม → ปลดล็อกวันที่ปิดยอดแล้วได้) · ลืม PIN ใช้ "รหัสกู้คืน" ตามเดิม */
+                return window.uiPrompt('ใส่ PIN ปัจจุบันเพื่อยืนยันการรีเซ็ต\n(ลืม PIN ให้ใช้ "รหัสกู้คืน" ที่หน้าเข้าระบบ)','','password').then(function(v){ if(v===null) return;
+                  var cur=load(), okp=cur.pinHash?hp(String(v).trim())===cur.pinHash:String(v).trim()===String(CORRECT_PIN);
+                  if(!okp){ toast('PIN ไม่ถูกต้อง ยังไม่ได้รีเซ็ต'); return; }
+                  try{ localStorage.removeItem(KEY); }catch(e){} applyAll(); try{ if(window.__audit) window.__audit('รีเซ็ตการตั้งค่าทั้งหมด','รวม PIN กลับเป็นค่าเริ่มต้น (ใส่ PIN เดิมแล้ว)'); }catch(e){} toast('รีเซ็ตการตั้งค่าแล้ว'); render(); }); }); });
         }
     }
     window.openDataSettings=function(){ if(typeof sbClose==='function') try{sbClose();}catch(e){} render(); };

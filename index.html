@@ -1806,7 +1806,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 tx.objectStore(DB_STORAGE_STORE).put({
                     id: 'pre_import',
                     savedAt: Date.now(),
-                    data: JSON.parse(JSON.stringify(data))
+                    data: JSON.parse(JSON.stringify(data)),
+                    // ตารางเขียนตั๋ว/วันหยุดก่อนนำเข้า (การนำเข้าเขียนทับตารางเขียนตั๋วด้วย) → กู้คืนได้ครบ
+                    extra: (() => { try { return { v: 1, tkw: typeof window.tkwExportAll === 'function' ? window.tkwExportAll() : null }; } catch (_) { return null; } })()
                 });
                 tx.oncomplete = () => resolve(true);
                 tx.onerror = () => reject(tx.error || new Error('บันทึกจุดกู้คืนไม่สำเร็จ'));
@@ -1824,17 +1826,37 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     request.onerror = () => reject(request.error || new Error('อ่านจุดกู้คืนไม่สำเร็จ'));
                 });
                 if (!recovery || !recovery.data || typeof recovery.data !== 'object') {
-                    alert('ยังไม่มีจุดกู้คืนจากการนำเข้าครั้งล่าสุด');
+                    showToast('ยังไม่มีจุดกู้คืนจากการนำเข้าครั้งล่าสุด');
                     return;
                 }
+                const nd = recovery.data;
                 const savedTime = new Date(Number(recovery.savedAt || 0)).toLocaleString('th-TH');
-                if (!confirm(`ต้องการกู้คืนข้อมูลที่บันทึกไว้ก่อนนำเข้าครั้งล่าสุดหรือไม่?\nจุดกู้คืน: ${savedTime}\n\nข้อมูลปัจจุบันจะถูกแทนที่`)) return;
+                const keysNow = Object.keys(db).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+                const same = (a, b) => { try { return JSON.stringify(a, stripTrailingBlankRows) === JSON.stringify(b, stripTrailingBlankRows); } catch (_) { return false; } };
+                const dropKeys = keysNow.filter(k => !(k in nd));
+                const changed = keysNow.filter(k => (k in nd) && !same(db[k], nd[k])).concat(dropKeys);
+                const msg = `ต้องการกู้คืนข้อมูลที่บันทึกไว้ก่อนนำเข้าครั้งล่าสุดหรือไม่?\nจุดกู้คืน: ${savedTime}`
+                    + (dropKeys.length ? `\n⚠ จะลบ ${dropKeys.length} วันที่ไม่มีในจุดกู้คืนนี้ ออกจากฐานข้อมูลกลางและทุกเครื่องด้วย` : '')
+                    + (recovery.extra && recovery.extra.tkw ? '\nตารางเขียนตั๋วจะกลับเป็นแบบก่อนนำเข้าด้วย' : '');
+                const ok = window.uiConfirm ? await window.uiConfirm(msg, { ok: 'กู้คืน', cancel: 'ยกเลิก' }) : confirm(msg);
+                if (!ok) return;
+                /* วันที่ปิดยอดแล้วที่จะถูกทับ/ลบ → ต้องใส่ PIN (กู้คืนทั้งก้อน: PIN ไม่ถูก = ไม่กู้คืน) */
+                const locked = typeof window.__isLocked === 'function' ? changed.filter(k => { try { return window.__isLocked(k); } catch (_) { return false; } }).sort() : [];
+                if (locked.length) {
+                    const v = window.uiPrompt ? await window.uiPrompt(`การกู้คืนนี้จะทับ/ลบวันที่ปิดยอดแล้ว ${locked.length} วัน\nใส่ PIN เพื่ออนุญาต`, '', 'password') : null;
+                    if (v === null) return;
+                    if (!(window.__pinOk && window.__pinOk(String(v).trim()))) { showToast('PIN ไม่ถูกต้อง ยังไม่ได้กู้คืน'); return; }
+                }
+                try { if (window.__snapshotNow) await window.__snapshotNow('ก่อนกู้คืนก่อนนำเข้า', true); } catch (_) {}
                 const previousDb = db;
-                db = recovery.data;
+                db = JSON.parse(JSON.stringify(nd));
                 if (!saveDB()) {
                     db = previousDb;
                     throw new Error('บันทึกข้อมูลที่กู้คืนไม่สำเร็จ');
                 }
+                try { if (recovery.extra && recovery.extra.tkw && typeof window.tkwRestoreAll === 'function') window.tkwRestoreAll(recovery.extra.tkw); } catch (e) { console.warn('restore tkw', e); }
+                try { if (window.__resetUndo) window.__resetUndo(); } catch (_) {}
+                try { if (window.__audit) window.__audit('กู้คืนก่อนนำเข้า', `กู้คืนข้อมูลเป็นจุดก่อนนำเข้า ${savedTime}` + (dropKeys.length ? ` · ลบ ${dropKeys.length} วัน` : '') + (locked.length ? ` · ใส่ PIN ทับวันที่ปิดยอดแล้ว ${locked.length} วัน` : '')); } catch (_) {}
                 renderTable();
                 showToast('กู้คืนข้อมูลก่อนนำเข้าสำเร็จ');
             } catch (error) {
@@ -2045,7 +2067,10 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         function qsIdKey(book, ticket) { return normalizeCompareTicket(book) + '|' + normalizeCompareTicket(ticket); }
         function qsFindLinkedNew(book, ticket, exceptRow) {
             const key = qsIdKey(book, ticket);
+            // ย้อนหลัง 240 วัน: เล่มขึ้นใหม่ทุกปี ตั๋วใหม่เล่ม+เลขเดียวกันของปีก่อนเป็นคนละใบ
+            let lim = ''; try { const p = String(currentDate).split('-'), ld = new Date(+p[0], +p[1] - 1, +p[2] - 240); lim = ld.getFullYear() + '-' + String(ld.getMonth() + 1).padStart(2, '0') + '-' + String(ld.getDate()).padStart(2, '0'); } catch (_) {}
             for (const dKey in db) {
+                if (lim && /^\d{4}-\d{2}-\d{2}$/.test(dKey) && dKey < lim) continue;
                 const d = db[dKey];
                 if (!d || !Array.isArray(d.months) || !d.data) continue;
                 for (const m of d.months) {
@@ -2082,9 +2107,11 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             const m = btn.dataset.m, i = Number(btn.dataset.i);
             const row = db[currentDate] && db[currentDate].data && db[currentDate].data[m] && db[currentDate].data[m][i];
             if (!row || !row.newTicket) return;
-            if (!confirm('ยกเลิกการผูกตั๋วใหม่ ' + row.newTicket + ' ออกจากตั๋วเดิม ' + row.ticket + ' ?\n(แถวในตารางยังอยู่เหมือนเดิม)')) return;
-            delete row.newTicket; delete row.newBook; delete row.newAmount;
-            saveDB(); renderTable(); qsRenderRecent(); qsSetMsg('ยกเลิกการติดตั๋วใหม่แล้ว', 'ok');
+            const q = 'ยกเลิกการผูกตั๋วใหม่ ' + row.newTicket + ' ออกจากตั๋วเดิม ' + row.ticket + ' ?\n(แถวในตารางยังอยู่เหมือนเดิม)';
+            const go = () => { delete row.newTicket; delete row.newBook; delete row.newAmount;
+                saveDB(); renderTable(); qsRenderRecent(); qsSetMsg('ยกเลิกการติดตั๋วใหม่แล้ว', 'ok'); };
+            if (window.uiConfirm) window.uiConfirm(q, { ok: 'ยกเลิกการติด', cancel: 'กลับ' }).then(ok => { if (ok) go(); });
+            else if (confirm(q)) go();
         }
         function submitQuickScan() {
             const type = qsEl('qs-type').value;
@@ -3854,6 +3881,10 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     throw new Error('บันทึกข้อมูลใหม่ไม่สำเร็จ จึงยกเลิกการนำเข้า');
                 }
                 /* วันที่เพิ่ม/แทนจากไฟล์ → ยกมา ย/ม คงเหลือของวันถัดไปต้องคิดตามใหม่ (เดิมค้างค่าเก่า) · แบบแทนที่ทั้งหมดใช้โซ่ตามไฟล์ ไม่แตะ */
+                if (mode === 'replace' && skipLocked.size) {
+                    // แทนที่ทั้งหมดแต่คงวันที่ปิดยอดแล้วบางวันไว้ (ไม่ได้ใส่ PIN) → โซ่ยอดหลังวันเหล่านั้นต้องคิดตามวันที่คงไว้
+                    try { recalculateFutureBroughtForwardBalances([...skipLocked].sort()[0]); } catch (e) { console.warn('recalc after replace', e); }
+                }
                 if (mode !== 'replace') {
                     const changedKeys = (mode === 'add' ? addKeys : addKeys.concat(diffUse)).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
                     if (changedKeys.length) { try { recalculateFutureBroughtForwardBalances(changedKeys[0]); } catch (e) { console.warn('recalc after import', e); } }
@@ -3863,6 +3894,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     try { if (extra.tkw && typeof window.tkwImportAll === 'function') nT2 = window.tkwImportAll(extra.tkw, mode === 'add' ? 'add' : 'over'); } catch (e) { console.warn('import tkw', e); }
                     try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
                 }
+                try { if (window.__audit) window.__audit('นำเข้าไฟล์ข้อมูล', `${file.name} · ` + ({ add: 'เพิ่มเฉพาะวันที่ยังไม่มี', over: 'แทนวันที่ไม่ตรงกัน', replace: 'แทนที่ทั้งหมด' }[mode] || mode) + ` · เพิ่ม ${addKeys.length} วัน` + (mode !== 'add' ? ` · แทน ${diffUse.length} วัน` : '') + (mode === 'replace' ? ` · ลบ ${dropKeys.filter(k => !skipLocked.has(k)).length} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '')); } catch (_) {}
                 renderTable();
                 const nDays = mode === 'replace' ? fileKeys.filter(k => !skipLocked.has(k)).length : (mode === 'add' ? addKeys.length : addKeys.length + diffUse.length);
                 showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
@@ -5473,7 +5505,12 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             q('ds-font').addEventListener('change',function(){ set('fontScale',Number(this.value)); });
             q('ds-sound').addEventListener('change',function(){ set('sound',this.checked); });
             q('ds-warn').addEventListener('change',function(){ set('warnBackup',this.checked); if(this.checked&&typeof checkBackupReminder==='function') try{checkBackupReminder();}catch(e){} });
-            q('ds-reset').addEventListener('click',function(){ uiConfirm('รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น (รวมถึง PIN)?\nข้อมูลบัญชีจะไม่ถูกลบ').then(function(ok){ if(!ok) return; try{ localStorage.removeItem(KEY); }catch(e){} applyAll(); toast('รีเซ็ตการตั้งค่าแล้ว'); render(); }); });
+            q('ds-reset').addEventListener('click',function(){ uiConfirm('รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น (รวมถึง PIN)?\nข้อมูลบัญชีจะไม่ถูกลบ').then(function(ok){ if(!ok) return;
+                /* ถาม PIN ปัจจุบันก่อน (เดิมรีเซ็ต PIN กลับเป็นค่าเริ่มต้นได้โดยไม่ถาม → ปลดล็อกวันที่ปิดยอดแล้วได้) · ลืม PIN ใช้ "รหัสกู้คืน" ตามเดิม */
+                return window.uiPrompt('ใส่ PIN ปัจจุบันเพื่อยืนยันการรีเซ็ต\n(ลืม PIN ให้ใช้ "รหัสกู้คืน" ที่หน้าเข้าระบบ)','','password').then(function(v){ if(v===null) return;
+                  var cur=load(), okp=cur.pinHash?hp(String(v).trim())===cur.pinHash:String(v).trim()===String(CORRECT_PIN);
+                  if(!okp){ toast('PIN ไม่ถูกต้อง ยังไม่ได้รีเซ็ต'); return; }
+                  try{ localStorage.removeItem(KEY); }catch(e){} applyAll(); try{ if(window.__audit) window.__audit('รีเซ็ตการตั้งค่าทั้งหมด','รวม PIN กลับเป็นค่าเริ่มต้น (ใส่ PIN เดิมแล้ว)'); }catch(e){} toast('รีเซ็ตการตั้งค่าแล้ว'); render(); }); }); });
         }
     }
     window.openDataSettings=function(){ if(typeof sbClose==='function') try{sbClose();}catch(e){} render(); };
@@ -5822,6 +5859,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         };
         modal.querySelectorAll('[data-settle]').forEach(function(b){ b.onclick=function(){ var f=find(b.getAttribute('data-settle')); if(!f) return; f.a.settled=true; f.a.settledOn=currentDate; if(window.__audit) window.__audit('หักจ่ายเงินเบิกแล้ว',fmt(num(f.a.amount))+' บาท · '+(f.a.who||'-')+' (เบิกวันที่ '+thDate(f.k||'')+')'); try{saveDB();}catch(e){} toast('ตัดยอดหักจ่ายแล้ว'); render(); }; });
         modal.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){ var f=find(b.getAttribute('data-del')); if(!f) return;
+            /* รายการของวันที่ปิดยอดแล้ว (เปิดดูวันอื่นอยู่) → ต้องใส่ PIN ก่อน เพราะยอดที่ควรมีของวันนั้นจะเปลี่ยน */
+            var fk=b.getAttribute('data-del').split('|')[0];
+            if(window.__isLocked&&window.__isLocked(fk)&&!(window.__unlocked&&window.__unlocked[fk])&&window.__askUnlock){ window.__askUnlock('รายการเบิกนี้เป็นของวันที่ '+thDate(fk)+' ซึ่งปิดยอดแล้ว\nใส่ PIN เพื่อปลดล็อกก่อนลบ',fk).then(function(ok){ if(ok) b.onclick(); }); return; }
             window.uiConfirm('ลบรายการเบิก '+fmt(num(f.a.amount))+' บาท ของ '+(f.a.who||'-')+' ?\nการลบจะทำให้ยอดเงินสดที่ควรมีของวันที่เบิกเปลี่ยนไป').then(function(ok){ if(!ok) return; f.d.advances.splice(f.i,1); if(window.__audit) window.__audit('ลบรายการเบิกเงิน',fmt(num(f.a.amount))+' บาท · '+(f.a.who||'-')); try{saveDB();}catch(e){} render(); }); }; });
         g('cl-close').onclick=function(){ var k=calc(d); if(!k.has){ toast('กรุณากรอกยอดเงินสดที่นับได้จริงก่อนปิดยอด'); return; }
             c.closed=true; c.closedAt=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); c.expected=k.expected; c.diff=k.diff; delete window.__unlocked[currentDate]; try{saveDB();}catch(e){} if(window.__audit) window.__audit('ปิดยอดวัน','ที่ควรมี '+fmt(k.expected)+' นับจริง '+fmt(k.counted)+' ส่วนต่าง '+fmt(k.diff)); toast('ปิดยอดวันนี้แล้ว'); render(); };
@@ -6170,7 +6210,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             out.exactRow=exact?exact.r:null;
         }
         /* เคยถูกไถ่แล้วในวันอื่น (เทียบเล่ม+เลข เฉพาะแถวที่ระบุประเภท ถ/ส/พ/ผ) */
-        if(oldB){ Object.keys(db).forEach(function(k){ if(k===currentDate) return; var x=db[k]; if(!x||!Array.isArray(x.months)||!x.data) return;
+        if(oldB){ var lim240=''; try{ var cq=String(currentDate).split('-'), ld=new Date(+cq[0],+cq[1]-1,+cq[2]-240); lim240=ld.getFullYear()+'-'+('0'+(ld.getMonth()+1)).slice(-2)+'-'+('0'+ld.getDate()).slice(-2); }catch(e){}   /* ย้อนหลัง 240 วัน: เล่มขึ้นใหม่ทุกปี เล่ม+เลขเดียวกันของปีก่อนเป็นคนละใบ */
+          Object.keys(db).forEach(function(k){ if(k===currentDate||(lim240&&k<lim240)) return; var x=db[k]; if(!x||!Array.isArray(x.months)||!x.data) return;
             x.months.forEach(function(m){ if(!m||!Array.isArray(x.data[m])) return; x.data[m].forEach(function(r){ if(r&&RED.indexOf(String(r.type||'').trim())>=0&&String(r.ticket||'').trim()&&nt(r.ticket)===tkey&&nt(rowBook(r))===bkey) warn.push('ตั๋วนี้เคยถูกไถ่/ส่งขายแล้ว เมื่อวันที่ '+thDate(k)+' ('+m+')'); }); }); }); }
         out.warn=warn; return out;
     }
@@ -7485,6 +7526,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       ks.forEach(function(k){ delete db[k]; });
       if(anc) window.__pruneAnchorApply(anc);
       try{ saveDB(); }catch(e){ console.warn(e); }
+      try{ if(window.__audit) window.__audit('ลบข้อมูลเก่า','ลบ '+ks.length+' วัน ('+ks[0]+' ถึง '+ks[ks.length-1]+') · สำเนาถาวร: '+arcWhere); }catch(e){}
       close(); toast('ลบข้อมูลเก่า '+ks.length+' วันแล้ว · สำเนาถาวร: '+arcWhere);
     });
     refresh();
@@ -9844,6 +9886,13 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       dj.u=Date.now(); store[k]=dj; n++; try{ markDirty(k); }catch(e){}
       if(key===k){ day=dj; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } });
     if(n){ save(); try{ startSync(); }catch(e){} } return n; };   /* นำเข้าไฟล์สำรอง → ส่งขึ้นคลาวด์ด้วย */
+  /* กู้คืนทั้งตาราง (จุดกู้คืนก่อนนำเข้า): วันที่มีข้อมูลแต่ไม่มีในชุดที่กู้คืน → ล้างเป็นว่าง แล้วใช้ข้อมูลตามชุดนั้น */
+  window.tkwRestoreAll=function(obj){ load(); obj=obj||{}; var n=0;
+    Object.keys(store).forEach(function(k){ if(!/^\d{4}-\d\d-\d\d$/.test(k)||obj[k]||!hasData(store[k])) return;
+      var b=blank(k); b.u=Date.now(); store[k]=b; n++; try{ markDirty(k); }catch(e){}
+      if(key===k){ day=b; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } });
+    if(n){ save(); try{ startSync(); }catch(e){} }
+    return n+window.tkwImportAll(obj,'over'); };
   window.tkwReadDay=function(k){ load(); var d=store[k]; if((!d||!d.r||!d.m)&&k===key&&day&&day.r&&day.m&&hasData(day)) d=day; if(!d||!d.r||!d.m) return null; return JSON.parse(JSON.stringify(d)); };
   /* ให้หน้าเทียบ สธ.3 เรียกก่อนอ่าน: รวมข้อมูลในเครื่องล่าสุด + เริ่มซิงก์คลาวด์ (เดิมเริ่มเฉพาะตอนเปิดหน้าเขียนตั๋ว) แล้วรอข้อมูลชุดแรกสูงสุด ms */
   window.tkwEnsure=function(ms){ load(); try{ startSync(); }catch(e){}
