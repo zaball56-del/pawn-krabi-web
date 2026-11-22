@@ -12,6 +12,13 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 <script id="bc-js">
 /* แยกค่าบาร์โค้ดตั๋ว (EAN-13): ปีงบประมาณ(2, เริ่ม 1 ต.ค.) + 0(1) + เล่ม(4) + เลขที่(5) + ตัวตรวจสอบ(1) → ใส่ช่องเลขตั๋ว/เล่มที่ให้เอง
    ตัวอย่าง 6900205001342 = ปีงบ 69 · เล่ม 205 · เลขที่ 134 */
+/* ตั้งค่าเครื่องสแกน (ตั้งค่า → การใช้งาน): scanEnterSave = Enter ที่ช่องเลขตั๋ว/เล่มบันทึกทันที (ค่าเดิม เปิด) ·
+   scanAutoSave = อ่านบาร์โค้ดแล้วมียอดขึ้นเอง บันทึกเองไม่ต้องกด Enter (ปิด) · scanBeep = เสียงสั้นเมื่ออ่านบาร์โค้ดได้ (เปิด) */
+window.__scanCfg=function(){ var s={}; try{ s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}')||{}; }catch(e){}
+  return {enterSave:s.scanEnterSave!==false, autoSave:s.scanAutoSave===true, beep:s.scanBeep!==false}; };
+window.__scanBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; var C=window.AudioContext||window.webkitAudioContext; if(!C) return; var c=window.__scanAC||(window.__scanAC=new C());
+  var o=c.createOscillator(), g=c.createGain(); o.connect(g); g.connect(c.destination); o.type='square'; o.frequency.value=ok?1800:380; g.gain.value=0.06;
+  var t=c.currentTime; o.start(t); o.stop(t+(ok?0.07:0.22)); }catch(e){} };
 (function(){ try{
   function ok13(s){ if(!/^\d{13}$/.test(s)) return false; var t=0; for(var i=0;i<12;i++) t+=(+s[i])*(i%2?3:1); return (10-t%10)%10===+s[12]; }
   function fyYY(){ var d=new Date(), y=d.getFullYear()+543+(d.getMonth()>=9?1:0); return y%100; }
@@ -74,7 +81,15 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
     try{
       var raw=el.value.trim(); el.value=r.ticket; bk.value=r.book; el.dataset.barcode=raw; fire(el); fire(bk);
       var m=document.getElementById('qs-msg'); if(m){ m.textContent='อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket; m.className='qs-msg ok'; }
+      try{ window.__scanBeep(true); }catch(_){}
       var wd=function(){ warnDup(r.book,r.ticket,el.id); }; setTimeout(wd,60);
+      /* บันทึกเองหลังอ่านบาร์โค้ด (ตั้งค่า): เฉพาะประเภท ถ · ช่องเลขตั๋วเดิม · ยอดขึ้นเองแล้ว · ไม่มีหน้าต่างเตือนตั๋วซ้ำ */
+      if(el.id==='qs-ticket'&&window.__scanCfg().autoSave){ var tk0=r.ticket; setTimeout(function(){ try{
+        var ty=document.getElementById('qs-type'), tk=document.getElementById('qs-ticket'), am=document.getElementById('qs-amount'), mo=document.getElementById('qs-month');
+        if(!ty||ty.value!=='ถ'||!tk||tk.value!==tk0||!am||!String(am.value).trim()||!mo||!mo.value) return;
+        if(dupInfo(r.book,r.ticket,'old').length) return;
+        var dl=document.getElementById('ui-dialog'); if(dl&&dl.style.display&&dl.style.display!=='none') return;
+        if(typeof window.submitQuickScan==='function') window.submitQuickScan(); }catch(_){} },450); }
       var mon=document.getElementById('qs-month'), amt=document.getElementById(el.id==='qs-ticket'?'qs-amount':'qs-new-amount');
       var next=(el.id==='qs-ticket'&&mon&&!mon.value)?mon:amt; if(next) setTimeout(function(){ try{next.focus();}catch(_){} },30);
     } finally { busy=false; }
@@ -99,9 +114,47 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
     var tk=document.getElementById('qs-ticket'), am=document.getElementById('qs-amount');
     if(!tk||!tk.value.trim()) return;
     if(id!=='qs-amount'&&!(am&&am.value.trim())) return;
+    if(id!=='qs-amount'&&window.__scanCfg&&!window.__scanCfg().enterSave){ e.preventDefault(); e.stopPropagation(); try{ am.focus(); if(am.select) am.select(); }catch(_){} return; }   /* ตั้งค่า: Enter ที่เลขตั๋ว/เล่ม = ไปช่องยอดเงินก่อน */
     e.preventDefault(); e.stopPropagation();
     if(typeof window.submitQuickScan==='function') window.submitQuickScan();
   },true);
   apply();
+}catch(e){ try{console.error(e)}catch(_){} } })();
+/* ทดสอบเครื่องสแกน (ตั้งค่า → การใช้งาน): สแกนบาร์โค้ดตั๋วลงช่อง แล้วดูว่าเครื่องส่งอะไรมา */
+(function(){ try{
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  window.openScanTest=function(){
+    var old=document.getElementById('scantest-modal'); if(old) old.remove();
+    var m=document.createElement('div'); m.id='scantest-modal'; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true');
+    m.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:12px';
+    m.innerHTML='<div style="background:#fff;border-radius:14px;max-width:520px;width:100%;padding:16px 18px;font-family:Sarabun,sans-serif;box-shadow:0 20px 50px rgba(0,0,0,.3)">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">ทดสอบเครื่องสแกนบาร์โค้ด</b><button type="button" id="st-x" style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 12px;cursor:pointer">ปิด</button></div>'
+      +'<div style="font-size:14px;color:#475569;margin-bottom:8px">คลิกในช่องด้านล่าง แล้วยิงบาร์โค้ดบนตั๋ว 1 ใบ</div>'
+      +'<input id="st-in" autocomplete="off" style="width:100%;box-sizing:border-box;border:2px solid #93c5fd;border-radius:10px;padding:10px 12px;font-size:18px">'
+      +'<div id="st-out" style="margin-top:10px;font-size:14px;line-height:1.7;min-height:90px;background:#f8fafc;border-radius:10px;padding:10px 12px">รอสแกน…</div></div>';
+    document.body.appendChild(m);
+    var inp=m.querySelector('#st-in'), out=m.querySelector('#st-out'), keys=[], timer=null, enter=false;
+    function close(){ m.remove(); }
+    m.querySelector('#st-x').onclick=close; m.addEventListener('click',function(e){ if(e.target===m) close(); });
+    function report(){
+      var raw=keys.map(function(k){ return k.k; }).join(''), gaps=[]; for(var i=1;i<keys.length;i++) gaps.push(keys[i].t-keys[i-1].t);
+      var avg=gaps.length?Math.round(gaps.reduce(function(a,b){ return a+b; },0)/gaps.length):0;
+      var conv=window.__thKeyToDigits?window.__thKeyToDigits(raw):raw, th=conv!==raw;
+      var r=window.__parseTicketBarcode?window.__parseTicketBarcode(conv.trim()):null;
+      var L=[];
+      L.push('ได้รับ: <b>'+esc(raw||'(ว่าง)')+'</b> · '+raw.length+' ตัว');
+      L.push(keys.length>3?(avg<50?'✅ ความเร็ว '+avg+' มิลลิวินาที/ตัว — เป็นเครื่องสแกน':'⚠ ความเร็ว '+avg+' มิลลิวินาที/ตัว — ช้าเหมือนพิมพ์มือ'):'');
+      L.push(enter?'✅ เครื่องส่ง Enter ท้ายบาร์โค้ด (ประเภท ถ บันทึกได้ทันทีหลังสแกน)':'ℹ เครื่องไม่ส่ง Enter ท้ายบาร์โค้ด (ต้องกด Enter เอง หรือเปิด "บันทึกเองหลังอ่านบาร์โค้ด")');
+      if(th) L.push('⚠ เครื่องอยู่ภาษาไทยตอนสแกน → ระบบแปลงเป็นตัวเลขให้แล้ว: '+esc(conv)+' (แนะนำตั้งเครื่องสแกน/คีย์บอร์ดเป็นภาษาอังกฤษ)');
+      L.push(r?('✅ อ่านเป็นตั๋วได้: ปีงบ '+esc(r.yy)+' · เล่ม '+esc(r.book)+' · เลขที่ '+esc(r.ticket)):'❌ ไม่ใช่บาร์โค้ดตั๋ว (ต้องเป็นตัวเลข 12–13 หลัก ตัวตรวจสอบถูก และปีงบไม่เกิน 5 ปีก่อน)');
+      out.innerHTML=L.filter(Boolean).join('<br>');
+      try{ window.__scanBeep(!!r); }catch(_){}
+      keys=[]; enter=false; inp.value=''; }
+    inp.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); enter=true; clearTimeout(timer); report(); return; }
+      if(e.key&&e.key.length===1){ keys.push({k:e.key,t:performance.now()}); clearTimeout(timer); timer=setTimeout(report,400); }
+    },true);
+    setTimeout(function(){ try{ inp.focus(); }catch(_){} },30);
+  };
 }catch(e){ try{console.error(e)}catch(_){} } })();
 </script>

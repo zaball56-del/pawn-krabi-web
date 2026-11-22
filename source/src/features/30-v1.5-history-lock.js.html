@@ -93,17 +93,24 @@
     /* ================= 2) ล็อกวันที่ปิดยอดแล้ว ================= */
     window.__unlocked=window.__unlocked||{};
     function isClosed(k){ var d=db[k]; return !!(d&&d.closing&&d.closing.closed); }
-    function isLocked(k){ k=k||currentDate; return isClosed(k)&&!window.__unlocked[k]; }
+    /* ล็อกวันย้อนหลังอัตโนมัติ (ตั้งค่า → ความปลอดภัย): วันที่มีข้อมูลและเก่ากว่าวันนี้เกิน N วัน ล็อกเหมือนปิดยอดแล้ว (0 = ปิด) */
+    function oldDays(){ try{ var s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); var n=Number(s.lockOldDays)||0; return n>0?n:0; }catch(e){ return 0; } }
+    function isOld(k){ var n=oldDays(); if(!n||!/^\d{4}-\d{2}-\d{2}$/.test(String(k))||!db[k]) return false;
+        var t=new Date(); t.setDate(t.getDate()-n); var cut=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); return k<cut; }
+    function isGuarded(k){ return isClosed(k)||isOld(k); }
+    function why(k){ return isClosed(k)?'ปิดยอดแล้ว':('ย้อนหลังเกิน '+oldDays()+' วัน (ล็อกอัตโนมัติ)'); }
+    window.__lockReason=why;
+    function isLocked(k){ k=k||currentDate; return isGuarded(k)&&!window.__unlocked[k]; }
     window.__isLocked=isLocked;
     function pinOk(pin){ var s={}; try{ s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); }catch(e){} return s.pinHash?window.__dsSha256('krabi-pawn-v1:'+pin)===s.pinHash:String(pin)===String(CORRECT_PIN); }
     window.__pinOk=pinOk;
     var asking=false;
     window.__askUnlock=function(msg,dateKey){
         dateKey=dateKey||currentDate; if(asking) return Promise.resolve(false); asking=true;
-        return window.uiPrompt((msg||('วันที่ '+thDate(dateKey)+' ปิดยอดแล้ว\nใส่ PIN เพื่อปลดล็อกการแก้ไข')),'','password').then(function(v){
+        return window.uiPrompt((msg||('วันที่ '+thDate(dateKey)+' '+why(dateKey)+'\nใส่ PIN เพื่อปลดล็อกการแก้ไข')),'','password').then(function(v){
             asking=false; if(v===null) return false;
             if(!pinOk(String(v).trim())){ toast('PIN ไม่ถูกต้อง'); return false; }
-            window.__unlocked[dateKey]=true; window.__audit('ปลดล็อกวันที่ปิดยอดแล้ว','ใส่ PIN ปลดล็อกเพื่อแก้ไข',dateKey); toast('ปลดล็อกวันที่ '+thDate(dateKey)+' แล้ว กรุณาทำรายการอีกครั้ง'); updBanner(); return true; });
+            var rs=why(dateKey); window.__unlocked[dateKey]=true; window.__audit(isClosed(dateKey)?'ปลดล็อกวันที่ปิดยอดแล้ว':'ปลดล็อกวันย้อนหลัง','ใส่ PIN ปลดล็อกเพื่อแก้ไข ('+rs+')',dateKey); toast('ปลดล็อกวันที่ '+thDate(dateKey)+' แล้ว กรุณาทำรายการอีกครั้ง'); updBanner(); return true; });
     };
     function gate(name,dateFn){
         if(typeof window[name]!=='function') return; var o=window[name];
@@ -124,9 +131,9 @@
     function updBanner(){
         var pg=document.getElementById('ledger-page'); if(!pg) return; var b=document.getElementById('lock-banner');
         if(!b){ b=document.createElement('div'); b.id='lock-banner'; b.innerHTML='<span id="lock-txt"></span><button type="button" id="lock-btn">ปลดล็อกด้วย PIN</button>'; pg.insertBefore(b,pg.firstChild); b.querySelector('#lock-btn').onclick=function(){ window.__askUnlock(); }; }
-        var on=isLocked(currentDate), u=isClosed(currentDate)&&window.__unlocked[currentDate];
+        var on=isLocked(currentDate), u=isGuarded(currentDate)&&window.__unlocked[currentDate];
         b.style.display=(on||u)?'flex':'none';
-        b.querySelector('#lock-txt').textContent=on?('🔒 วันที่ '+thDate(currentDate)+' ปิดยอดแล้ว — ห้ามแก้ไขจนกว่าจะปลดล็อก'):('🔓 วันที่ '+thDate(currentDate)+' ปลดล็อกชั่วคราว — ปิดยอดอีกครั้งเมื่อแก้ไขเสร็จ');
+        b.querySelector('#lock-txt').textContent=on?('🔒 วันที่ '+thDate(currentDate)+' '+why(currentDate)+' — ห้ามแก้ไขจนกว่าจะปลดล็อก'):('🔓 วันที่ '+thDate(currentDate)+' ปลดล็อกชั่วคราว'+(isClosed(currentDate)?' — ปิดยอดอีกครั้งเมื่อแก้ไขเสร็จ':''));
         b.querySelector('#lock-btn').style.display=on?'':'none';
         b.style.background=on?'#FEF3C7':'#ECFDF5'; b.style.borderColor=on?'#FCD34D':'#6EE7B7'; b.style.color=on?'#78350F':'#065F46';
     }
