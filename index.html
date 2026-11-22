@@ -5498,7 +5498,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
           +'<div class="ds-sec"><h3>เครื่องสแกนบาร์โค้ด</h3>'
           +ck('ds-scan-enter','กด Enter ที่ช่องเลขตั๋ว/เล่มที่ = บันทึกทันที (ประเภท ถ เมื่อมียอดขึ้นแล้ว)','ปิด = Enter พาไปช่องยอดเงินก่อน ให้ตรวจยอดแล้วกด Enter อีกครั้ง',s.scanEnterSave!==false)
           +ck('ds-scan-auto','บันทึกเองหลังอ่านบาร์โค้ด ไม่ต้องกด Enter','สำหรับเครื่องสแกนที่ไม่ส่ง Enter · เฉพาะประเภท ถ ที่เลือกเดือนแล้วและยอดขึ้นเอง · ไม่บันทึกเองถ้ามีคำเตือนตั๋วซ้ำ',s.scanAutoSave===true)
-          +ck('ds-scan-beep','เสียงสั้นเมื่ออ่านบาร์โค้ดได้','',s.scanBeep!==false)
+          +ck('ds-scan-beep','เสียงตอนสแกน','อ่านบาร์โค้ดได้ = ติ๊กสั้น · บันทึกแล้ว = ติ๊กสูงสองครั้ง · ผิดพลาด/ตั๋วซ้ำ = เสียงต่ำสองครั้ง',s.scanBeep!==false)
           +'<div class="ds-row" style="margin-top:6px"><button type="button" class="ds-btn" id="ds-scan-test">ทดสอบเครื่องสแกน</button></div>'
           +'<div class="ds-note">ปุ่มทดสอบจะบอกว่าเครื่องส่ง Enter ไหม อยู่ภาษาไทยหรือเปล่า และอ่านเป็นตั๋วได้หรือไม่ · ตั้งค่าเก็บในเครื่องนี้</div></div>'
           +'<div class="ds-sec"><h3>รีเซ็ต</h3><div class="ds-row" style="margin-top:0"><button type="button" class="ds-btn warn" id="ds-reset">รีเซ็ตการตั้งค่าทั้งหมด</button></div>'
@@ -8959,10 +8959,10 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 /* แยกค่าบาร์โค้ดตั๋ว (EAN-13): ปีงบประมาณ(2, เริ่ม 1 ต.ค.) + 0(1) + เล่ม(4) + เลขที่(5) + ตัวตรวจสอบ(1) → ใส่ช่องเลขตั๋ว/เล่มที่ให้เอง
    ตัวอย่าง 6900205001342 = ปีงบ 69 · เล่ม 205 · เลขที่ 134 */
 /* ตั้งค่าเครื่องสแกน (ตั้งค่า → การใช้งาน): scanEnterSave = Enter ที่ช่องเลขตั๋ว/เล่มบันทึกทันที (ค่าเดิม เปิด) ·
-   scanAutoSave = อ่านบาร์โค้ดแล้วมียอดขึ้นเอง บันทึกเองไม่ต้องกด Enter (ปิด) · scanBeep = เสียงสั้นเมื่ออ่านบาร์โค้ดได้ (เปิด) */
+   scanAutoSave = อ่านบาร์โค้ดแล้วมียอดขึ้นเอง บันทึกเองไม่ต้องกด Enter (ปิด) · scanBeep = เสียงตอนสแกนทั้งหมด: อ่านได้ (ที่นี่) + บันทึกแล้ว/ผิดพลาด (scanfx.html) (เปิด) */
 window.__scanCfg=function(){ var s={}; try{ s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}')||{}; }catch(e){}
   return {enterSave:s.scanEnterSave!==false, autoSave:s.scanAutoSave===true, beep:s.scanBeep!==false}; };
-window.__scanBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; var C=window.AudioContext||window.webkitAudioContext; if(!C) return; var c=window.__scanAC||(window.__scanAC=new C());
+window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; var C=window.AudioContext||window.webkitAudioContext; if(!C) return; var c=window.__scanAC||(window.__scanAC=new C());
   var o=c.createOscillator(), g=c.createGain(); o.connect(g); g.connect(c.destination); o.type='square'; o.frequency.value=ok?1800:380; g.gain.value=0.06;
   var t=c.currentTime; o.start(t); o.stop(t+(ok?0.07:0.22)); }catch(e){} };
 (function(){ try{
@@ -9027,7 +9027,7 @@ window.__scanBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; var C=
     try{
       var raw=el.value.trim(); el.value=r.ticket; bk.value=r.book; el.dataset.barcode=raw; fire(el); fire(bk);
       var m=document.getElementById('qs-msg'); if(m){ m.textContent='อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket; m.className='qs-msg ok'; }
-      try{ window.__scanBeep(true); }catch(_){}
+      try{ window.__scanReadBeep(true); }catch(_){}
       var wd=function(){ warnDup(r.book,r.ticket,el.id); }; setTimeout(wd,60);
       /* บันทึกเองหลังอ่านบาร์โค้ด (ตั้งค่า): เฉพาะประเภท ถ · ช่องเลขตั๋วเดิม · ยอดขึ้นเองแล้ว · ไม่มีหน้าต่างเตือนตั๋วซ้ำ */
       if(el.id==='qs-ticket'&&window.__scanCfg().autoSave){ var tk0=r.ticket; setTimeout(function(){ try{
@@ -9094,7 +9094,7 @@ window.__scanBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; var C=
       if(th) L.push('⚠ เครื่องอยู่ภาษาไทยตอนสแกน → ระบบแปลงเป็นตัวเลขให้แล้ว: '+esc(conv)+' (แนะนำตั้งเครื่องสแกน/คีย์บอร์ดเป็นภาษาอังกฤษ)');
       L.push(r?('✅ อ่านเป็นตั๋วได้: ปีงบ '+esc(r.yy)+' · เล่ม '+esc(r.book)+' · เลขที่ '+esc(r.ticket)):'❌ ไม่ใช่บาร์โค้ดตั๋ว (ต้องเป็นตัวเลข 12–13 หลัก ตัวตรวจสอบถูก และปีงบไม่เกิน 5 ปีก่อน)');
       out.innerHTML=L.filter(Boolean).join('<br>');
-      try{ window.__scanBeep(!!r); }catch(_){}
+      try{ window.__scanReadBeep(!!r); }catch(_){}
       keys=[]; enter=false; inp.value=''; }
     inp.addEventListener('keydown',function(e){
       if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); enter=true; clearTimeout(timer); report(); return; }
@@ -12036,7 +12036,7 @@ html body.app-shell:not(.page-home) #ledger-page #foot-totals-row > td:not(#_x){
 /* เสียงตอบรับตอนสแกน: บันทึกแล้ว = ติ๊กสูงสั้น · ผิดปกติ/ซ้ำ = เสียงต่ำสองครั้ง (ปิดได้: localStorage pawn_scan_sound = 0) */
 (function(){ try{
   var AC=null;
-  function on(){ try{ return localStorage.getItem('pawn_scan_sound')!=='0'; }catch(e){ return true; } }
+  function on(){ try{ if(window.__scanCfg&&!window.__scanCfg().beep) return false; return localStorage.getItem('pawn_scan_sound')!=='0'; }catch(e){ return true; } }   /* ปิดได้ที่ ตั้งค่า → การใช้งาน → เสียงตอนสแกน */
   function ctx(){ try{ if(!AC){ var C=window.AudioContext||window.webkitAudioContext; if(!C) return null; AC=new C(); } if(AC.state==='suspended') AC.resume(); return AC; }catch(e){ return null; } }
   function tone(f,t0,d,v){ var c=ctx(); if(!c) return; var o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.value=f; var t=c.currentTime+t0; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v||0.25,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+d+0.02); }
   window.__scanBeep=function(k){ if(!on()) return; if(k==='ok'){ tone(1320,0,0.09); tone(1760,0.08,0.11); } else if(k==='er'){ tone(330,0,0.16,0.3); tone(260,0.2,0.2,0.3); } };
@@ -12351,10 +12351,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 7503d48e14ab และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 36609784dd51 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='7503d48e14ab'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='36609784dd51'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

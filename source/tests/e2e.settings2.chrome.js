@@ -5,6 +5,8 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
 (async()=>{
   const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
   const pg=await (await b.newContext({viewport:{width:1366,height:900}})).newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(String(e).slice(0,150))); pg.on('dialog',d=>d.accept());
+  await pg.addInitScript(()=>{ window.__osc=0; const C=function(){ this.currentTime=0; this.state='running'; this.destination={}; }; C.prototype.createOscillator=function(){ window.__osc++; return {connect(){},start(){},stop(){},frequency:{value:0},type:''}; };
+    C.prototype.createGain=function(){ return {connect(){},gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}}}; }; C.prototype.resume=function(){}; window.AudioContext=C; window.webkitAudioContext=C; });
   await pg.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort()); await pg.goto('file://'+FILE,{waitUntil:'domcontentloaded'}); await sleep(3000);
   await pg.evaluate(()=>{ document.querySelectorAll('#login-modal').forEach(e=>e.style.display='none'); const ac=document.getElementById('app-container'); ac.classList.remove('hidden'); ac.style.display='flex'; goPage('ledger');
     window.__asked=[]; window.uiConfirm=async(m)=>{ window.__asked.push(m); return true; }; window.uiPrompt=async(m)=>{ window.__asked.push(m); return window.__pin; }; });
@@ -54,6 +56,12 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
   r=await scan(true,true,false); ok(r.saved,'10 เปิด "บันทึกเองหลังอ่านบาร์โค้ด" → ไม่กด Enter ก็บันทึก');
   r=await scan(true,true,true); ok(r.n134===1,'10b เปิดบันทึกเอง + เครื่องส่ง Enter ด้วย → บันทึกครั้งเดียว ไม่ซ้ำ ('+r.n134+' แถว)');
   r=await scan(true,false,false); ok(!r.saved,'11 ปิดบันทึกเอง + ไม่กด Enter → ยังไม่บันทึก');
+
+  // 2b) เสียงตอนสแกน: เปิด = มีเสียง (อ่านได้ + บันทึกแล้ว) · ปิด = เงียบทั้งหมด
+  const beeps=async(on)=>{ await pg.evaluate(o=>{ const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); s.scanBeep=o; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s)); window.__osc=0; },on); await scan(true,false,true); return pg.evaluate(()=>window.__osc); };
+  let nOn=await beeps(true), nOff=await beeps(false);
+  ok(nOn>=2&&nOff===0,'2b เสียงตอนสแกน เปิด → มีเสียง ('+nOn+') · ปิด → เงียบ ('+nOff+')');
+  await pg.evaluate(()=>{ const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); s.scanBeep=true; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s)); });
 
   // 3) ทดสอบเครื่องสแกน
   r=await pg.evaluate(async()=>{ openScanTest(); await new Promise(r=>setTimeout(r,100)); const inp=document.getElementById('st-in');

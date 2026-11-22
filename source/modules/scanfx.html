@@ -2,7 +2,7 @@
 /* เสียงตอบรับตอนสแกน: บันทึกแล้ว = ติ๊กสูงสั้น · ผิดปกติ/ซ้ำ = เสียงต่ำสองครั้ง (ปิดได้: localStorage pawn_scan_sound = 0) */
 (function(){ try{
   var AC=null;
-  function on(){ try{ return localStorage.getItem('pawn_scan_sound')!=='0'; }catch(e){ return true; } }
+  function on(){ try{ if(window.__scanCfg&&!window.__scanCfg().beep) return false; return localStorage.getItem('pawn_scan_sound')!=='0'; }catch(e){ return true; } }   /* ปิดได้ที่ ตั้งค่า → การใช้งาน → เสียงตอนสแกน */
   function ctx(){ try{ if(!AC){ var C=window.AudioContext||window.webkitAudioContext; if(!C) return null; AC=new C(); } if(AC.state==='suspended') AC.resume(); return AC; }catch(e){ return null; } }
   function tone(f,t0,d,v){ var c=ctx(); if(!c) return; var o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.value=f; var t=c.currentTime+t0; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v||0.25,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+d+0.02); }
   window.__scanBeep=function(k){ if(!on()) return; if(k==='ok'){ tone(1320,0,0.09); tone(1760,0.08,0.11); } else if(k==='er'){ tone(330,0,0.16,0.3); tone(260,0.2,0.2,0.3); } };
