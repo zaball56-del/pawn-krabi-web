@@ -11,6 +11,11 @@ mods=[l.strip() for l in open(MOD+'/order.txt') if l.strip() and not l.startswit
 for m in mods:
     t=t.replace('</body>',read(f'{MOD}/{m}')+'\r\n</body>')
 out=sys.argv[1] if len(sys.argv)>1 else ROOT+'/dist/index.html'
+# รหัสเวอร์ชัน (แจ้ง "มีเวอร์ชันใหม่" ใน modules/newver.html): hash ของเนื้อหาก่อนใส่รหัส → version.txt คู่กับ index.html
+import hashlib
+bid=hashlib.sha256(t.encode('utf-8')).hexdigest()[:12]
+t=t.replace('@@BUILD@@',bid)
 os.makedirs(os.path.dirname(out),exist_ok=True)
 open(out,'w',encoding='utf-8',newline='').write(t)
+open(os.path.join(os.path.dirname(os.path.abspath(out)),'version.txt'),'w',encoding='utf-8',newline='').write(bid+'\n')
 print('built',out,len(t))

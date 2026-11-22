@@ -1109,7 +1109,34 @@
         }
         function serializeDBCompact() { return JSON.stringify(db, stripTrailingBlankRows); }
 
+        /* บันทึกแบบรวมครั้ง: ระหว่างพิมพ์ (updateCellData) และเปลี่ยนวันที่ (changeDate) มีการเรียก saveDB หลายครั้ง
+           แต่ละครั้งแปลงฐานข้อมูลทั้งหมด (ข้อมูล 2 ปี = หลายร้อยมิลลิวินาที) → ระหว่างนั้นจดไว้ว่า "ต้องบันทึก" แล้วบันทึกจริงครั้งเดียว
+           พิมพ์: บันทึกหลังหยุดพิมพ์ 400ms · ปิด/ย่อ/สลับแท็บ หรือมีการบันทึกอื่น → บันทึกทันที · ข้อมูลในหน่วยความจำ (ที่ใช้คำนวณ/ซิงก์) อัปเดตทันทีเหมือนเดิม */
+        let saveBatchDepth = 0, saveBatchWanted = false, deferredSaveTimer = null;
+        function flushDeferredSave() {
+            if (deferredSaveTimer) { clearTimeout(deferredSaveTimer); deferredSaveTimer = null; }
+            if (saveBatchWanted && saveBatchDepth === 0) { saveBatchWanted = false; saveDB(); }
+        }
+        function runWithBatchedSave(fn, delayMs) {
+            saveBatchDepth++;
+            try { return fn(); }
+            finally {
+                saveBatchDepth--;
+                if (saveBatchDepth === 0 && saveBatchWanted) {
+                    if (delayMs > 0) { if (deferredSaveTimer) clearTimeout(deferredSaveTimer); deferredSaveTimer = setTimeout(flushDeferredSave, delayMs); }
+                    else flushDeferredSave();
+                }
+            }
+        }
+        window.__flushSave = flushDeferredSave;
+        window.addEventListener('pagehide', flushDeferredSave);
+        window.addEventListener('beforeunload', flushDeferredSave);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushDeferredSave(); });
+
         function saveDB() {
+            if (saveBatchDepth > 0) { saveBatchWanted = true; return true; }
+            saveBatchWanted = false;
+            if (deferredSaveTimer) { clearTimeout(deferredSaveTimer); deferredSaveTimer = null; }
             let serialized;
             try {
                 serialized = serializeDBCompact();
@@ -1472,6 +1499,9 @@
         }
 
         function changeDate() {
+            return runWithBatchedSave(() => changeDateNow(), 0);
+        }
+        function changeDateNow() {
             let rawDate = document.getElementById('doc-date').value;
             if (!rawDate) { // ผู้ใช้กดล้างช่องวันที่: คืนค่าเดิม ไม่สร้างวันที่ว่างในฐานข้อมูล
                 document.getElementById('doc-date').value = currentDate;
@@ -1632,6 +1662,9 @@
         }
 
         function updateCellData(colIdx, rowIdx, field, value, element) {
+            return runWithBatchedSave(() => updateCellDataNow(colIdx, rowIdx, field, value, element), 400);
+        }
+        function updateCellDataNow(colIdx, rowIdx, field, value, element) {
             let dayData = getCurrentDayData();
             let isSummaryCol = (colIdx === dayData.months.length);
             let m = isSummaryCol ? "สรุปประจำวัน" : dayData.months[colIdx];

@@ -1,0 +1,28 @@
+<script id="newver-js">
+/* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
+   tools/build.py ใส่รหัสเวอร์ชันแทน @@BUILD@@ และเขียนไฟล์ version.txt คู่กับ index.html
+   ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
+(function(){ try{
+  var ME='@@BUILD@@'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  if(!/^https?:$/.test(location.protocol)) return;
+  var shown=false, last=0;
+  function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
+    fetch('version.txt',{cache:'no-store'}).then(function(r){ return r&&r.ok?r.text():''; })
+      .then(function(v){ v=String(v||'').trim(); if(/^[0-9a-f]{12}$/.test(v)&&v!==ME) show(); }).catch(function(){}); }
+  function show(){ if(shown||document.getElementById('newver-bar')) return; shown=true;
+    var b=document.createElement('div'); b.id='newver-bar'; b.setAttribute('role','status');
+    b.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#1e3a8a;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;font-size:15px;max-width:calc(100vw - 24px)';
+    b.innerHTML='<span>มีเวอร์ชันใหม่ของระบบ · กดรีเฟรชเพื่อใช้เวอร์ชันล่าสุด (ข้อมูลบันทึกไว้แล้ว)</span>'
+      +'<button type="button" id="newver-go" style="background:#fff;color:#1e3a8a;border:0;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer">รีเฟรช</button>'
+      +'<button type="button" id="newver-later" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:8px;padding:6px 10px;cursor:pointer">ภายหลัง</button>';
+    document.body.appendChild(b);
+    document.getElementById('newver-go').onclick=function(){ try{ if(window.__flushSave) window.__flushSave(); }catch(e){} location.reload(); };
+    document.getElementById('newver-later').onclick=function(){ b.remove(); setTimeout(function(){ shown=false; check(true); },30*60*1000); };
+  }
+  window.__newverCheck=function(){ check(true); };
+  setTimeout(function(){ check(true); },30000);
+  setInterval(function(){ check(true); },10*60*1000);
+  window.addEventListener('focus',function(){ check(false); });
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') check(false); });
+}catch(e){} })();
+</script>

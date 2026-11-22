@@ -2797,7 +2797,34 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         }
         function serializeDBCompact() { return JSON.stringify(db, stripTrailingBlankRows); }
 
+        /* บันทึกแบบรวมครั้ง: ระหว่างพิมพ์ (updateCellData) และเปลี่ยนวันที่ (changeDate) มีการเรียก saveDB หลายครั้ง
+           แต่ละครั้งแปลงฐานข้อมูลทั้งหมด (ข้อมูล 2 ปี = หลายร้อยมิลลิวินาที) → ระหว่างนั้นจดไว้ว่า "ต้องบันทึก" แล้วบันทึกจริงครั้งเดียว
+           พิมพ์: บันทึกหลังหยุดพิมพ์ 400ms · ปิด/ย่อ/สลับแท็บ หรือมีการบันทึกอื่น → บันทึกทันที · ข้อมูลในหน่วยความจำ (ที่ใช้คำนวณ/ซิงก์) อัปเดตทันทีเหมือนเดิม */
+        let saveBatchDepth = 0, saveBatchWanted = false, deferredSaveTimer = null;
+        function flushDeferredSave() {
+            if (deferredSaveTimer) { clearTimeout(deferredSaveTimer); deferredSaveTimer = null; }
+            if (saveBatchWanted && saveBatchDepth === 0) { saveBatchWanted = false; saveDB(); }
+        }
+        function runWithBatchedSave(fn, delayMs) {
+            saveBatchDepth++;
+            try { return fn(); }
+            finally {
+                saveBatchDepth--;
+                if (saveBatchDepth === 0 && saveBatchWanted) {
+                    if (delayMs > 0) { if (deferredSaveTimer) clearTimeout(deferredSaveTimer); deferredSaveTimer = setTimeout(flushDeferredSave, delayMs); }
+                    else flushDeferredSave();
+                }
+            }
+        }
+        window.__flushSave = flushDeferredSave;
+        window.addEventListener('pagehide', flushDeferredSave);
+        window.addEventListener('beforeunload', flushDeferredSave);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushDeferredSave(); });
+
         function saveDB() {
+            if (saveBatchDepth > 0) { saveBatchWanted = true; return true; }
+            saveBatchWanted = false;
+            if (deferredSaveTimer) { clearTimeout(deferredSaveTimer); deferredSaveTimer = null; }
             let serialized;
             try {
                 serialized = serializeDBCompact();
@@ -3160,6 +3187,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         }
 
         function changeDate() {
+            return runWithBatchedSave(() => changeDateNow(), 0);
+        }
+        function changeDateNow() {
             let rawDate = document.getElementById('doc-date').value;
             if (!rawDate) { // ผู้ใช้กดล้างช่องวันที่: คืนค่าเดิม ไม่สร้างวันที่ว่างในฐานข้อมูล
                 document.getElementById('doc-date').value = currentDate;
@@ -3320,6 +3350,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         }
 
         function updateCellData(colIdx, rowIdx, field, value, element) {
+            return runWithBatchedSave(() => updateCellDataNow(colIdx, rowIdx, field, value, element), 400);
+        }
+        function updateCellDataNow(colIdx, rowIdx, field, value, element) {
             let dayData = getCurrentDayData();
             let isSummaryCol = (colIdx === dayData.months.length);
             let m = isSummaryCol ? "สรุปประจำวัน" : dayData.months[colIdx];
@@ -12213,6 +12246,35 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
   (mq.addEventListener?mq.addEventListener('change',apply):mq.addListener(apply));
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply); else apply();
   setTimeout(apply,1500);
+}catch(e){} })();
+</script>
+
+<script id="newver-js">
+/* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
+   tools/build.py ใส่รหัสเวอร์ชันแทน ae91a01c44a1 และเขียนไฟล์ version.txt คู่กับ index.html
+   ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
+(function(){ try{
+  var ME='ae91a01c44a1'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  if(!/^https?:$/.test(location.protocol)) return;
+  var shown=false, last=0;
+  function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
+    fetch('version.txt',{cache:'no-store'}).then(function(r){ return r&&r.ok?r.text():''; })
+      .then(function(v){ v=String(v||'').trim(); if(/^[0-9a-f]{12}$/.test(v)&&v!==ME) show(); }).catch(function(){}); }
+  function show(){ if(shown||document.getElementById('newver-bar')) return; shown=true;
+    var b=document.createElement('div'); b.id='newver-bar'; b.setAttribute('role','status');
+    b.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#1e3a8a;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;font-size:15px;max-width:calc(100vw - 24px)';
+    b.innerHTML='<span>มีเวอร์ชันใหม่ของระบบ · กดรีเฟรชเพื่อใช้เวอร์ชันล่าสุด (ข้อมูลบันทึกไว้แล้ว)</span>'
+      +'<button type="button" id="newver-go" style="background:#fff;color:#1e3a8a;border:0;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer">รีเฟรช</button>'
+      +'<button type="button" id="newver-later" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:8px;padding:6px 10px;cursor:pointer">ภายหลัง</button>';
+    document.body.appendChild(b);
+    document.getElementById('newver-go').onclick=function(){ try{ if(window.__flushSave) window.__flushSave(); }catch(e){} location.reload(); };
+    document.getElementById('newver-later').onclick=function(){ b.remove(); setTimeout(function(){ shown=false; check(true); },30*60*1000); };
+  }
+  window.__newverCheck=function(){ check(true); };
+  setTimeout(function(){ check(true); },30000);
+  setInterval(function(){ check(true); },10*60*1000);
+  window.addEventListener('focus',function(){ check(false); });
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') check(false); });
 }catch(e){} })();
 </script>
 

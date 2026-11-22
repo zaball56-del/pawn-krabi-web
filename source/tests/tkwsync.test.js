@@ -89,5 +89,33 @@ let fail=0; const ok=(c,msg,extra)=>{ if(!c){ fail++; console.log('FAIL',msg,ext
     ok(cf.some(x=>x.kind==='tkw-startup-local'&&/6006/.test(x.remote)),'4.1 เก็บสำเนาของเครื่องนี้ (6006) ไว้ใน pawn_sync_conflicts');
     A.close(); }
 
+  /* 5–8) สองเครื่องออนไลน์ แก้วันเดียวกันพร้อมกัน (ก่อนอีกเครื่องส่ง) */
+  const dayOf=(dev)=>JSON.parse(JSON.stringify(dev.w.tkwReadDay(DAY)));
+  const setDay=(dev,fn)=>{ const d=dayOf(dev); fn(d); dev.w.tkwImportAll({[DAY]:d},'over'); };
+  const amtOf=(dev,t)=>{ let a=null; dayOf(dev).r.forEach(c=>c.forEach(x=>{ if(x&&x[0]===t) a=x[1]; })); return a; };
+  /* 5) พร้อมกัน: A ลบ 1001 · B เพิ่ม 3003 */
+  { const S=makeServer(); const A=boot(S); await start(A); A.add('1001'); A.add('2002'); await wait(3600);
+    const B=boot(S); await start(B); await wait(500);
+    setDay(A,d=>{ d.r.forEach((c,g)=>{ d.r[g]=c.map(x=>x&&x[0]==='1001'?['','']:x); }); }); B.add('3003'); await wait(4500); await wait(3500);
+    ok(srvTickets(S).join()==='2002,3003'&&A.tickets().join()==='2002,3003'&&B.tickets().join()==='2002,3003','5 A ลบ 1001 พร้อม B เพิ่ม 3003',[srvTickets(S),A.tickets(),B.tickets()]);
+    A.close(); B.close(); }
+  /* 6) พร้อมกัน: A แก้ยอด 1001 · B แก้ยอด 2002 */
+  { const S=makeServer(); const A=boot(S); await start(A); A.add('1001',100); A.add('2002',200); await wait(3600);
+    const B=boot(S); await start(B); await wait(500);
+    setDay(A,d=>d.r.forEach(c=>c.forEach(x=>{ if(x&&x[0]==='1001') x[1]='111'; }))); setDay(B,d=>d.r.forEach(c=>c.forEach(x=>{ if(x&&x[0]==='2002') x[1]='222'; }))); await wait(4500); await wait(3500);
+    ok(amtOf(A,'1001')==='111'&&amtOf(A,'2002')==='222'&&amtOf(B,'1001')==='111'&&amtOf(B,'2002')==='222','6 แก้ยอดคนละใบพร้อมกัน ได้ทั้งคู่',[amtOf(A,'1001'),amtOf(A,'2002'),amtOf(B,'1001'),amtOf(B,'2002')]);
+    A.close(); B.close(); }
+  /* 7) พร้อมกัน: A ลบ 1001 · B แก้ยอด 1001 (ขัดกัน) → ผลตรงกันทุกเครื่อง (ปัจจุบัน: เก็บตั๋วไว้พร้อมยอดที่แก้) */
+  { const S=makeServer(); const A=boot(S); await start(A); A.add('1001',100); A.add('2002',200); await wait(3600);
+    const B=boot(S); await start(B); await wait(500);
+    setDay(A,d=>{ d.r.forEach((c,g)=>{ d.r[g]=c.map(x=>x&&x[0]==='1001'?['','']:x); }); }); setDay(B,d=>d.r.forEach(c=>c.forEach(x=>{ if(x&&x[0]==='1001') x[1]='999'; }))); await wait(4500); await wait(3500);
+    ok(JSON.stringify(A.tickets())===JSON.stringify(B.tickets())&&JSON.stringify(A.tickets())===JSON.stringify(srvTickets(S)),'7 สองเครื่องและคลาวด์ตรงกัน');
+    A.close(); B.close(); }
+  /* 8) พร้อมกัน: ทั้งสองเครื่องเพิ่มตั๋วคนละใบ (ลงแถวว่างแรกเหมือนกัน) */
+  { const S=makeServer(); const A=boot(S); await start(A); A.add('1001'); await wait(3600);
+    const B=boot(S); await start(B); await wait(500);
+    A.add('5001'); B.add('6001'); await wait(4500); await wait(3500);
+    ok(srvTickets(S).join()==='1001,5001,6001'&&A.tickets().join()==='1001,5001,6001'&&B.tickets().join()==='1001,5001,6001','8 เพิ่มคนละใบพร้อมกัน ได้ครบ',[srvTickets(S),A.tickets(),B.tickets()]);
+    A.close(); B.close(); }
   console.log(fail?`❌ ล้มเหลว ${fail}`:'✅ ผ่านทั้งหมด'); process.exit(fail?1:0);
 })();
