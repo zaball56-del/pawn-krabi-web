@@ -11,7 +11,9 @@
 
     /* ================= 1) ประวัติการแก้ไข ================= */
     function loadA(){ try{ var a=JSON.parse(localStorage.getItem(AKEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-    function pushA(items){ if(!items.length) return; var a=loadA().concat(items); if(a.length>MAXA) a=a.slice(a.length-MAXA); try{ localStorage.setItem(AKEY,JSON.stringify(a)); }catch(e){ try{ localStorage.setItem(AKEY,JSON.stringify(a.slice(-1000))); }catch(x){ try{ console.warn('audit save',x); }catch(_){} if(Date.now()-(pushA.w||0)>30000){ pushA.w=Date.now(); toast('⚠ บันทึกประวัติการแก้ไขไม่สำเร็จ (พื้นที่เก็บเต็ม)'); } } } }
+    /* ชื่อเครื่องนี้ (ตั้งค่า → การใช้งาน) ติดไปกับทุกรายการ → รู้ว่าแก้จากเครื่องไหน */
+    function devName(){ try{ var s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); return String(s.deviceName||'').trim().slice(0,40); }catch(e){ return ''; } }
+    function pushA(items){ if(!items.length) return; var dv=devName(); if(dv) items.forEach(function(x){ if(x&&!x.dev) x.dev=dv; }); var a=loadA().concat(items); if(a.length>MAXA) a=a.slice(a.length-MAXA); try{ localStorage.setItem(AKEY,JSON.stringify(a)); }catch(e){ try{ localStorage.setItem(AKEY,JSON.stringify(a.slice(-1000))); }catch(x){ try{ console.warn('audit save',x); }catch(_){} if(Date.now()-(pushA.w||0)>30000){ pushA.w=Date.now(); toast('⚠ บันทึกประวัติการแก้ไขไม่สำเร็จ (พื้นที่เก็บเต็ม)'); } } } }
     window.__audit=function(action,detail,dateKey){ pushA([{ts:Date.now(),date:dateKey||(typeof currentDate==='string'?currentDate:''),a:action,d:detail||''}]); };
     function snap(k){
         var d=db[k]; if(!d||!d.data) return null; var o={months:(d.months||[]).join('|'),rows:{},pl:'',bal:''}, used={};
@@ -70,13 +72,13 @@
     var am=null, aq='', ascope='all';
     function renderAudit(){
         if(!am) am=mkModal('au-modal','ประวัติการแก้ไข');
-        var all=loadA().slice().reverse(), list=all.filter(function(x){ return (ascope==='all'||x.date===currentDate)&&(!aq||(x.a+' '+x.d+' '+thDate(x.date)).indexOf(aq)>=0); });
+        var all=loadA().slice().reverse(), list=all.filter(function(x){ return (ascope==='all'||x.date===currentDate)&&(!aq||(x.a+' '+x.d+' '+thDate(x.date)+' '+(x.dev||'')).indexOf(aq)>=0); });
         var show=list.slice(0,300);
         am.innerHTML='<div class="mx-box"><div class="mx-head"><div><b>ประวัติการแก้ไข</b><small>ทั้งหมด '+all.length+' รายการ (เก็บล่าสุดสูงสุด '+MAXA+')</small></div><button type="button" id="au-x">ปิด</button></div>'
           +'<div class="mx-ctl"><label>ขอบเขต<select id="au-scope"><option value="all"'+(ascope==='all'?' selected':'')+'>ทุกวัน</option><option value="day"'+(ascope==='day'?' selected':'')+'>เฉพาะวันที่เปิดอยู่ ('+esc(thDate(currentDate))+')</option></select></label>'
-          +'<label>ค้นหา<input id="au-q" value="'+esc(aq)+'" placeholder="เลขตั๋ว / คำอธิบาย"></label><span style="flex:1"></span><button type="button" class="ds-btn" id="au-csv">บันทึก CSV</button></div>'
-          +'<div class="mx-body"><table class="mx-t"><thead><tr><th>เวลาที่บันทึก</th><th>วันที่ข้อมูล</th><th>การกระทำ</th><th>รายละเอียด</th></tr></thead><tbody>'
-          +(show.length?show.map(function(x){ return '<tr><td style="white-space:nowrap">'+esc(new Date(x.ts).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'medium'}))+'</td><td style="white-space:nowrap">'+esc(thDate(x.date))+'</td><td>'+esc(x.a)+'</td><td>'+esc(x.d)+'</td></tr>'; }).join(''):'<tr><td colspan="4" style="text-align:center;color:#64748b;padding:18px">ยังไม่มีประวัติ</td></tr>')
+          +'<label>ค้นหา<input id="au-q" value="'+esc(aq)+'" placeholder="เลขตั๋ว / คำอธิบาย / ชื่อเครื่อง"></label><span style="flex:1"></span><button type="button" class="ds-btn" id="au-csv">บันทึก CSV</button></div>'
+          +'<div class="mx-body"><table class="mx-t"><thead><tr><th>เวลาที่บันทึก</th><th>วันที่ข้อมูล</th><th>เครื่อง</th><th>การกระทำ</th><th>รายละเอียด</th></tr></thead><tbody>'
+          +(show.length?show.map(function(x){ return '<tr><td style="white-space:nowrap">'+esc(new Date(x.ts).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'medium'}))+'</td><td style="white-space:nowrap">'+esc(thDate(x.date))+'</td><td style="white-space:nowrap">'+esc(x.dev||'-')+'</td><td>'+esc(x.a)+'</td><td>'+esc(x.d)+'</td></tr>'; }).join(''):'<tr><td colspan="5" style="text-align:center;color:#64748b;padding:18px">ยังไม่มีประวัติ</td></tr>')
           +'</tbody></table>'+(list.length>300?'<div class="mx-note">แสดง 300 รายการล่าสุดจาก '+list.length+' รายการ ใช้ค้นหาหรือบันทึก CSV เพื่อดูทั้งหมด</div>':'')
           +'<div class="mx-note">ประวัติเก็บในเครื่องนี้ (ไม่รวมอยู่ในไฟล์สำรอง .json) แนะนำให้บันทึก CSV เก็บไว้เป็นระยะ ระบบจะบันทึกหลังหยุดพิมพ์ประมาณ 1 วินาที</div></div></div>';
         am.classList.add('on');
@@ -84,7 +86,7 @@
         am.querySelector('#au-scope').onchange=function(){ ascope=this.value; renderAudit(); };
         am.querySelector('#au-q').onchange=function(){ aq=this.value.trim(); renderAudit(); };
         am.querySelector('#au-csv').onclick=function(){
-            var L=[['เวลาที่บันทึก','วันที่ข้อมูล','การกระทำ','รายละเอียด']].concat(list.map(function(x){ return [new Date(x.ts).toLocaleString('th-TH'),thDate(x.date),x.a,x.d]; }));
+            var L=[['เวลาที่บันทึก','วันที่ข้อมูล','เครื่อง','การกระทำ','รายละเอียด']].concat(list.map(function(x){ return [new Date(x.ts).toLocaleString('th-TH'),thDate(x.date),x.dev||'',x.a,x.d]; }));
             var t='﻿'+L.map(function(a){ return a.map(function(c){ c=String(c); return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(','); }).join('\r\n');
             try{ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'})); a.download='ประวัติการแก้ไข.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); toast('บันทึกไฟล์ CSV แล้ว'); }catch(e){ toast('บันทึกไฟล์ไม่สำเร็จ'); } };
     }

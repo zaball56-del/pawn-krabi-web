@@ -2,7 +2,7 @@
 /* ตั้งค่า / ข้อมูล (ฟันเฟือง) — ตั้งค่าหน้าตา/การพิมพ์/ความปลอดภัย อ่านข้อมูลจาก db แบบอ่านอย่างเดียว ไม่แตะสูตรคำนวณ */
 (function(){
     var KEY='pawn_krabi_app_settings', SALT='krabi-pawn-v1:';
-    var DEF={pinHash:null,recoveryHash:null,autoLockMin:0,lockOldDays:0,org:'',headerExtra:'',showDate:true,showLogo:false,paper:'A4',orient:'landscape',margin:5,sound:true,warnBackup:false,theme:'light',fontScale:100,qsConfirm:true};
+    var DEF={pinHash:null,recoveryHash:null,autoLockMin:0,lockOldDays:0,deviceName:'',org:'',headerExtra:'',showDate:true,showLogo:false,paper:'A4',orient:'landscape',margin:5,sound:true,warnBackup:false,theme:'light',fontScale:100,qsConfirm:true};
     function load(){ try{ return Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(e){ return Object.assign({},DEF); } }
     /* ค่าที่เก็บที่นี่รวม PIN/รหัสกู้คืน/ล็อกอัตโนมัติ: ถ้าเขียนลงเครื่องไม่ได้ (พื้นที่เต็ม/ถูกบล็อก) ต้องแจ้ง ไม่ใช่เงียบ (ไม่เปลี่ยนวิธีทำงานอื่น) */
     function save(s){ try{ localStorage.setItem(KEY,JSON.stringify(s)); return true; }catch(e){ try{ console.warn('settings save',e); }catch(_){} if(Date.now()-(save.w||0)>5000){ save.w=Date.now(); toast('⚠ บันทึกการตั้งค่าไม่สำเร็จ (พื้นที่เก็บเต็มหรือถูกบล็อก) ค่าที่เพิ่งตั้งจะหายเมื่อรีเฟรชหน้า'); } return false; } }
@@ -184,6 +184,8 @@
         return '<div class="ds-sec"><h3>การแสดงผล</h3><div class="ds-2"><div class="ds-f"><label for="ds-theme">ธีม</label><select id="ds-theme"><option value="light"'+(s.theme!=='dark'?' selected':'')+'>สว่าง</option><option value="dark"'+(s.theme==='dark'?' selected':'')+'>มืด</option></select></div>'
           +'<div class="ds-f"><label for="ds-font">ขนาดตัวอักษร</label><select id="ds-font">'+[[100,'ปกติ'],[115,'ใหญ่'],[130,'ใหญ่มาก']].map(function(o){ return '<option value="'+o[0]+'"'+(Number(s.fontScale||100)===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div></div>'
           +'<div class="ds-note">ธีมมืดและขนาดตัวอักษรมีผลทั้งโปรแกรม ไม่มีผลกับการพิมพ์</div></div>'
+          +'<div class="ds-sec"><h3>ชื่อเครื่องนี้</h3><div class="ds-f"><label for="ds-devname">ตั้งชื่อเพื่อแยกว่าแก้ไขจากเครื่องไหน</label><input id="ds-devname" maxlength="40" autocomplete="off" placeholder="เช่น คอมเคาน์เตอร์ 1 / มือถือหัวหน้า" value="'+String(s.deviceName||'').replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; })+'"></div>'
+          +'<div class="ds-note">ชื่อนี้จะขึ้นในคอลัมน์ "เครื่อง" ของประวัติการแก้ไข (รายการก่อนตั้งชื่อแสดงเป็น -) · เก็บไว้ในเครื่องนี้ แต่ละเครื่องตั้งแยกกัน</div></div>'
           +'<div class="ds-sec"><h3>รายชื่อผู้เบิกทรัพย์จำนำ</h3><div id="ds-cu-names">'+cuNamesHtml()+'</div><div class="ds-note">ชื่อที่เพิ่มไว้จะขึ้นให้เลือกในหน้า "เบิก-คืนทรัพย์จำนำ" (เก็บไว้ในเครื่องนี้)</div></div>'
           +'<div class="ds-sec"><h3>การใช้งาน</h3>'+ck('ds-sound','เปิดเสียงเตือน (ตอนเข้าระบบ/รหัสผิด)','',s.sound!==false)
           +ck('ds-warn','แสดงแถบเตือนเมื่อไม่ได้สำรองข้อมูลเกิน 7 วัน','ปิดไว้เป็นค่าเริ่มต้น',s.warnBackup)+'</div>'
@@ -245,6 +247,7 @@
             q('ds-theme').addEventListener('change',function(){ set('theme',this.value); });
             q('ds-font').addEventListener('change',function(){ set('fontScale',Number(this.value)); });
             q('ds-sound').addEventListener('change',function(){ set('sound',this.checked); });
+            q('ds-devname').addEventListener('change',function(){ var v=String(this.value||'').replace(/\s+/g,' ').trim().slice(0,40); this.value=v; var old=String(load().deviceName||''); if(v===old) return; set('deviceName',v); try{ if(window.__audit) window.__audit('ตั้งชื่อเครื่อง',(old||'(ไม่มีชื่อ)')+' → '+(v||'(ไม่มีชื่อ)')); }catch(e){} toast(v?'ตั้งชื่อเครื่องนี้เป็น "'+v+'" แล้ว':'ลบชื่อเครื่องแล้ว'); });
             q('ds-scan-enter').addEventListener('change',function(){ set('scanEnterSave',this.checked); });
             q('ds-scan-auto').addEventListener('change',function(){ set('scanAutoSave',this.checked); });
             q('ds-scan-beep').addEventListener('change',function(){ set('scanBeep',this.checked); });

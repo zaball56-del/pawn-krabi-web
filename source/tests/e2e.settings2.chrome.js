@@ -71,5 +71,15 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
     document.getElementById('st-x').click(); return {a,b}; });
   ok(/เครื่องสแกน/.test(r.a)&&/ส่ง Enter/.test(r.a)&&/ปีงบ 69 · เล่ม 205 · เลขที่ 134/.test(r.a),'12 ทดสอบเครื่องสแกน: บอกความเร็ว/Enter/อ่านเป็นตั๋ว ('+r.a.slice(0,90)+')');
   ok(/ไม่ส่ง Enter/.test(r.b)&&/ไม่ใช่บาร์โค้ดตั๋ว/.test(r.b),'13 ข้อความที่ไม่ใช่บาร์โค้ด → บอกว่าอ่านไม่ได้');
+  // 4) ชื่อเครื่องนี้ → ติดไปในประวัติการแก้ไข (และไม่กลายเป็นโค้ด)
+  r=await pg.evaluate(async()=>{ openDataSettings(); await new Promise(r=>setTimeout(r,300)); document.querySelector('#ds-modal [data-tab="use"]').click(); await new Promise(r=>setTimeout(r,300));
+    const inp=document.getElementById('ds-devname'); inp.value='  คอมเคาน์เตอร์ 1 <img src=x onerror=window.__xss=1> '; inp.dispatchEvent(new Event('change')); await new Promise(r=>setTimeout(r,200));
+    try{ closeDataSettings(); }catch(e){} window.__audit('ทดสอบ','รายการทดสอบ'); await new Promise(r=>setTimeout(r,200));
+    const a=JSON.parse(localStorage.getItem('pawn_krabi_audit_v1')||'[]'); const last=a[a.length-1];
+    openAuditLog(); await new Promise(r=>setTimeout(r,300)); const th=[...document.querySelectorAll('#au-modal th')].map(x=>x.textContent).join('|'); const td=document.querySelector('#au-modal tbody tr').textContent;
+    document.getElementById('au-x').click(); return {dev:last&&last.dev, th, td, xss:!!window.__xss, named:a.some(x=>x.a==='ตั้งชื่อเครื่อง')}; });
+  ok(/^คอมเคาน์เตอร์ 1/.test(r.dev||'')&&r.named,'15 ตั้งชื่อเครื่อง → ประวัติการแก้ไขบันทึกชื่อเครื่อง ('+r.dev+')');
+  ok(/เครื่อง/.test(r.th)&&/คอมเคาน์เตอร์ 1/.test(r.td),'16 ตารางประวัติมีคอลัมน์ "เครื่อง"');
+  ok(!r.xss,'17 ชื่อเครื่องที่มีโค้ดแปลก ๆ ไม่ถูกเรียกทำงาน');
   ok(!errs.length,'14 ไม่มี error '+errs.join('|'));
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();

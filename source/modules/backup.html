@@ -79,7 +79,7 @@
       if(!SUP){
         h+='<div class="bk-st warn"><div class="ic">ℹ️</div><div><b>เบราว์เซอร์นี้ยังเลือกโฟลเดอร์สำรองให้อัตโนมัติไม่ได้</b><small>ใช้ Chrome หรือ Edge บนคอมพิวเตอร์ ส่วนบนมือถือให้กด "สำรองข้อมูล (.json)" ด้านบนเป็นประจำ</small></div></div>';
       } else if(!handle||!cfg.on){
-        h+='<div class="bk-st"><div class="ic">📁</div><div><b>ยังไม่ได้ตั้งค่า</b><small>เลือกโฟลเดอร์หนึ่งครั้ง (เช่น โฟลเดอร์ใน Google Drive หรือ USB) โปรแกรมจะบันทึกไฟล์สำรองให้เองวันละครั้ง</small></div></div>'
+        h+='<div class="bk-st"><div class="ic">📁</div><div><b>ยังไม่ได้ตั้งค่า</b><small>เลือกโฟลเดอร์หนึ่งครั้ง (เช่น ไดรฟ์ NAS ในสำนักงาน, โฟลเดอร์ใน Google Drive หรือ USB) โปรแกรมจะบันทึกไฟล์สำรองให้เองวันละครั้ง</small></div></div>'
           +'<div class="bk-row"><button type="button" class="bk-btn pri" id="bk-pick">เลือกโฟลเดอร์สำรอง…</button></div>';
       } else {
         var okp=await perm(handle,false), ok=doneToday();
