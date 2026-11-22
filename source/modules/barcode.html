@@ -13,9 +13,9 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 /* แยกค่าบาร์โค้ดตั๋ว (EAN-13): ปีงบประมาณ(2, เริ่ม 1 ต.ค.) + 0(1) + เล่ม(4) + เลขที่(5) + ตัวตรวจสอบ(1) → ใส่ช่องเลขตั๋ว/เล่มที่ให้เอง
    ตัวอย่าง 6900205001342 = ปีงบ 69 · เล่ม 205 · เลขที่ 134 */
 /* ตั้งค่าเครื่องสแกน (ตั้งค่า → การใช้งาน): scanEnterSave = Enter ที่ช่องเลขตั๋ว/เล่มบันทึกทันที (ค่าเดิม เปิด) ·
-   scanAutoSave = อ่านบาร์โค้ดแล้วมียอดขึ้นเอง บันทึกเองไม่ต้องกด Enter (ปิด) · scanBeep = เสียงตอนสแกนทั้งหมด: อ่านได้ (ที่นี่) + บันทึกแล้ว/ผิดพลาด (scanfx.html) (เปิด) */
+   บันทึกอัตโนมัติ = ช่องในหน้าคีย์ด่วน (pawn_qs_auto) · scanBeep = เสียงตอนสแกนทั้งหมด: อ่านได้ (ที่นี่) + บันทึกแล้ว/ผิดพลาด (scanfx.html) (เปิด) */
 window.__scanCfg=function(){ var s={}; try{ s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}')||{}; }catch(e){}
-  return {enterSave:s.scanEnterSave!==false, autoSave:s.scanAutoSave===true, beep:s.scanBeep!==false}; };
+  return {enterSave:s.scanEnterSave!==false, beep:s.scanBeep!==false}; };
 window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; var C=window.AudioContext||window.webkitAudioContext; if(!C) return; var c=window.__scanAC||(window.__scanAC=new C());
   var o=c.createOscillator(), g=c.createGain(); o.connect(g); g.connect(c.destination); o.type='square'; o.frequency.value=ok?1800:380; g.gain.value=0.06;
   var t=c.currentTime; o.start(t); o.stop(t+(ok?0.07:0.22)); }catch(e){} };
@@ -83,13 +83,7 @@ window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; va
       var m=document.getElementById('qs-msg'); if(m){ m.textContent='อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket; m.className='qs-msg ok'; }
       try{ window.__scanReadBeep(true); }catch(_){}
       var wd=function(){ warnDup(r.book,r.ticket,el.id); }; setTimeout(wd,60);
-      /* บันทึกเองหลังอ่านบาร์โค้ด (ตั้งค่า): เฉพาะประเภท ถ · ช่องเลขตั๋วเดิม · ยอดขึ้นเองแล้ว · ไม่มีหน้าต่างเตือนตั๋วซ้ำ */
-      if(el.id==='qs-ticket'&&window.__scanCfg().autoSave){ var tk0=r.ticket; setTimeout(function(){ try{
-        var ty=document.getElementById('qs-type'), tk=document.getElementById('qs-ticket'), am=document.getElementById('qs-amount'), mo=document.getElementById('qs-month');
-        if(!ty||ty.value!=='ถ'||!tk||tk.value!==tk0||!am||!String(am.value).trim()||!mo||!mo.value) return;
-        if(dupInfo(r.book,r.ticket,'old').length) return;
-        var dl=document.getElementById('ui-dialog'); if(dl&&dl.style.display&&dl.style.display!=='none') return;
-        if(typeof window.submitQuickScan==='function') window.submitQuickScan(); }catch(_){} },450); }
+      /* บันทึกอัตโนมัติหลังอ่านบาร์โค้ด: ใช้ช่อง "บันทึกอัตโนมัติ" ในหน้าคีย์ด่วน (scanmode.html · pawn_qs_auto) จุดเดียว — ตั้งค่า → การใช้งาน แก้ค่าเดียวกัน */
       var mon=document.getElementById('qs-month'), amt=document.getElementById(el.id==='qs-ticket'?'qs-amount':'qs-new-amount');
       var next=(el.id==='qs-ticket'&&mon&&!mon.value)?mon:amt; if(next) setTimeout(function(){ try{next.focus();}catch(_){} },30);
     } finally { busy=false; }

@@ -329,7 +329,8 @@
         function openQuickScanModal() {
             const m = document.getElementById('quick-scan-modal');
             m.classList.remove('hidden'); m.style.display = 'flex';
-            qsClearFields(false); if (window.__qsLastMonth) { qsEl('qs-month').value = window.__qsLastMonth; qsMonthHint(); } qsSetMsg('', ''); qsRenderRecent();
+            qsClearFields(false); if (window.__qsLastMonth) { qsEl('qs-month').value = window.__qsLastMonth; qsMonthHint(); }
+            try { const dt = String((JSON.parse(localStorage.getItem('pawn_krabi_app_settings') || '{}') || {}).qsDefaultType || ''); if (/^[สพผถ]$/.test(dt)) { qsEl('qs-type').value = dt; qsPaintType(); } } catch (_) {}   // ตั้งค่า: ประเภทเริ่มต้นตอนเปิดคีย์ด่วน qsSetMsg('', ''); qsRenderRecent();
             setTimeout(() => { if (m.contains(document.activeElement)) return; /* จอคอม/เครื่องยิงบาร์โค้ด: โฟกัสช่องที่ต้องกรอกต่อทันที (เดือน→เลขตั๋ว) · จอสัมผัสคงเดิม ไม่เด้งแป้นพิมพ์ */ let fine = false; try { fine = window.matchMedia('(pointer:fine)').matches; } catch (e) {} const t = fine ? qsEl(qsEl('qs-month').value ? 'qs-ticket' : 'qs-month') : document.querySelector('.qs-type-btn'); if (t) t.focus(); }, 100); // ไม่แย่งโฟกัสถ้าเริ่มกรอก/ยิงบาร์โค้ดแล้ว
         }
 
@@ -2093,7 +2094,8 @@
             try { if (typeof window.tkwExportAll === 'function') x.tkw = window.tkwExportAll(); } catch (_) {}
             try { if (typeof window.holidaysExport === 'function') x.holidays = window.holidaysExport(); } catch (_) {}
             try { if (typeof window.custodyExport === 'function') { const c = window.custodyExport(); if (c) x.custody = c; } } catch (_) {}   // บันทึกเบิก-คืนทรัพย์ (เก็บในเครื่องนี้)
-            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) || x.custody ? x : null;
+            try { if (typeof window.__auditExport === 'function') { const a = window.__auditExport(); if (a && a.length) x.audit = a; } } catch (_) {}   // ประวัติการแก้ไข (เก็บในเครื่องนี้)
+            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) || x.custody || x.audit ? x : null;
         };
         window.pawnBackupText = function (pretty) {
             const out = Object.assign({}, db); delete out._extra;
@@ -2240,6 +2242,7 @@
                     try { if (extra.tkw && typeof window.tkwImportAll === 'function') nT2 = window.tkwImportAll(extra.tkw, mode === 'add' ? 'add' : 'over'); } catch (e) { console.warn('import tkw', e); }
                     try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
                     try { if (extra.custody && typeof window.custodyImport === 'function') nC2 = window.custodyImport(extra.custody); } catch (e) { console.warn('import custody', e); }
+                    try { if (Array.isArray(extra.audit) && typeof window.__auditImport === 'function') window.__auditImport(extra.audit); } catch (e) { console.warn('import audit', e); }
                 }
                 try { if (window.__audit) window.__audit('นำเข้าไฟล์ข้อมูล', `${file.name} · ` + ({ add: 'เพิ่มเฉพาะวันที่ยังไม่มี', over: 'แทนวันที่ไม่ตรงกัน', replace: 'แทนที่ทั้งหมด' }[mode] || mode) + ` · เพิ่ม ${addKeys.length} วัน` + (mode !== 'add' ? ` · แทน ${diffUse.length} วัน` : '') + (mode === 'replace' ? ` · ลบ ${dropKeys.filter(k => !skipLocked.has(k)).length} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '')); } catch (_) {}
                 renderTable();

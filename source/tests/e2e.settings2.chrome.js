@@ -9,7 +9,7 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
     C.prototype.createGain=function(){ return {connect(){},gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}}}; }; C.prototype.resume=function(){}; window.AudioContext=C; window.webkitAudioContext=C; });
   await pg.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort()); await pg.goto('file://'+FILE,{waitUntil:'domcontentloaded'}); await sleep(3000);
   await pg.evaluate(()=>{ document.querySelectorAll('#login-modal').forEach(e=>e.style.display='none'); const ac=document.getElementById('app-container'); ac.classList.remove('hidden'); ac.style.display='flex'; goPage('ledger');
-    window.__asked=[]; window.uiConfirm=async(m)=>{ window.__asked.push(m); return true; }; window.uiPrompt=async(m)=>{ window.__asked.push(m); return window.__pin; }; });
+    window.__realConfirm=window.uiConfirm; window.__asked=[]; window.uiConfirm=async(m)=>{ window.__asked.push(m); return true; }; window.uiPrompt=async(m)=>{ window.__asked.push(m); return window.__pin; }; });
   const ymd=(off)=>pg.evaluate(off=>{ const d=new Date(); d.setDate(d.getDate()-off); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },off);
   const k10=await ymd(10), k2=await ymd(2), k0=await ymd(0);
   const setS=(o)=>pg.evaluate(o=>{ const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); Object.assign(s,o); localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s)); },o);
@@ -40,7 +40,7 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
   await pg.evaluate(async(k)=>{ Object.keys(db).forEach(x=>delete db[x]); currentDate=k; const d=getCurrentDayData(); d.months=['พฤศจิกายน','','','','',''];
     db[k].data['พฤศจิกายน']=db[k].data['พฤศจิกายน']||[]; saveDB(); document.getElementById('doc-date').value=k; changeDate(); },k0);
   const pledgeKey=await pg.evaluate(()=>{ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01'; });
-  const scan=(enterSave,autoSave,sendEnter)=>pg.evaluate(async([es,as,se,pk,k])=>{ const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); s.scanEnterSave=es; s.scanAutoSave=as; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s));
+  const scan=(enterSave,autoSave,sendEnter,mode)=>pg.evaluate(async([es,as,se,pk,k,md])=>{ const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); s.scanEnterSave=es; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s)); localStorage.setItem('pawn_qs_auto',as?'1':'0'); const mb=document.querySelector('#qs-mode [data-m="'+(md||'full')+'"]'); if(mb) mb.click();
     if(!db[pk]){ const cd=currentDate; currentDate=pk; const d=getCurrentDayData(); d.months=['พฤศจิกายน','','','','','']; d.data['พฤศจิกายน']=[{type:'',ticket:'134',book:'205',amount:'5000',count:''}]; currentDate=cd; saveDB(); window.__dv=(window.__dv||0)+1; }
     const M='พฤศจิกายน'; db[k].data[M]=(db[k].data[M]||[]).map(x=>x&&x.ticket==='134'&&k!==pk?{type:'',ticket:'',amount:'',count:''}:x); saveDB();
     openQuickScanModal&&openQuickScanModal(); await new Promise(r=>setTimeout(r,300)); const q=id=>document.getElementById(id);
@@ -48,17 +48,17 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
     const t=q('qs-ticket'); t.focus(); t.value='6900205001342'; t.dispatchEvent(new Event('input',{bubbles:true}));
     await new Promise(r=>setTimeout(r,250)); const amt=q('qs-amount').value;
     if(se) t.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
-    await new Promise(r=>setTimeout(r,700));
+    await new Promise(r=>setTimeout(r,se?700:1500));
     const n134=(db[k].data[M]||[]).filter(x=>x&&x.ticket==='134'&&x.type==='ถ').length, saved=n134>0; const foc=document.activeElement&&document.activeElement.id;
-    try{ closeQuickScanModal(); }catch(e){} return {amt,saved,foc,n134}; },[enterSave,autoSave,sendEnter,pledgeKey,k0]);
-  r=await scan(true,false,true); ok(r.saved,'8 ค่าเริ่มต้น: สแกน + Enter → บันทึกทันที (ยอด '+r.amt+')');
-  r=await scan(false,false,true); ok(!r.saved&&r.foc==='qs-amount','9 ปิด "Enter บันทึกทันที" → Enter พาไปช่องยอดเงิน ไม่บันทึก ('+r.foc+')');
-  r=await scan(true,true,false); ok(r.saved,'10 เปิด "บันทึกเองหลังอ่านบาร์โค้ด" → ไม่กด Enter ก็บันทึก');
-  r=await scan(true,true,true); ok(r.n134===1,'10b เปิดบันทึกเอง + เครื่องส่ง Enter ด้วย → บันทึกครั้งเดียว ไม่ซ้ำ ('+r.n134+' แถว)');
-  r=await scan(true,false,false); ok(!r.saved,'11 ปิดบันทึกเอง + ไม่กด Enter → ยังไม่บันทึก');
+    try{ closeQuickScanModal(); }catch(e){} return {amt,saved,foc,n134}; },[enterSave,autoSave,sendEnter,pledgeKey,k0,mode]);
+  r=await scan(true,false,true,'full'); ok(r.saved,'8 ค่าเริ่มต้น: สแกน + Enter → บันทึกทันที (ยอด '+r.amt+')');
+  r=await scan(false,false,true,'full'); ok(!r.saved&&r.foc==='qs-amount','9 ปิด "Enter บันทึกทันที" → Enter พาไปช่องยอดเงิน ไม่บันทึก ('+r.foc+')');
+  r=await scan(true,true,false,'single'); ok(r.saved,'10 บันทึกอัตโนมัติ (โหมดตั๋วเดิมอย่างเดียว) → ไม่กด Enter ก็บันทึก');
+  r=await scan(true,true,true,'single'); ok(r.n134===1,'10b เปิดบันทึกอัตโนมัติ + เครื่องส่ง Enter ด้วย → บันทึกครั้งเดียว ไม่ซ้ำ ('+r.n134+' แถว)');
+  r=await scan(true,false,false,'single'); ok(!r.saved,'11 ปิดบันทึกอัตโนมัติ + ไม่กด Enter → ยังไม่บันทึก');
 
   // 2b) เสียงตอนสแกน: เปิด = มีเสียง (อ่านได้ + บันทึกแล้ว) · ปิด = เงียบทั้งหมด
-  const beeps=async(on)=>{ await pg.evaluate(o=>{ const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); s.scanBeep=o; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s)); window.__osc=0; },on); await scan(true,false,true); return pg.evaluate(()=>window.__osc); };
+  const beeps=async(on)=>{ await pg.evaluate(o=>{ const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); s.scanBeep=o; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s)); window.__osc=0; },on); await scan(true,false,true,'full'); return pg.evaluate(()=>window.__osc); };
   let nOn=await beeps(true), nOff=await beeps(false);
   ok(nOn>=2&&nOff===0,'2b เสียงตอนสแกน เปิด → มีเสียง ('+nOn+') · ปิด → เงียบ ('+nOff+')');
   await pg.evaluate(()=>{ const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); s.scanBeep=true; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s)); });
@@ -81,5 +81,42 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
   ok(/^คอมเคาน์เตอร์ 1/.test(r.dev||'')&&r.named,'15 ตั้งชื่อเครื่อง → ประวัติการแก้ไขบันทึกชื่อเครื่อง ('+r.dev+')');
   ok(/เครื่อง/.test(r.th)&&/คอมเคาน์เตอร์ 1/.test(r.td),'16 ตารางประวัติมีคอลัมน์ "เครื่อง"');
   ok(!r.xss,'17 ชื่อเครื่องที่มีโค้ดแปลก ๆ ไม่ถูกเรียกทำงาน');
+  // 5) ช่องบันทึกอัตโนมัติในตั้งค่า = ช่องในหน้าคีย์ด่วน · ประเภทเริ่มต้น
+  r=await pg.evaluate(async()=>{ localStorage.setItem('pawn_qs_auto','1'); openDataSettings(); await new Promise(r=>setTimeout(r,300)); document.querySelector('#ds-modal [data-tab="use"]').click(); await new Promise(r=>setTimeout(r,300));
+    const a=document.getElementById('ds-scan-auto'); const on0=a.checked; a.checked=false; a.dispatchEvent(new Event('change'));
+    const t=document.getElementById('ds-qs-type'); t.value='ถ'; t.dispatchEvent(new Event('change')); try{ closeDataSettings(); }catch(e){}
+    openQuickScanModal(); await new Promise(r=>setTimeout(r,300)); const qa=document.getElementById('qs-auto').checked, ty=document.getElementById('qs-type').value, red=document.getElementById('quick-scan-modal').classList.contains('qs-redeem');
+    closeQuickScanModal(); localStorage.setItem('pawn_qs_auto','1'); const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')); s.qsDefaultType=''; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s));
+    openQuickScanModal(); await new Promise(r=>setTimeout(r,300)); const ty2=document.getElementById('qs-type').value; closeQuickScanModal(); return {on0,qa,ty,red,ty2}; });
+  ok(r.on0===true&&r.qa===false,'18 ติ๊กปิดบันทึกอัตโนมัติในตั้งค่า → ช่องในหน้าคีย์ด่วนปิดตาม');
+  ok(r.ty==='ถ'&&r.red&&r.ty2==='','19 ประเภทเริ่มต้น ถ → เปิดคีย์ด่วนเลือก ถ ให้เลย · ไม่ตั้ง → ว่างตามเดิม');
+  // 6) ประวัติการแก้ไขอยู่ในไฟล์สำรอง และนำเข้ากลับได้ไม่ซ้ำ
+  r=await pg.evaluate(async()=>{ window.__audit('ทดสอบสำรอง','รายการ A'); const f=JSON.parse(pawnBackupText(false)); const inFile=Array.isArray(f._extra&&f._extra.audit)&&f._extra.audit.some(x=>x.d==='รายการ A');
+    const all=JSON.parse(localStorage.getItem('pawn_krabi_audit_v1')); localStorage.setItem('pawn_krabi_audit_v1',JSON.stringify(all.filter(x=>x.d!=='รายการ A')));
+    window.uiChoice=async()=>'add'; await importJSON({target:{files:[new File([JSON.stringify(f)],'f.json')],value:''}}); await new Promise(r=>setTimeout(r,300));
+    await importJSON({target:{files:[new File([JSON.stringify(f)],'f.json')],value:''}}); await new Promise(r=>setTimeout(r,300));
+    const n=JSON.parse(localStorage.getItem('pawn_krabi_audit_v1')).filter(x=>x.d==='รายการ A').length; return {inFile,n}; });
+  ok(r.inFile,'20 ไฟล์สำรองมีประวัติการแก้ไข');
+  ok(r.n===1,'21 นำเข้าไฟล์สำรอง → ประวัติที่หายกลับมา และนำเข้าซ้ำไม่ซ้ำ ('+r.n+')');
+  // 7) ความเร็วบันทึกอัตโนมัติ + รอหน้าต่างเตือนตั๋วซ้ำ (ใช้ uiConfirm จริง)
+  const auto=(delay,dupToday,answer)=>pg.evaluate(async([delay,dupToday,answer])=>{ window.uiConfirm=window.__realConfirm||window.uiConfirm;
+    const s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); s.qsAutoDelay=delay; s.qsDefaultType='ถ'; localStorage.setItem('pawn_krabi_app_settings',JSON.stringify(s)); localStorage.setItem('pawn_qs_auto','1');
+    Object.keys(db).forEach(k=>delete db[k]); const d0=new Date(); const k=d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0')+'-'+String(d0.getDate()).padStart(2,'0'); const pk=k.slice(0,8)+'01';
+    currentDate=pk; let d=getCurrentDayData(); d.months=['พฤศจิกายน','','','','','']; d.data['พฤศจิกายน']=[{type:'',ticket:'134',book:'205',amount:'5000',count:''}];
+    if(dupToday){ const y=new Date(); y.setDate(y.getDate()-1); const yk=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0'); if(yk>pk){ currentDate=yk; d=getCurrentDayData(); d.months=['พฤศจิกายน','','','','','']; d.data['พฤศจิกายน']=[{type:'ถ',ticket:'134',book:'205',amount:'5000',count:''}]; } }
+    currentDate=k; d=getCurrentDayData(); d.months=['พฤศจิกายน','','','','','']; d.data['พฤศจิกายน']=[]; saveDB(); window.__dv=(window.__dv||0)+1; document.getElementById('doc-date').value=k; changeDate();
+    document.querySelector('#qs-mode [data-m="single"]').click(); openQuickScanModal(); await new Promise(r=>setTimeout(r,300)); const q=id=>document.getElementById(id); q('qs-month').value='11';
+    const n=()=>(db[k].data['พฤศจิกายน']||[]).filter(x=>x&&x.ticket==='134'&&x.type==='ถ').length;
+    const t=q('qs-ticket'); t.focus(); t.value='6900205001342'; t.dispatchEvent(new Event('input',{bubbles:true}));
+    const out={}, t0=performance.now(); while(n()===0&&performance.now()-t0<2500&&!String(((document.getElementById('ui-dialog')||{}).style||{}).display||'').includes('flex')) await new Promise(r=>setTimeout(r,25)); out.ms=Math.round(performance.now()-t0); out.early=n()&&out.ms<(delay>=800?0:700)?1:0;
+    await new Promise(r=>setTimeout(r,1500)); out.late=n(); const dl=document.getElementById('ui-dialog'); out.dlg=!!dl&&dl.style.display==='flex';
+    if(out.dlg&&answer){ out.dialogs=0; for(let i=0;i<3;i++){ if(dl.style.display!=='flex') break; out.dialogs++; const bs=[...dl.querySelectorAll('button')]; const b=answer==='ok'?bs[bs.length-1]:bs[0]; b.click(); await new Promise(r=>setTimeout(r,delay+900)); } out.after=n(); }
+    closeQuickScanModal(); return out; },[delay,dupToday,answer]);
+  await pg.evaluate(()=>{ window.__realConfirm=window.__realConfirm||null; });
+  const fast=await auto(300,false); r=await auto(800,false);
+  ok(r.late===1&&r.ms>=800,'23 ค่าเริ่มต้น 0.8 วินาที → บันทึกตามเดิม ('+r.ms+' มิลลิวินาทีหลังสแกน)');
+  ok(fast.late===1&&fast.ms<=r.ms-350,'22 ตั้ง 0.3 วินาที → บันทึกเร็วกว่าค่าเริ่มต้นประมาณครึ่งวินาที ('+fast.ms+' เทียบ '+r.ms+' มิลลิวินาที)');
+  r=await auto(300,true,'cancel'); ok(r.dlg&&r.late===0&&r.after===0,'24 ตั๋วเคยบันทึกเมื่อวาน → ขึ้นเตือน ไม่บันทึกระหว่างรอ · กดยกเลิก = ไม่บันทึก '+JSON.stringify(r));
+  r=await auto(300,true,'ok'); ok(r.dlg&&r.late===0&&r.after===1,'25 กดยืนยันในหน้าต่างเตือน (ทุกข้อ) → บันทึกหลังหน้าต่างปิด '+JSON.stringify(r));
   ok(!errs.length,'14 ไม่มี error '+errs.join('|'));
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();

@@ -48,10 +48,15 @@
   var A=document.getElementById('qs-amount');
   function ready(){ var g=function(i){ var e=document.getElementById(i); return e?e.value.trim():''; }; var m=parseInt(g('qs-month'),10);
     return ca.checked&&mode()==='single'&&M.classList.contains('qs-single')&&!M.classList.contains('hidden')&&g('qs-type')&&m>=1&&m<=12&&g('qs-ticket')&&g('qs-book')&&!g('qs-new-ticket')&&A&&A.classList.contains('qs-auto')&&A.value.trim(); }
-  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(function(){ if(ready()&&typeof window.submitQuickScan==='function'){ window.__qsAutoSave=true; try{ window.submitQuickScan(); } finally{ window.__qsAutoSave=false; } } },800); }
+  /* รอก่อนบันทึก (ตั้งค่า → การใช้งาน: qsAutoDelay มิลลิวินาที ค่าเริ่มต้น 800) · ระหว่างมีหน้าต่างเตือน (เช่น ตั๋วซ้ำ) เปิดอยู่ → รอจนกดตอบก่อน
+     ตอบ "ยกเลิก" = ช่องถูกล้าง ไม่บันทึก · ตอบ "ยืนยัน" = บันทึกหลังหน้าต่างปิด */
+  function delay(){ try{ var v=Number((JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}')||{}).qsAutoDelay); return [300,500,800,1200].indexOf(v)>=0?v:800; }catch(e){ return 800; } }
+  function dlgOpen(){ var d=document.getElementById('ui-dialog'); return !!d&&d.style.display!=='none'&&d.style.display!==''; }
+  function fire(){ if(dlgOpen()){ tmA=setTimeout(fire,250); return; } if(ready()&&typeof window.submitQuickScan==='function'){ window.__qsAutoSave=true; try{ window.submitQuickScan(); } finally{ window.__qsAutoSave=false; } } }
+  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(fire,delay()); }
   if(A){ new MutationObserver(sched).observe(A,{attributes:true,attributeFilter:['class']}); ['qs-ticket','qs-book','qs-month'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('input',function(){ clearTimeout(tmA); setTimeout(sched,200); }); }); A.addEventListener('input',function(){ clearTimeout(tmA); }); }
   var cc=cnt.querySelector('#qs-cont'); cc.checked=ls(KC)==='1'; cc.addEventListener('change',function(){ ls(KC,cc.checked?'1':'0'); });
-  new MutationObserver(function(){ if(M.classList.contains('on')||!M.classList.contains('hidden')) count(); }).observe(M,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(function(){ if(M.classList.contains('on')||!M.classList.contains('hidden')){ count(); ca.checked=ls(AK)!=='0'; } }).observe(M,{attributes:true,attributeFilter:['class']});   /* ช่องบันทึกอัตโนมัติ: อ่านค่าใหม่ทุกครั้งที่เปิด (แก้ได้จากหน้าตั้งค่าด้วย) */
   var msg=document.getElementById('qs-msg');
   if(msg) new MutationObserver(function(){ if(/^บันทึกแล้ว/.test(msg.textContent)){ count(); if(mode()==='single'&&cc.checked){ setTimeout(function(){ var b=document.querySelector('#qs-ticket').parentElement.querySelector('.cam-btn'); if(b) b.click(); },500); } } }).observe(msg,{childList:true,characterData:true,subtree:true});
   /* โหมดสแกนตั๋วเดิม: กด Enter ที่ยอดเงิน = บันทึกเลย (ทุกประเภท เพราะไม่มีตั๋วใหม่) */

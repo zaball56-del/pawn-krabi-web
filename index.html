@@ -2017,7 +2017,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         function openQuickScanModal() {
             const m = document.getElementById('quick-scan-modal');
             m.classList.remove('hidden'); m.style.display = 'flex';
-            qsClearFields(false); if (window.__qsLastMonth) { qsEl('qs-month').value = window.__qsLastMonth; qsMonthHint(); } qsSetMsg('', ''); qsRenderRecent();
+            qsClearFields(false); if (window.__qsLastMonth) { qsEl('qs-month').value = window.__qsLastMonth; qsMonthHint(); }
+            try { const dt = String((JSON.parse(localStorage.getItem('pawn_krabi_app_settings') || '{}') || {}).qsDefaultType || ''); if (/^[สพผถ]$/.test(dt)) { qsEl('qs-type').value = dt; qsPaintType(); } } catch (_) {}   // ตั้งค่า: ประเภทเริ่มต้นตอนเปิดคีย์ด่วน qsSetMsg('', ''); qsRenderRecent();
             setTimeout(() => { if (m.contains(document.activeElement)) return; /* จอคอม/เครื่องยิงบาร์โค้ด: โฟกัสช่องที่ต้องกรอกต่อทันที (เดือน→เลขตั๋ว) · จอสัมผัสคงเดิม ไม่เด้งแป้นพิมพ์ */ let fine = false; try { fine = window.matchMedia('(pointer:fine)').matches; } catch (e) {} const t = fine ? qsEl(qsEl('qs-month').value ? 'qs-ticket' : 'qs-month') : document.querySelector('.qs-type-btn'); if (t) t.focus(); }, 100); // ไม่แย่งโฟกัสถ้าเริ่มกรอก/ยิงบาร์โค้ดแล้ว
         }
 
@@ -3781,7 +3782,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             try { if (typeof window.tkwExportAll === 'function') x.tkw = window.tkwExportAll(); } catch (_) {}
             try { if (typeof window.holidaysExport === 'function') x.holidays = window.holidaysExport(); } catch (_) {}
             try { if (typeof window.custodyExport === 'function') { const c = window.custodyExport(); if (c) x.custody = c; } } catch (_) {}   // บันทึกเบิก-คืนทรัพย์ (เก็บในเครื่องนี้)
-            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) || x.custody ? x : null;
+            try { if (typeof window.__auditExport === 'function') { const a = window.__auditExport(); if (a && a.length) x.audit = a; } } catch (_) {}   // ประวัติการแก้ไข (เก็บในเครื่องนี้)
+            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) || x.custody || x.audit ? x : null;
         };
         window.pawnBackupText = function (pretty) {
             const out = Object.assign({}, db); delete out._extra;
@@ -3928,6 +3930,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     try { if (extra.tkw && typeof window.tkwImportAll === 'function') nT2 = window.tkwImportAll(extra.tkw, mode === 'add' ? 'add' : 'over'); } catch (e) { console.warn('import tkw', e); }
                     try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
                     try { if (extra.custody && typeof window.custodyImport === 'function') nC2 = window.custodyImport(extra.custody); } catch (e) { console.warn('import custody', e); }
+                    try { if (Array.isArray(extra.audit) && typeof window.__auditImport === 'function') window.__auditImport(extra.audit); } catch (e) { console.warn('import audit', e); }
                 }
                 try { if (window.__audit) window.__audit('นำเข้าไฟล์ข้อมูล', `${file.name} · ` + ({ add: 'เพิ่มเฉพาะวันที่ยังไม่มี', over: 'แทนวันที่ไม่ตรงกัน', replace: 'แทนที่ทั้งหมด' }[mode] || mode) + ` · เพิ่ม ${addKeys.length} วัน` + (mode !== 'add' ? ` · แทน ${diffUse.length} วัน` : '') + (mode === 'replace' ? ` · ลบ ${dropKeys.filter(k => !skipLocked.has(k)).length} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '')); } catch (_) {}
                 renderTable();
@@ -5310,7 +5313,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
 /* ตั้งค่า / ข้อมูล (ฟันเฟือง) — ตั้งค่าหน้าตา/การพิมพ์/ความปลอดภัย อ่านข้อมูลจาก db แบบอ่านอย่างเดียว ไม่แตะสูตรคำนวณ */
 (function(){
     var KEY='pawn_krabi_app_settings', SALT='krabi-pawn-v1:';
-    var DEF={pinHash:null,recoveryHash:null,autoLockMin:0,lockOldDays:0,deviceName:'',org:'',headerExtra:'',showDate:true,showLogo:false,paper:'A4',orient:'landscape',margin:5,sound:true,warnBackup:false,theme:'light',fontScale:100,qsConfirm:true};
+    var DEF={pinHash:null,recoveryHash:null,autoLockMin:0,lockOldDays:0,deviceName:'',qsDefaultType:'',qsAutoDelay:800,org:'',headerExtra:'',showDate:true,showLogo:false,paper:'A4',orient:'landscape',margin:5,sound:true,warnBackup:false,theme:'light',fontScale:100,qsConfirm:true};
     function load(){ try{ return Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(e){ return Object.assign({},DEF); } }
     /* ค่าที่เก็บที่นี่รวม PIN/รหัสกู้คืน/ล็อกอัตโนมัติ: ถ้าเขียนลงเครื่องไม่ได้ (พื้นที่เต็ม/ถูกบล็อก) ต้องแจ้ง ไม่ใช่เงียบ (ไม่เปลี่ยนวิธีทำงานอื่น) */
     function save(s){ try{ localStorage.setItem(KEY,JSON.stringify(s)); return true; }catch(e){ try{ console.warn('settings save',e); }catch(_){} if(Date.now()-(save.w||0)>5000){ save.w=Date.now(); toast('⚠ บันทึกการตั้งค่าไม่สำเร็จ (พื้นที่เก็บเต็มหรือถูกบล็อก) ค่าที่เพิ่งตั้งจะหายเมื่อรีเฟรชหน้า'); } return false; } }
@@ -5499,7 +5502,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
           +ck('ds-warn','แสดงแถบเตือนเมื่อไม่ได้สำรองข้อมูลเกิน 7 วัน','ปิดไว้เป็นค่าเริ่มต้น',s.warnBackup)+'</div>'
           +'<div class="ds-sec"><h3>เครื่องสแกนบาร์โค้ด</h3>'
           +ck('ds-scan-enter','กด Enter ที่ช่องเลขตั๋ว/เล่มที่ = บันทึกทันที (ประเภท ถ เมื่อมียอดขึ้นแล้ว)','ปิด = Enter พาไปช่องยอดเงินก่อน ให้ตรวจยอดแล้วกด Enter อีกครั้ง',s.scanEnterSave!==false)
-          +ck('ds-scan-auto','บันทึกเองหลังอ่านบาร์โค้ด ไม่ต้องกด Enter','สำหรับเครื่องสแกนที่ไม่ส่ง Enter · เฉพาะประเภท ถ ที่เลือกเดือนแล้วและยอดขึ้นเอง · ไม่บันทึกเองถ้ามีคำเตือนตั๋วซ้ำ',s.scanAutoSave===true)
+          +ck('ds-scan-auto','บันทึกอัตโนมัติ (โหมด "สแกนตั๋วเดิมอย่างเดียว")','ยอดขึ้นเองครบแล้วรอตามเวลาด้านล่างแล้วบันทึกเอง ไม่ต้องกด Enter · เป็นช่องเดียวกับ "บันทึกอัตโนมัติ" ในหน้าคีย์ด่วน · ถ้ามีหน้าต่างเตือน (เช่น ตั๋วซ้ำ) จะรอให้กดตอบก่อน',(function(){ try{ return localStorage.getItem('pawn_qs_auto')!=='0'; }catch(e){ return true; } })())
+          +'<div class="ds-f" style="margin-top:8px"><label for="ds-qs-delay">บันทึกอัตโนมัติหลังยอดขึ้น</label><select id="ds-qs-delay">'+[[300,'0.3 วินาที (เร็วมาก)'],[500,'0.5 วินาที (เร็ว)'],[800,'0.8 วินาที (ค่าเริ่มต้น)'],[1200,'1.2 วินาที (มีเวลาดูยอดก่อน)']].map(function(o){ return '<option value="'+o[0]+'"'+((Number(s.qsAutoDelay)||800)===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div>'
+          +'<div class="ds-f" style="margin-top:8px"><label for="ds-qs-type">ประเภทเริ่มต้นตอนเปิดคีย์ด่วน</label><select id="ds-qs-type">'+[['','ไม่เลือก (เลือกเองทุกครั้ง)'],['ถ','ถ'],['ส','ส'],['พ','พ'],['ผ','ผ']].map(function(o){ return '<option value="'+o[0]+'"'+(String(s.qsDefaultType||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div>'
           +ck('ds-scan-beep','เสียงตอนสแกน','อ่านบาร์โค้ดได้ = ติ๊กสั้น · บันทึกแล้ว = ติ๊กสูงสองครั้ง · ผิดพลาด/ตั๋วซ้ำ = เสียงต่ำสองครั้ง',s.scanBeep!==false)
           +'<div class="ds-row" style="margin-top:6px"><button type="button" class="ds-btn" id="ds-scan-test">ทดสอบเครื่องสแกน</button></div>'
           +'<div class="ds-note">ปุ่มทดสอบจะบอกว่าเครื่องส่ง Enter ไหม อยู่ภาษาไทยหรือเปล่า และอ่านเป็นตั๋วได้หรือไม่ · ตั้งค่าเก็บในเครื่องนี้</div></div>'
@@ -5557,7 +5562,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             q('ds-sound').addEventListener('change',function(){ set('sound',this.checked); });
             q('ds-devname').addEventListener('change',function(){ var v=String(this.value||'').replace(/\s+/g,' ').trim().slice(0,40); this.value=v; var old=String(load().deviceName||''); if(v===old) return; set('deviceName',v); try{ if(window.__audit) window.__audit('ตั้งชื่อเครื่อง',(old||'(ไม่มีชื่อ)')+' → '+(v||'(ไม่มีชื่อ)')); }catch(e){} toast(v?'ตั้งชื่อเครื่องนี้เป็น "'+v+'" แล้ว':'ลบชื่อเครื่องแล้ว'); });
             q('ds-scan-enter').addEventListener('change',function(){ set('scanEnterSave',this.checked); });
-            q('ds-scan-auto').addEventListener('change',function(){ set('scanAutoSave',this.checked); });
+            q('ds-scan-auto').addEventListener('change',function(){ try{ localStorage.setItem('pawn_qs_auto',this.checked?'1':'0'); }catch(e){} toast(this.checked?'เปิดบันทึกอัตโนมัติแล้ว':'ปิดบันทึกอัตโนมัติแล้ว'); });
+            q('ds-qs-delay').addEventListener('change',function(){ var v=Number(this.value); set('qsAutoDelay',[300,500,800,1200].indexOf(v)>=0?v:800); toast('บันทึกแล้ว'); });
+            q('ds-qs-type').addEventListener('change',function(){ set('qsDefaultType',/^[สพผถ]$/.test(this.value)?this.value:''); toast('บันทึกแล้ว'); });
             q('ds-scan-beep').addEventListener('change',function(){ set('scanBeep',this.checked); });
             q('ds-scan-test').addEventListener('click',function(){ if(window.openScanTest) window.openScanTest(); });
             q('ds-warn').addEventListener('change',function(){ set('warnBackup',this.checked); if(this.checked&&typeof checkBackupReminder==='function') try{checkBackupReminder();}catch(e){} });
@@ -6015,6 +6022,14 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     /* ชื่อเครื่องนี้ (ตั้งค่า → การใช้งาน) ติดไปกับทุกรายการ → รู้ว่าแก้จากเครื่องไหน */
     function devName(){ try{ var s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}'); return String(s.deviceName||'').trim().slice(0,40); }catch(e){ return ''; } }
     function pushA(items){ if(!items.length) return; var dv=devName(); if(dv) items.forEach(function(x){ if(x&&!x.dev) x.dev=dv; }); var a=loadA().concat(items); if(a.length>MAXA) a=a.slice(a.length-MAXA); try{ localStorage.setItem(AKEY,JSON.stringify(a)); }catch(e){ try{ localStorage.setItem(AKEY,JSON.stringify(a.slice(-1000))); }catch(x){ try{ console.warn('audit save',x); }catch(_){} if(Date.now()-(pushA.w||0)>30000){ pushA.w=Date.now(); toast('⚠ บันทึกประวัติการแก้ไขไม่สำเร็จ (พื้นที่เก็บเต็ม)'); } } } }
+    /* ไฟล์สำรอง (_extra.audit): ส่งออกทั้งหมด · นำเข้าแบบรวม (รายการเดียวกัน = เวลา+วันที่+การกระทำ+รายละเอียด+เครื่อง ไม่ซ้ำ) เรียงตามเวลา */
+    window.__auditExport=function(){ return loadA(); };
+    window.__auditImport=function(list){ if(!Array.isArray(list)||!list.length) return 0; var a=loadA(), seen={}, n=0;
+        var key=function(x){ return [x.ts,x.date,x.a,x.d,x.dev||''].join('\u0001'); };
+        a.forEach(function(x){ if(x) seen[key(x)]=1; });
+        list.forEach(function(x){ if(!x||typeof x!=='object'||!x.ts||typeof x.a!=='string') return; var y={ts:Number(x.ts)||0,date:String(x.date||''),a:String(x.a),d:String(x.d==null?'':x.d)}; if(x.dev) y.dev=String(x.dev).slice(0,40); var k=key(y); if(seen[k]) return; seen[k]=1; a.push(y); n++; });
+        if(!n) return 0; a.sort(function(p,q){ return p.ts-q.ts; }); if(a.length>MAXA) a=a.slice(a.length-MAXA);
+        try{ localStorage.setItem(AKEY,JSON.stringify(a)); }catch(e){ try{ console.warn('audit import',e); }catch(_){} return 0; } return n; };
     window.__audit=function(action,detail,dateKey){ pushA([{ts:Date.now(),date:dateKey||(typeof currentDate==='string'?currentDate:''),a:action,d:detail||''}]); };
     function snap(k){
         var d=db[k]; if(!d||!d.data) return null; var o={months:(d.months||[]).join('|'),rows:{},pl:'',bal:''}, used={};
@@ -6081,7 +6096,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
           +'<div class="mx-body"><table class="mx-t"><thead><tr><th>เวลาที่บันทึก</th><th>วันที่ข้อมูล</th><th>เครื่อง</th><th>การกระทำ</th><th>รายละเอียด</th></tr></thead><tbody>'
           +(show.length?show.map(function(x){ return '<tr><td style="white-space:nowrap">'+esc(new Date(x.ts).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'medium'}))+'</td><td style="white-space:nowrap">'+esc(thDate(x.date))+'</td><td style="white-space:nowrap">'+esc(x.dev||'-')+'</td><td>'+esc(x.a)+'</td><td>'+esc(x.d)+'</td></tr>'; }).join(''):'<tr><td colspan="5" style="text-align:center;color:#64748b;padding:18px">ยังไม่มีประวัติ</td></tr>')
           +'</tbody></table>'+(list.length>300?'<div class="mx-note">แสดง 300 รายการล่าสุดจาก '+list.length+' รายการ ใช้ค้นหาหรือบันทึก CSV เพื่อดูทั้งหมด</div>':'')
-          +'<div class="mx-note">ประวัติเก็บในเครื่องนี้ (ไม่รวมอยู่ในไฟล์สำรอง .json) แนะนำให้บันทึก CSV เก็บไว้เป็นระยะ ระบบจะบันทึกหลังหยุดพิมพ์ประมาณ 1 วินาที</div></div></div>';
+          +'<div class="mx-note">ประวัติเก็บในเครื่องนี้ และรวมอยู่ในไฟล์สำรอง .json ด้วย (นำเข้าไฟล์สำรองแล้วรายการที่ขาดจะกลับมา) ระบบจะบันทึกหลังหยุดพิมพ์ประมาณ 1 วินาที</div></div></div>';
         am.classList.add('on');
         am.querySelector('#au-x').onclick=function(){ am.classList.remove('on'); };
         am.querySelector('#au-scope').onchange=function(){ ascope=this.value; renderAudit(); };
@@ -8964,9 +8979,9 @@ html body #quick-scan-modal.fixed .qs-right > div:last-child button[onclick*="qs
 /* แยกค่าบาร์โค้ดตั๋ว (EAN-13): ปีงบประมาณ(2, เริ่ม 1 ต.ค.) + 0(1) + เล่ม(4) + เลขที่(5) + ตัวตรวจสอบ(1) → ใส่ช่องเลขตั๋ว/เล่มที่ให้เอง
    ตัวอย่าง 6900205001342 = ปีงบ 69 · เล่ม 205 · เลขที่ 134 */
 /* ตั้งค่าเครื่องสแกน (ตั้งค่า → การใช้งาน): scanEnterSave = Enter ที่ช่องเลขตั๋ว/เล่มบันทึกทันที (ค่าเดิม เปิด) ·
-   scanAutoSave = อ่านบาร์โค้ดแล้วมียอดขึ้นเอง บันทึกเองไม่ต้องกด Enter (ปิด) · scanBeep = เสียงตอนสแกนทั้งหมด: อ่านได้ (ที่นี่) + บันทึกแล้ว/ผิดพลาด (scanfx.html) (เปิด) */
+   บันทึกอัตโนมัติ = ช่องในหน้าคีย์ด่วน (pawn_qs_auto) · scanBeep = เสียงตอนสแกนทั้งหมด: อ่านได้ (ที่นี่) + บันทึกแล้ว/ผิดพลาด (scanfx.html) (เปิด) */
 window.__scanCfg=function(){ var s={}; try{ s=JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}')||{}; }catch(e){}
-  return {enterSave:s.scanEnterSave!==false, autoSave:s.scanAutoSave===true, beep:s.scanBeep!==false}; };
+  return {enterSave:s.scanEnterSave!==false, beep:s.scanBeep!==false}; };
 window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; var C=window.AudioContext||window.webkitAudioContext; if(!C) return; var c=window.__scanAC||(window.__scanAC=new C());
   var o=c.createOscillator(), g=c.createGain(); o.connect(g); g.connect(c.destination); o.type='square'; o.frequency.value=ok?1800:380; g.gain.value=0.06;
   var t=c.currentTime; o.start(t); o.stop(t+(ok?0.07:0.22)); }catch(e){} };
@@ -9034,13 +9049,7 @@ window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; va
       var m=document.getElementById('qs-msg'); if(m){ m.textContent='อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket; m.className='qs-msg ok'; }
       try{ window.__scanReadBeep(true); }catch(_){}
       var wd=function(){ warnDup(r.book,r.ticket,el.id); }; setTimeout(wd,60);
-      /* บันทึกเองหลังอ่านบาร์โค้ด (ตั้งค่า): เฉพาะประเภท ถ · ช่องเลขตั๋วเดิม · ยอดขึ้นเองแล้ว · ไม่มีหน้าต่างเตือนตั๋วซ้ำ */
-      if(el.id==='qs-ticket'&&window.__scanCfg().autoSave){ var tk0=r.ticket; setTimeout(function(){ try{
-        var ty=document.getElementById('qs-type'), tk=document.getElementById('qs-ticket'), am=document.getElementById('qs-amount'), mo=document.getElementById('qs-month');
-        if(!ty||ty.value!=='ถ'||!tk||tk.value!==tk0||!am||!String(am.value).trim()||!mo||!mo.value) return;
-        if(dupInfo(r.book,r.ticket,'old').length) return;
-        var dl=document.getElementById('ui-dialog'); if(dl&&dl.style.display&&dl.style.display!=='none') return;
-        if(typeof window.submitQuickScan==='function') window.submitQuickScan(); }catch(_){} },450); }
+      /* บันทึกอัตโนมัติหลังอ่านบาร์โค้ด: ใช้ช่อง "บันทึกอัตโนมัติ" ในหน้าคีย์ด่วน (scanmode.html · pawn_qs_auto) จุดเดียว — ตั้งค่า → การใช้งาน แก้ค่าเดียวกัน */
       var mon=document.getElementById('qs-month'), amt=document.getElementById(el.id==='qs-ticket'?'qs-amount':'qs-new-amount');
       var next=(el.id==='qs-ticket'&&mon&&!mon.value)?mon:amt; if(next) setTimeout(function(){ try{next.focus();}catch(_){} },30);
     } finally { busy=false; }
@@ -9168,10 +9177,15 @@ window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; va
   var A=document.getElementById('qs-amount');
   function ready(){ var g=function(i){ var e=document.getElementById(i); return e?e.value.trim():''; }; var m=parseInt(g('qs-month'),10);
     return ca.checked&&mode()==='single'&&M.classList.contains('qs-single')&&!M.classList.contains('hidden')&&g('qs-type')&&m>=1&&m<=12&&g('qs-ticket')&&g('qs-book')&&!g('qs-new-ticket')&&A&&A.classList.contains('qs-auto')&&A.value.trim(); }
-  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(function(){ if(ready()&&typeof window.submitQuickScan==='function'){ window.__qsAutoSave=true; try{ window.submitQuickScan(); } finally{ window.__qsAutoSave=false; } } },800); }
+  /* รอก่อนบันทึก (ตั้งค่า → การใช้งาน: qsAutoDelay มิลลิวินาที ค่าเริ่มต้น 800) · ระหว่างมีหน้าต่างเตือน (เช่น ตั๋วซ้ำ) เปิดอยู่ → รอจนกดตอบก่อน
+     ตอบ "ยกเลิก" = ช่องถูกล้าง ไม่บันทึก · ตอบ "ยืนยัน" = บันทึกหลังหน้าต่างปิด */
+  function delay(){ try{ var v=Number((JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}')||{}).qsAutoDelay); return [300,500,800,1200].indexOf(v)>=0?v:800; }catch(e){ return 800; } }
+  function dlgOpen(){ var d=document.getElementById('ui-dialog'); return !!d&&d.style.display!=='none'&&d.style.display!==''; }
+  function fire(){ if(dlgOpen()){ tmA=setTimeout(fire,250); return; } if(ready()&&typeof window.submitQuickScan==='function'){ window.__qsAutoSave=true; try{ window.submitQuickScan(); } finally{ window.__qsAutoSave=false; } } }
+  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(fire,delay()); }
   if(A){ new MutationObserver(sched).observe(A,{attributes:true,attributeFilter:['class']}); ['qs-ticket','qs-book','qs-month'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('input',function(){ clearTimeout(tmA); setTimeout(sched,200); }); }); A.addEventListener('input',function(){ clearTimeout(tmA); }); }
   var cc=cnt.querySelector('#qs-cont'); cc.checked=ls(KC)==='1'; cc.addEventListener('change',function(){ ls(KC,cc.checked?'1':'0'); });
-  new MutationObserver(function(){ if(M.classList.contains('on')||!M.classList.contains('hidden')) count(); }).observe(M,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(function(){ if(M.classList.contains('on')||!M.classList.contains('hidden')){ count(); ca.checked=ls(AK)!=='0'; } }).observe(M,{attributes:true,attributeFilter:['class']});   /* ช่องบันทึกอัตโนมัติ: อ่านค่าใหม่ทุกครั้งที่เปิด (แก้ได้จากหน้าตั้งค่าด้วย) */
   var msg=document.getElementById('qs-msg');
   if(msg) new MutationObserver(function(){ if(/^บันทึกแล้ว/.test(msg.textContent)){ count(); if(mode()==='single'&&cc.checked){ setTimeout(function(){ var b=document.querySelector('#qs-ticket').parentElement.querySelector('.cam-btn'); if(b) b.click(); },500); } } }).observe(msg,{childList:true,characterData:true,subtree:true});
   /* โหมดสแกนตั๋วเดิม: กด Enter ที่ยอดเงิน = บันทึกเลย (ทุกประเภท เพราะไม่มีตั๋วใหม่) */
@@ -12356,10 +12370,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 0827e7c1a9a8 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 94051a226934 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='0827e7c1a9a8'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='94051a226934'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
