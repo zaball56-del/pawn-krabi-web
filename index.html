@@ -3780,7 +3780,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             const x = { v: 1 };
             try { if (typeof window.tkwExportAll === 'function') x.tkw = window.tkwExportAll(); } catch (_) {}
             try { if (typeof window.holidaysExport === 'function') x.holidays = window.holidaysExport(); } catch (_) {}
-            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) ? x : null;
+            try { if (typeof window.custodyExport === 'function') { const c = window.custodyExport(); if (c) x.custody = c; } } catch (_) {}   // บันทึกเบิก-คืนทรัพย์ (เก็บในเครื่องนี้)
+            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) || x.custody ? x : null;
         };
         window.pawnBackupText = function (pretty) {
             const out = Object.assign({}, db); delete out._extra;
@@ -3922,15 +3923,16 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                     const changedKeys = (mode === 'add' ? addKeys : addKeys.concat(diffUse)).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
                     if (changedKeys.length) { try { recalculateFutureBroughtForwardBalances(changedKeys[0]); } catch (e) { console.warn('recalc after import', e); } }
                 }
-                let nT2 = 0, nH2 = 0;
+                let nT2 = 0, nH2 = 0, nC2 = 0;
                 if (extra) {
                     try { if (extra.tkw && typeof window.tkwImportAll === 'function') nT2 = window.tkwImportAll(extra.tkw, mode === 'add' ? 'add' : 'over'); } catch (e) { console.warn('import tkw', e); }
                     try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
+                    try { if (extra.custody && typeof window.custodyImport === 'function') nC2 = window.custodyImport(extra.custody); } catch (e) { console.warn('import custody', e); }
                 }
                 try { if (window.__audit) window.__audit('นำเข้าไฟล์ข้อมูล', `${file.name} · ` + ({ add: 'เพิ่มเฉพาะวันที่ยังไม่มี', over: 'แทนวันที่ไม่ตรงกัน', replace: 'แทนที่ทั้งหมด' }[mode] || mode) + ` · เพิ่ม ${addKeys.length} วัน` + (mode !== 'add' ? ` · แทน ${diffUse.length} วัน` : '') + (mode === 'replace' ? ` · ลบ ${dropKeys.filter(k => !skipLocked.has(k)).length} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '')); } catch (_) {}
                 renderTable();
                 const nDays = mode === 'replace' ? fileKeys.filter(k => !skipLocked.has(k)).length : (mode === 'add' ? addKeys.length : addKeys.length + diffUse.length);
-                showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
+                showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + (nC2 ? ` · เบิก-คืนทรัพย์ ${nC2} รายการ` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
             } catch (err) {
                 console.error('Import JSON failed:', err);
                 alert('นำเข้าข้อมูลไม่สำเร็จ: ' + (err.message || 'ไฟล์ JSON ไม่ถูกต้อง'));
@@ -6325,16 +6327,20 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     function all(){ return idb().then(function(d){ return new Promise(function(res,rej){ var r=d.transaction(ST).objectStore(ST).getAll(); r.onsuccess=function(){ d.close(); res(r.result||[]); }; r.onerror=function(){ rej(r.error); }; }); }); }
     function prune(list){ list=list.slice().sort(function(a,b){ return b.id-a.id; }); var keep={}; list.slice(0,12).forEach(function(x){ keep[x.id]=1; }); list.filter(function(x){ return x.reason==='ปิดยอดวัน'; }).slice(0,6).forEach(function(x){ keep[x.id]=1; });
         var del=list.filter(function(x){ return !keep[x.id]; }); if(!del.length) return Promise.resolve(); return idb().then(function(d){ return new Promise(function(res){ var t=d.transaction(ST,'readwrite'), s=t.objectStore(ST); del.forEach(function(x){ s.delete(x.id); }); t.oncomplete=function(){ d.close(); res(); }; t.onerror=function(){ d.close(); res(); }; }); }); }
+    /* ตารางเขียนตั๋วเก็บแยกจาก db → เก็บคู่กันในจุดกู้คืน (rec.tkw) และนับว่ามีการเปลี่ยนแปลงด้วย */
+    var lastTkw='';
+    function tkwStr(){ try{ return typeof window.tkwExportAll==='function'?JSON.stringify(window.tkwExportAll()||{}):''; }catch(e){ return ''; } }
     function snapshotNow(reason,force){
         var str; try{ str=JSON.stringify(db); }catch(e){ return Promise.resolve(false); }
-        if(!force&&str===lastStr) return Promise.resolve(false); lastStr=str; dirty=false;
+        var tk=tkwStr();
+        if(!force&&str===lastStr&&tk===lastTkw) return Promise.resolve(false); lastStr=str; lastTkw=tk; dirty=false;
         var days=0; try{ days=Object.keys(db).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k); }).length; }catch(e){}
-        var rec={id:Date.now(),reason:reason||'อัตโนมัติ',days:days,size:str.length,data:str};
+        var rec={id:Date.now(),reason:reason||'อัตโนมัติ',days:days,size:str.length+tk.length,data:str}; if(tk&&tk!=='{}') rec.tkw=tk;
         return idb().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction(ST,'readwrite'); t.objectStore(ST).put(rec); t.oncomplete=function(){ d.close(); res(true); }; t.onerror=function(){ d.close(); rej(t.error); }; }); })
           .then(function(){ return all().then(prune); }).then(function(){ return true; })
           .catch(function(e){ if(!warned){ warned=true; console.error('autobackup',e); toast('สร้างจุดกู้คืนอัตโนมัติไม่สำเร็จ (พื้นที่เก็บข้อมูลของเบราว์เซอร์อาจเต็ม)'); } return false; }); }
     window.__snapshotNow=snapshotNow;
-    setInterval(function(){ if(dirty) snapshotNow('อัตโนมัติ (ทุก 10 นาที)'); },10*60*1000);
+    setInterval(function(){ if(dirty||tkwStr()!==lastTkw) snapshotNow('อัตโนมัติ (ทุก 10 นาที)'); },10*60*1000);
     document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden'&&dirty) snapshotNow('ปิด/ซ่อนหน้าจอ'); });
     window.addEventListener('pagehide',function(){ if(dirty) snapshotNow('ปิดโปรแกรม'); });
     /* ปิดยอดวัน -> จุดกู้คืน + (โปรแกรม Windows) สำรองลง USB ทันที */
@@ -6351,14 +6357,15 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     var rm=null;
     function validDb(o){ if(!o||typeof o!=='object'||Array.isArray(o)) return false; var ks=Object.keys(o); if(!ks.length) return false;
         return ks.every(function(k){ var d=o[k]; return /^\d{4}-\d{2}-\d{2}$/.test(k)&&d&&typeof d==='object'&&Array.isArray(d.months)&&d.data&&typeof d.data==='object'; }); }
-    function dl(rec){ try{ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rec.data],{type:'application/json'})); var dt=new Date(rec.id), p=function(n){ return ('0'+n).slice(-2); }; a.download='pawn_krabi_restorepoint_'+dt.getFullYear()+p(dt.getMonth()+1)+p(dt.getDate())+'_'+p(dt.getHours())+p(dt.getMinutes())+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }catch(e){ toast('ดาวน์โหลดไม่สำเร็จ'); } }
+    function dl(rec){ try{ var a=document.createElement('a'); var txt=rec.data; if(rec.tkw){ try{ var o=JSON.parse(rec.data); o._extra={v:1,tkw:JSON.parse(rec.tkw)}; txt=JSON.stringify(o); }catch(_){} } a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); var dt=new Date(rec.id), p=function(n){ return ('0'+n).slice(-2); }; a.download='pawn_krabi_restorepoint_'+dt.getFullYear()+p(dt.getMonth()+1)+p(dt.getDate())+'_'+p(dt.getHours())+p(dt.getMinutes())+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }catch(e){ toast('ดาวน์โหลดไม่สำเร็จ'); } }
     function restore(rec){
         var drop=0; try{ var nd0=JSON.parse(rec.data); drop=Object.keys(db).filter(function(k){ return k!==''&&!(k in nd0); }).length; }catch(e){}
-        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+(drop?'\n⚠ จะลบ '+drop+' วันที่ไม่มีในจุดกู้คืนนี้ ออกจากฐานข้อมูลกลางและทุกเครื่องด้วย':'')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
+        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+(drop?'\n⚠ จะลบ '+drop+' วันที่ไม่มีในจุดกู้คืนนี้ ออกจากฐานข้อมูลกลางและทุกเครื่องด้วย':'')+(rec.tkw?'\nตารางเขียนตั๋วจะกลับเป็นแบบจุดเวลานี้ด้วย':'\n(จุดกู้คืนนี้ไม่มีตารางเขียนตั๋ว — ตารางเขียนตั๋วคงเดิม)')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
             if(v===null) return; if(!(window.__pinOk&&window.__pinOk(String(v).trim()))){ toast('PIN ไม่ถูกต้อง'); return; }
             var nd; try{ nd=JSON.parse(rec.data); }catch(e){ toast('ข้อมูลในจุดกู้คืนเสียหาย'); return; } if(!validDb(nd)){ toast('ข้อมูลในจุดกู้คืนไม่ถูกต้อง'); return; }
             return snapshotNow('ก่อนกู้คืน',true).then(function(){ Object.keys(db).forEach(function(k){ delete db[k]; }); Object.keys(nd).forEach(function(k){ db[k]=nd[k]; });
                 saveDB(); window.__resetUndo(); lastStr=rec.data; dirty=false;
+                if(rec.tkw){ try{ if(typeof window.tkwRestoreAll==='function') window.tkwRestoreAll(JSON.parse(rec.tkw)); lastTkw=tkwStr(); }catch(e){ console.warn('restore tkw',e); } }
                 if(window.__audit) window.__audit('กู้คืนจากจุดกู้คืน','กู้คืนข้อมูลเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+' ('+rec.days+' วัน)');
                 try{ getCurrentDayData(); renderTable(); }catch(e){} try{ renderHome(); }catch(e){} if(rm) rm.classList.remove('on'); toast('กู้คืนข้อมูลเรียบร้อย'); }); });
     }
@@ -6813,6 +6820,16 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     });
     return m;
   }
+  /* ไฟล์สำรอง (_extra.custody): ส่งออกทั้งบันทึก+รายชื่อ · นำเข้าแบบรวม (ตาม id · ยกเลิกแล้ว = ยกเลิก) ไม่ลบของในเครื่อง */
+  window.custodyExport=function(){ var ev=load(), nm=getNames(); return (ev.length||nm.length)?{ev:ev,names:nm}:null; };
+  window.custodyImport=function(x){ if(!x||typeof x!=='object') return 0; var a=load(), byId={}, n=0;
+    a.forEach(function(e){ if(e&&e.id) byId[e.id]=e; });
+    (Array.isArray(x.ev)?x.ev:[]).forEach(function(e){ if(!e||!e.id||typeof e!=='object') return; var cur=byId[e.id];
+      if(!cur){ var c=JSON.parse(JSON.stringify(e)); a.push(c); byId[e.id]=c; n++; }
+      else if(e.void&&!cur.void){ cur.void=true; cur.voidAt=e.voidAt||Date.now(); n++; } });
+    if(n) save(a);
+    (Array.isArray(x.names)?x.names:[]).forEach(function(v){ try{ window.custodyNamesAdd(v); }catch(_){} });
+    return n; };
   window.custodyOpenList=function(){ var m=openMap(load()); return Object.keys(m).map(function(k){return m[k]}); };
   window.custodyHistory=function(ticket,book){
     var t=norm(ticket), b=norm(book);
@@ -7537,6 +7554,11 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     go.addEventListener('click',async function(){
       var y=years(); if(y===null) return;
       var cut=cutoffFor(y), ks=oldKeys(cut); if(!ks.length) return;
+      /* มีวันที่ปิดยอดแล้วในช่วงที่จะลบ → ต้องใส่ PIN ก่อน (PIN ไม่ถูก = ไม่ลบเลย) */
+      var lk=window.__isLocked?ks.filter(function(k){ try{ return window.__isLocked(k); }catch(e){ return false; } }):[];
+      if(lk.length){ var pv=window.uiPrompt?await window.uiPrompt('ช่วงที่จะลบมีวันที่ปิดยอดแล้ว '+lk.length+' วัน\nใส่ PIN เพื่ออนุญาตให้ลบ','','password'):null;
+        if(pv===null) return;
+        if(!(window.__pinOk&&window.__pinOk(String(pv).trim()))){ err.textContent='PIN ไม่ถูกต้อง ยังไม่ได้ลบ'; return; } }
       go.disabled=true; err.textContent='กำลังสำรองไฟล์…';
       var before=null; try{ before=localStorage.getItem('pawn_krabi_last_backup'); }catch(e){}
       try{ await exportJSON(); }catch(e){ console.warn(e); }
@@ -12251,10 +12273,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน ae91a01c44a1 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 788c175884ed และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='ae91a01c44a1'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='788c175884ed'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

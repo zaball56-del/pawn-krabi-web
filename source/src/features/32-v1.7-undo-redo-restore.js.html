@@ -56,16 +56,20 @@
     function all(){ return idb().then(function(d){ return new Promise(function(res,rej){ var r=d.transaction(ST).objectStore(ST).getAll(); r.onsuccess=function(){ d.close(); res(r.result||[]); }; r.onerror=function(){ rej(r.error); }; }); }); }
     function prune(list){ list=list.slice().sort(function(a,b){ return b.id-a.id; }); var keep={}; list.slice(0,12).forEach(function(x){ keep[x.id]=1; }); list.filter(function(x){ return x.reason==='ปิดยอดวัน'; }).slice(0,6).forEach(function(x){ keep[x.id]=1; });
         var del=list.filter(function(x){ return !keep[x.id]; }); if(!del.length) return Promise.resolve(); return idb().then(function(d){ return new Promise(function(res){ var t=d.transaction(ST,'readwrite'), s=t.objectStore(ST); del.forEach(function(x){ s.delete(x.id); }); t.oncomplete=function(){ d.close(); res(); }; t.onerror=function(){ d.close(); res(); }; }); }); }
+    /* ตารางเขียนตั๋วเก็บแยกจาก db → เก็บคู่กันในจุดกู้คืน (rec.tkw) และนับว่ามีการเปลี่ยนแปลงด้วย */
+    var lastTkw='';
+    function tkwStr(){ try{ return typeof window.tkwExportAll==='function'?JSON.stringify(window.tkwExportAll()||{}):''; }catch(e){ return ''; } }
     function snapshotNow(reason,force){
         var str; try{ str=JSON.stringify(db); }catch(e){ return Promise.resolve(false); }
-        if(!force&&str===lastStr) return Promise.resolve(false); lastStr=str; dirty=false;
+        var tk=tkwStr();
+        if(!force&&str===lastStr&&tk===lastTkw) return Promise.resolve(false); lastStr=str; lastTkw=tk; dirty=false;
         var days=0; try{ days=Object.keys(db).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k); }).length; }catch(e){}
-        var rec={id:Date.now(),reason:reason||'อัตโนมัติ',days:days,size:str.length,data:str};
+        var rec={id:Date.now(),reason:reason||'อัตโนมัติ',days:days,size:str.length+tk.length,data:str}; if(tk&&tk!=='{}') rec.tkw=tk;
         return idb().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction(ST,'readwrite'); t.objectStore(ST).put(rec); t.oncomplete=function(){ d.close(); res(true); }; t.onerror=function(){ d.close(); rej(t.error); }; }); })
           .then(function(){ return all().then(prune); }).then(function(){ return true; })
           .catch(function(e){ if(!warned){ warned=true; console.error('autobackup',e); toast('สร้างจุดกู้คืนอัตโนมัติไม่สำเร็จ (พื้นที่เก็บข้อมูลของเบราว์เซอร์อาจเต็ม)'); } return false; }); }
     window.__snapshotNow=snapshotNow;
-    setInterval(function(){ if(dirty) snapshotNow('อัตโนมัติ (ทุก 10 นาที)'); },10*60*1000);
+    setInterval(function(){ if(dirty||tkwStr()!==lastTkw) snapshotNow('อัตโนมัติ (ทุก 10 นาที)'); },10*60*1000);
     document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden'&&dirty) snapshotNow('ปิด/ซ่อนหน้าจอ'); });
     window.addEventListener('pagehide',function(){ if(dirty) snapshotNow('ปิดโปรแกรม'); });
     /* ปิดยอดวัน -> จุดกู้คืน + (โปรแกรม Windows) สำรองลง USB ทันที */
@@ -82,14 +86,15 @@
     var rm=null;
     function validDb(o){ if(!o||typeof o!=='object'||Array.isArray(o)) return false; var ks=Object.keys(o); if(!ks.length) return false;
         return ks.every(function(k){ var d=o[k]; return /^\d{4}-\d{2}-\d{2}$/.test(k)&&d&&typeof d==='object'&&Array.isArray(d.months)&&d.data&&typeof d.data==='object'; }); }
-    function dl(rec){ try{ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rec.data],{type:'application/json'})); var dt=new Date(rec.id), p=function(n){ return ('0'+n).slice(-2); }; a.download='pawn_krabi_restorepoint_'+dt.getFullYear()+p(dt.getMonth()+1)+p(dt.getDate())+'_'+p(dt.getHours())+p(dt.getMinutes())+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }catch(e){ toast('ดาวน์โหลดไม่สำเร็จ'); } }
+    function dl(rec){ try{ var a=document.createElement('a'); var txt=rec.data; if(rec.tkw){ try{ var o=JSON.parse(rec.data); o._extra={v:1,tkw:JSON.parse(rec.tkw)}; txt=JSON.stringify(o); }catch(_){} } a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); var dt=new Date(rec.id), p=function(n){ return ('0'+n).slice(-2); }; a.download='pawn_krabi_restorepoint_'+dt.getFullYear()+p(dt.getMonth()+1)+p(dt.getDate())+'_'+p(dt.getHours())+p(dt.getMinutes())+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }catch(e){ toast('ดาวน์โหลดไม่สำเร็จ'); } }
     function restore(rec){
         var drop=0; try{ var nd0=JSON.parse(rec.data); drop=Object.keys(db).filter(function(k){ return k!==''&&!(k in nd0); }).length; }catch(e){}
-        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+(drop?'\n⚠ จะลบ '+drop+' วันที่ไม่มีในจุดกู้คืนนี้ ออกจากฐานข้อมูลกลางและทุกเครื่องด้วย':'')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
+        window.uiPrompt('กู้คืนข้อมูลทั้งหมดเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+(drop?'\n⚠ จะลบ '+drop+' วันที่ไม่มีในจุดกู้คืนนี้ ออกจากฐานข้อมูลกลางและทุกเครื่องด้วย':'')+(rec.tkw?'\nตารางเขียนตั๋วจะกลับเป็นแบบจุดเวลานี้ด้วย':'\n(จุดกู้คืนนี้ไม่มีตารางเขียนตั๋ว — ตารางเขียนตั๋วคงเดิม)')+'\nใส่ PIN เพื่อยืนยัน','','password').then(function(v){
             if(v===null) return; if(!(window.__pinOk&&window.__pinOk(String(v).trim()))){ toast('PIN ไม่ถูกต้อง'); return; }
             var nd; try{ nd=JSON.parse(rec.data); }catch(e){ toast('ข้อมูลในจุดกู้คืนเสียหาย'); return; } if(!validDb(nd)){ toast('ข้อมูลในจุดกู้คืนไม่ถูกต้อง'); return; }
             return snapshotNow('ก่อนกู้คืน',true).then(function(){ Object.keys(db).forEach(function(k){ delete db[k]; }); Object.keys(nd).forEach(function(k){ db[k]=nd[k]; });
                 saveDB(); window.__resetUndo(); lastStr=rec.data; dirty=false;
+                if(rec.tkw){ try{ if(typeof window.tkwRestoreAll==='function') window.tkwRestoreAll(JSON.parse(rec.tkw)); lastTkw=tkwStr(); }catch(e){ console.warn('restore tkw',e); } }
                 if(window.__audit) window.__audit('กู้คืนจากจุดกู้คืน','กู้คืนข้อมูลเป็นจุดเวลา '+new Date(rec.id).toLocaleString('th-TH')+' ('+rec.days+' วัน)');
                 try{ getCurrentDayData(); renderTable(); }catch(e){} try{ renderHome(); }catch(e){} if(rm) rm.classList.remove('on'); toast('กู้คืนข้อมูลเรียบร้อย'); }); });
     }

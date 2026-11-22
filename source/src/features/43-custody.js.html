@@ -25,6 +25,16 @@
     });
     return m;
   }
+  /* ไฟล์สำรอง (_extra.custody): ส่งออกทั้งบันทึก+รายชื่อ · นำเข้าแบบรวม (ตาม id · ยกเลิกแล้ว = ยกเลิก) ไม่ลบของในเครื่อง */
+  window.custodyExport=function(){ var ev=load(), nm=getNames(); return (ev.length||nm.length)?{ev:ev,names:nm}:null; };
+  window.custodyImport=function(x){ if(!x||typeof x!=='object') return 0; var a=load(), byId={}, n=0;
+    a.forEach(function(e){ if(e&&e.id) byId[e.id]=e; });
+    (Array.isArray(x.ev)?x.ev:[]).forEach(function(e){ if(!e||!e.id||typeof e!=='object') return; var cur=byId[e.id];
+      if(!cur){ var c=JSON.parse(JSON.stringify(e)); a.push(c); byId[e.id]=c; n++; }
+      else if(e.void&&!cur.void){ cur.void=true; cur.voidAt=e.voidAt||Date.now(); n++; } });
+    if(n) save(a);
+    (Array.isArray(x.names)?x.names:[]).forEach(function(v){ try{ window.custodyNamesAdd(v); }catch(_){} });
+    return n; };
   window.custodyOpenList=function(){ var m=openMap(load()); return Object.keys(m).map(function(k){return m[k]}); };
   window.custodyHistory=function(ticket,book){
     var t=norm(ticket), b=norm(book);

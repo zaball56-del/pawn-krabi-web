@@ -64,6 +64,11 @@
     go.addEventListener('click',async function(){
       var y=years(); if(y===null) return;
       var cut=cutoffFor(y), ks=oldKeys(cut); if(!ks.length) return;
+      /* มีวันที่ปิดยอดแล้วในช่วงที่จะลบ → ต้องใส่ PIN ก่อน (PIN ไม่ถูก = ไม่ลบเลย) */
+      var lk=window.__isLocked?ks.filter(function(k){ try{ return window.__isLocked(k); }catch(e){ return false; } }):[];
+      if(lk.length){ var pv=window.uiPrompt?await window.uiPrompt('ช่วงที่จะลบมีวันที่ปิดยอดแล้ว '+lk.length+' วัน\nใส่ PIN เพื่ออนุญาตให้ลบ','','password'):null;
+        if(pv===null) return;
+        if(!(window.__pinOk&&window.__pinOk(String(pv).trim()))){ err.textContent='PIN ไม่ถูกต้อง ยังไม่ได้ลบ'; return; } }
       go.disabled=true; err.textContent='กำลังสำรองไฟล์…';
       var before=null; try{ before=localStorage.getItem('pawn_krabi_last_backup'); }catch(e){}
       try{ await exportJSON(); }catch(e){ console.warn(e); }

@@ -2092,7 +2092,8 @@
             const x = { v: 1 };
             try { if (typeof window.tkwExportAll === 'function') x.tkw = window.tkwExportAll(); } catch (_) {}
             try { if (typeof window.holidaysExport === 'function') x.holidays = window.holidaysExport(); } catch (_) {}
-            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) ? x : null;
+            try { if (typeof window.custodyExport === 'function') { const c = window.custodyExport(); if (c) x.custody = c; } } catch (_) {}   // บันทึกเบิก-คืนทรัพย์ (เก็บในเครื่องนี้)
+            return (x.tkw && Object.keys(x.tkw).length) || (x.holidays && Object.keys(x.holidays).length) || x.custody ? x : null;
         };
         window.pawnBackupText = function (pretty) {
             const out = Object.assign({}, db); delete out._extra;
@@ -2234,15 +2235,16 @@
                     const changedKeys = (mode === 'add' ? addKeys : addKeys.concat(diffUse)).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
                     if (changedKeys.length) { try { recalculateFutureBroughtForwardBalances(changedKeys[0]); } catch (e) { console.warn('recalc after import', e); } }
                 }
-                let nT2 = 0, nH2 = 0;
+                let nT2 = 0, nH2 = 0, nC2 = 0;
                 if (extra) {
                     try { if (extra.tkw && typeof window.tkwImportAll === 'function') nT2 = window.tkwImportAll(extra.tkw, mode === 'add' ? 'add' : 'over'); } catch (e) { console.warn('import tkw', e); }
                     try { if (extra.holidays && typeof window.holidaysImport === 'function') nH2 = window.holidaysImport(extra.holidays); } catch (e) { console.warn('import holidays', e); }
+                    try { if (extra.custody && typeof window.custodyImport === 'function') nC2 = window.custodyImport(extra.custody); } catch (e) { console.warn('import custody', e); }
                 }
                 try { if (window.__audit) window.__audit('นำเข้าไฟล์ข้อมูล', `${file.name} · ` + ({ add: 'เพิ่มเฉพาะวันที่ยังไม่มี', over: 'แทนวันที่ไม่ตรงกัน', replace: 'แทนที่ทั้งหมด' }[mode] || mode) + ` · เพิ่ม ${addKeys.length} วัน` + (mode !== 'add' ? ` · แทน ${diffUse.length} วัน` : '') + (mode === 'replace' ? ` · ลบ ${dropKeys.filter(k => !skipLocked.has(k)).length} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '')); } catch (_) {}
                 renderTable();
                 const nDays = mode === 'replace' ? fileKeys.filter(k => !skipLocked.has(k)).length : (mode === 'add' ? addKeys.length : addKeys.length + diffUse.length);
-                showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
+                showToast(`นำเข้าสำเร็จ · สมุดบัญชี ${nDays} วัน` + (nT2 ? ` · เขียนตั๋ว ${nT2} วัน` : '') + (nH2 ? ` · วันหยุด ${nH2} วัน` : '') + (nC2 ? ` · เบิก-คืนทรัพย์ ${nC2} รายการ` : '') + (skipLocked.size ? ` · ข้ามวันที่ปิดยอดแล้ว ${skipLocked.size} วัน` : '') + ' · เก็บจุดกู้คืนแล้ว');
             } catch (err) {
                 console.error('Import JSON failed:', err);
                 alert('นำเข้าข้อมูลไม่สำเร็จ: ' + (err.message || 'ไฟล์ JSON ไม่ถูกต้อง'));
