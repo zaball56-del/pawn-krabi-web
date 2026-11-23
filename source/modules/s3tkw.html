@@ -32,6 +32,8 @@
         return;      /* ถ้าถามในหน้า: ส่งต่อเมื่อรักษาของนำเข้าสำเร็จจริง (ตัวเฝ้าข้อความด้านบน) */
       }
       if(toT&&forT.length){
+        /* ลงเฉพาะเขียนตั๋ว: ไม่ผ่านตัวล็อกของรักษาของ → วันที่ปิดยอดแล้ว/ล็อกย้อนหลัง ต้องใส่ PIN ก่อน (นำเข้าแก้ยอดเดิมได้) */
+        if(typeof window.__isLocked==='function'&&window.__isLocked(dk)){ try{ window.__askUnlock(null,dk); }catch(e){} return; }
         if(typeof pdfImportDateOk==='function'&&!pdfImportDateOk(dk)) return;
         if(!window.confirm('ลงตารางเขียนตั๋ว '+forT.length+' รายการ วันที่ '+dk+' ?')) return;
         var r=doT(); try{ closePDFImportModal(); }catch(e){}

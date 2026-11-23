@@ -2867,6 +2867,9 @@
             }
             if (!imported && !fixed) { alert('ไม่มีรายการใหม่ที่นำเข้าได้ อาจเป็นรายการซ้ำทั้งหมด'); return; }
             if (fixed) { try { if (window.__audit) window.__audit('แก้ยอดตาม สธ.3', `วันที่ ${dateKey} · ${fixed} ใบ: ${fixLog.slice(0,20).join(', ')}${fixLog.length>20?' …':''}`); } catch (_) {} }
+            if (fixed && dateKey !== currentDate) {   /* วันอื่นที่ไม่ได้เปิดอยู่: ยอดไถ่ถอนในสรุปประจำวันของวันนั้นต้องตามยอดที่แก้ */
+                try { const tt = getDailyRedemptionTotals(day), sr2 = day.data && day.data['สรุปประจำวัน']; if (sr2 && sr2[2]) { sr2[2].count = tt.count || ''; sr2[2].amount = tt.amount || ''; } } catch (_) {}
+            }
             if (dateKey === currentDate) renderTable();
             saveDB();
             document.getElementById('pdf-import-status').innerHTML = `<b class="text-emerald-800">นำเข้าสำเร็จ ${imported} รายการ${fixed ? ` · แก้ยอดตาม สธ.3 ${fixed} ใบ` : ''}</b><div>วันที่ ${escapeHtml(dateKey)} · ประเภทเว้นว่างให้เลือกเอง · บันทึกลงตารางแล้ว</div>${imported ? `<div>ยอดเงินต้นรวมที่เลือก ${formatNumber(total)} บาท</div>` : ''}`;

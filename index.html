@@ -4555,6 +4555,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             }
             if (!imported && !fixed) { alert('ไม่มีรายการใหม่ที่นำเข้าได้ อาจเป็นรายการซ้ำทั้งหมด'); return; }
             if (fixed) { try { if (window.__audit) window.__audit('แก้ยอดตาม สธ.3', `วันที่ ${dateKey} · ${fixed} ใบ: ${fixLog.slice(0,20).join(', ')}${fixLog.length>20?' …':''}`); } catch (_) {} }
+            if (fixed && dateKey !== currentDate) {   /* วันอื่นที่ไม่ได้เปิดอยู่: ยอดไถ่ถอนในสรุปประจำวันของวันนั้นต้องตามยอดที่แก้ */
+                try { const tt = getDailyRedemptionTotals(day), sr2 = day.data && day.data['สรุปประจำวัน']; if (sr2 && sr2[2]) { sr2[2].count = tt.count || ''; sr2[2].amount = tt.amount || ''; } } catch (_) {}
+            }
             if (dateKey === currentDate) renderTable();
             saveDB();
             document.getElementById('pdf-import-status').innerHTML = `<b class="text-emerald-800">นำเข้าสำเร็จ ${imported} รายการ${fixed ? ` · แก้ยอดตาม สธ.3 ${fixed} ใบ` : ''}</b><div>วันที่ ${escapeHtml(dateKey)} · ประเภทเว้นว่างให้เลือกเอง · บันทึกลงตารางแล้ว</div>${imported ? `<div>ยอดเงินต้นรวมที่เลือก ${formatNumber(total)} บาท</div>` : ''}`;
@@ -10926,6 +10929,8 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
         return;      /* ถ้าถามในหน้า: ส่งต่อเมื่อรักษาของนำเข้าสำเร็จจริง (ตัวเฝ้าข้อความด้านบน) */
       }
       if(toT&&forT.length){
+        /* ลงเฉพาะเขียนตั๋ว: ไม่ผ่านตัวล็อกของรักษาของ → วันที่ปิดยอดแล้ว/ล็อกย้อนหลัง ต้องใส่ PIN ก่อน (นำเข้าแก้ยอดเดิมได้) */
+        if(typeof window.__isLocked==='function'&&window.__isLocked(dk)){ try{ window.__askUnlock(null,dk); }catch(e){} return; }
         if(typeof pdfImportDateOk==='function'&&!pdfImportDateOk(dk)) return;
         if(!window.confirm('ลงตารางเขียนตั๋ว '+forT.length+' รายการ วันที่ '+dk+' ?')) return;
         var r=doT(); try{ closePDFImportModal(); }catch(e){}
@@ -12483,10 +12488,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 5ac7c0b6af07 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 6b65e4161efa และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='5ac7c0b6af07'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='6b65e4161efa'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

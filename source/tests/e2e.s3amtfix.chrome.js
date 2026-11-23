@@ -50,4 +50,19 @@ async function run(mode,opt){ opt=opt||{}; const b=await chromium.launch({execut
   ok(r.T==='10:101=5000,102=7000 | 11:103=9000,104=4000,105=6500','8 เขียนตั๋ว + ถามในหน้า '+r.T);
   r=await run('native',{tkw:true,tkwSeed:true,untick:true});
   ok(/102=7700/.test(r.T)&&/102=7700/.test(r.L),'9 เอาติ๊กออก = ไม่แก้ทั้ง 2 ตาราง '+r.T);
+  { const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']}); const pg=await (await b.newContext()).newPage(); pg.on('dialog',d=>d.accept());
+    await pg.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort()); await pg.goto('file://'+FILE,{waitUntil:'domcontentloaded'}); await sleep(3500);
+    const K='2026-11-22';
+    const A=await pg.evaluate(K=>{ document.querySelectorAll('#login-modal').forEach(e=>e.style.display='none'); Object.keys(db).forEach(k=>delete db[k]); currentDate='2026-11-23'; getCurrentDayData();
+      const d=getCurrentDayDataForDate(K); d.months=['ตุลาคม','','','','','']; d.data['ตุลาคม']=[{type:'ถ',ticket:'102',book:'10',amount:'7700'}]; d.data['สรุปประจำวัน'][2].count=1; d.data['สรุปประจำวัน'][2].amount=7700; saveDB();
+      document.getElementById('pdf-import-date').value=K; document.getElementById('pdf-dest-ledger').checked=true; document.getElementById('pdf-dest-tkw').checked=false;
+      pdfImportParsedRecords=[{ticket:'102',book:'10',month:10,amount:7000,loanDate:'01/10/2569'}]; pdfImportDetectedDate=K; pdfImportReportTotal=null;
+      preparePDFImport(); commitPDFImport(); return {row:db[K].data['ตุลาคม'][0].amount, s2:db[K].data['สรุปประจำวัน'][2].amount}; },K);
+    ok(A.row==='7000'&&Number(A.s2)===7000,'10 แก้ยอดวันอื่นที่ไม่ได้เปิดอยู่ → ยอดไถ่ถอนในสรุปของวันนั้นตามด้วย '+JSON.stringify(A));
+    const B=await pg.evaluate(K=>{ const d=db[K]; d.data['ตุลาคม'][0].amount='7700'; d.closing={closed:true}; saveDB(); window.tkwImportS3(K,[{ticket:'102',book:'10',month:10,amount:7700}]);
+      document.getElementById('pdf-dest-ledger').checked=false; document.getElementById('pdf-dest-tkw').checked=true; preparePDFImport(); commitPDFImport();
+      const D=window.tkwAll().find(x=>x.k===K); return D.r[D.m.indexOf(10)].filter(x=>x[0]).map(x=>x[1]).join(','); },K);
+    await sleep(600); const pin=await pg.evaluate(()=>!![...document.querySelectorAll('input[type=password]')].find(x=>x.offsetParent));
+    ok(B==='7700'&&pin,'11 วันที่ปิดยอดแล้ว + ลงเฉพาะเขียนตั๋ว → ถาม PIN ก่อน ไม่แก้ยอดเอง '+B+' pin='+pin);
+    await b.close(); }
   console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();
