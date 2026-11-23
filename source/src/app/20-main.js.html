@@ -432,7 +432,9 @@
             const oldTicket = qsEl('qs-ticket').value.trim(), oldBook = qsEl('qs-book').value.trim();
             const oldAmountRaw = qsEl('qs-amount').value.replace(/,/g, '').trim();
             const newTicket = qsEl('qs-new-ticket').value.trim(), newBook = qsEl('qs-new-book').value.trim();
-            const newAmountRaw = qsEl('qs-new-amount').value.replace(/,/g, '').trim();
+            let newAmountRaw = qsEl('qs-new-amount').value.replace(/,/g, '').trim();
+            // ยอดตั๋วใหม่ที่ระบบคัดลอกให้เอง (ส) แต่ไม่ได้ใส่เลขตั๋วใหม่/เล่ม = ไม่ได้ติดตั๋วใหม่ → ไม่นับ (เดิมทำให้บันทึกไม่ได้)
+            if (!newTicket && !newBook && qsEl('qs-new-amount').classList.contains('qs-copy')) { qsEl('qs-new-amount').value = ''; qsEl('qs-new-amount').classList.remove('qs-copy'); newAmountRaw = ''; }
             const fail = (msg, id) => { qsSetMsg(msg, 'err'); if (id) { qsEl(id).focus(); if (qsEl(id).select) qsEl(id).select(); } return false; };
 
             if (!type) return fail('กรุณากดเลือกประเภท ส / พ / ผ / ถ');

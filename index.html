@@ -2120,7 +2120,9 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             const oldTicket = qsEl('qs-ticket').value.trim(), oldBook = qsEl('qs-book').value.trim();
             const oldAmountRaw = qsEl('qs-amount').value.replace(/,/g, '').trim();
             const newTicket = qsEl('qs-new-ticket').value.trim(), newBook = qsEl('qs-new-book').value.trim();
-            const newAmountRaw = qsEl('qs-new-amount').value.replace(/,/g, '').trim();
+            let newAmountRaw = qsEl('qs-new-amount').value.replace(/,/g, '').trim();
+            // ยอดตั๋วใหม่ที่ระบบคัดลอกให้เอง (ส) แต่ไม่ได้ใส่เลขตั๋วใหม่/เล่ม = ไม่ได้ติดตั๋วใหม่ → ไม่นับ (เดิมทำให้บันทึกไม่ได้)
+            if (!newTicket && !newBook && qsEl('qs-new-amount').classList.contains('qs-copy')) { qsEl('qs-new-amount').value = ''; qsEl('qs-new-amount').classList.remove('qs-copy'); newAmountRaw = ''; }
             const fail = (msg, id) => { qsSetMsg(msg, 'err'); if (id) { qsEl(id).focus(); if (qsEl(id).select) qsEl(id).select(); } return false; };
 
             if (!type) return fail('กรุณากดเลือกประเภท ส / พ / ผ / ถ');
@@ -6903,7 +6905,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
   function sync(){
     try{
       if(!N.value.trim()&&N.classList.contains('qs-copy')){ N.classList.remove('qs-copy'); }
-      var isS=String(TY.value||'').trim()==='ส', a=String(A.value||'').trim();
+      var isS=String(TY.value||'').trim()==='ส'&&!M.classList.contains('qs-single'), a=String(A.value||'').trim();   /* โหมดสแกนตั๋วเดิมอย่างเดียว: ไม่มีตั๋วใหม่ → ไม่คัดลอก */
       if(isS&&a&&!N.classList.contains('qs-own')&&(N.value.trim()===''||N.classList.contains('qs-copy'))){
         if(N.value!==a){ N.value=a; }
         N.classList.add('qs-copy'); hint.textContent='คัดลอกจากยอดตั๋วเดิม (ส) แก้ได้';
@@ -12458,10 +12460,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน b10d84a68785 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 9dfd1e2106d2 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='b10d84a68785'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='9dfd1e2106d2'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

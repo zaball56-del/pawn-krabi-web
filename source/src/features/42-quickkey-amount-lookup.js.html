@@ -50,7 +50,7 @@
   function sync(){
     try{
       if(!N.value.trim()&&N.classList.contains('qs-copy')){ N.classList.remove('qs-copy'); }
-      var isS=String(TY.value||'').trim()==='ส', a=String(A.value||'').trim();
+      var isS=String(TY.value||'').trim()==='ส'&&!M.classList.contains('qs-single'), a=String(A.value||'').trim();   /* โหมดสแกนตั๋วเดิมอย่างเดียว: ไม่มีตั๋วใหม่ → ไม่คัดลอก */
       if(isS&&a&&!N.classList.contains('qs-own')&&(N.value.trim()===''||N.classList.contains('qs-copy'))){
         if(N.value!==a){ N.value=a; }
         N.classList.add('qs-copy'); hint.textContent='คัดลอกจากยอดตั๋วเดิม (ส) แก้ได้';

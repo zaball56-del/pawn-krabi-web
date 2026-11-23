@@ -106,5 +106,15 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
     qsClearFields(true); await w(50); q('qs-type').value='ส'; qsPaintType(); q('qs-amount').value='20,000'; await w(300); const next=N.value; closeQuickScanModal(); return {cleared,typed,next}; });
   ok(r.cleared===''&&r.typed==='35,500','24 ลบยอดตั๋วใหม่ที่คัดลอกจนว่าง → ไม่ถูกเติมกลับ พิมพ์ใหม่ได้ ('+JSON.stringify(r)+')');
   ok(r.next==='20,000','25 ใบถัดไป (ล้างช่องแล้ว) → คัดลอกยอดได้ตามปกติ ('+r.next+')');
+  // บั๊กจากรูปผู้ใช้: ส + ยอดคัดลอกไปตั๋วใหม่ แต่ไม่ได้ใส่เลขตั๋วใหม่ → ต้องบันทึกได้ (ทั้งโหมดตั๋วเดิมอย่างเดียว และโหมดปกติ)
+  for(const [mode,tk] of [['single','1745'],['full','1746']]){
+    r=await pg.evaluate(async([mode,tk])=>{ const k='2026-12-01', MM='สิงหาคม'; currentDate=k; const d=getCurrentDayData(); d.months=[MM,'','','','',''];
+      d.data[MM]=d.data[MM]||[]; d.data[MM].push({type:'',ticket:tk,book:'197',amount:'14800',count:''}); saveDB(); document.getElementById('doc-date').value=k; changeDate();
+      localStorage.setItem('pawn_qs_auto','0'); document.querySelector('#qs-mode [data-m="'+mode+'"]').click(); openQuickScanModal(); await new Promise(r=>setTimeout(r,250)); const q=id=>document.getElementById(id);
+      q('qs-type').value='ส'; qsPaintType(); q('qs-month').value='8'; q('qs-ticket').value=tk; q('qs-book').value='197'; q('qs-amount').value='14,800'; await new Promise(r=>setTimeout(r,350));
+      const copied=q('qs-new-amount').value; submitQuickScan(); await new Promise(r=>setTimeout(r,400)); const msg=q('qs-msg').textContent; closeQuickScanModal();
+      const row=db[k].data[MM].find(x=>x&&x.ticket===tk); document.querySelector('#qs-mode [data-m="full"]').click(); return {copied,msg,type:row&&row.type,nt:row&&row.newTicket||''}; },[mode,tk]);
+    ok(r.type==='ส'&&!r.nt&&!/ยังไม่ได้ใส่เลขตั๋วใหม่/.test(r.msg),'26 ['+mode+'] ส ไม่ใส่เลขตั๋วใหม่ → บันทึกได้ (คัดลอก "'+r.copied+'" · '+r.msg.slice(0,40)+')');
+  }
   ok(!errs.length,'11 ไม่มี error '+errs.join('|'));
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();
