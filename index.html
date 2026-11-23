@@ -4432,11 +4432,11 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             const dateKey = getPDFImportTargetDate(); if (!dateKey) return;
             const day = db[dateKey];
             /* ซ้ำ = เดือนเดียวกัน + เลขตั๋วเดียวกัน + เล่มไม่ขัดกัน (ถ้าทั้งสองฝั่งมีเล่มและต่างกัน = คนละใบ เช่น เดือนเดียวกันคนละปี) */
-            const existing = new Map();
+            const existing = new Map(), existingAmt = new Map();
             if (day && day.data) {
                 (day.months || []).forEach(monthName => {
                     const m = thaiMonths.indexOf(monthName) + 1;
-                    (day.data[monthName] || []).forEach(row => { if (row && String(row.ticket || '').trim()) { const k = `${m}|${normalizeCompareTicket(row.ticket)}`; if (!existing.has(k)) existing.set(k, []); existing.get(k).push(pdfBookKey(row.book || row.importBook)); } });
+                    (day.data[monthName] || []).forEach(row => { if (row && String(row.ticket || '').trim()) { const k = `${m}|${normalizeCompareTicket(row.ticket)}`; if (!existing.has(k)) existing.set(k, []); existing.get(k).push(pdfBookKey(row.book || row.importBook)); if (!existingAmt.has(k)) existingAmt.set(k, []); existingAmt.get(k).push({ bk: pdfBookKey(row.book || row.importBook), amt: Number(String(row.amount ?? '').replace(/,/g, '')) || 0 }); } });
                 });
             }
             const seen = new Map();
@@ -4444,21 +4444,29 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 const key = `${row.month}|${normalizeCompareTicket(row.ticket)}`, bk = pdfBookKey(row.book);
                 let reason = '';
                 if (pdfBookClash(seen.get(key), bk)) reason = 'เลขตั๋วซ้ำใน PDF';
-                else if (pdfBookClash(existing.get(key), bk)) reason = 'มีเลขตั๋วนี้ในตารางแล้ว';
+                else if (pdfBookClash(existing.get(key), bk)) {
+                    /* คีย์ไว้แล้ว 1 แถว แต่ยอดเงินต่างจาก สธ.3 → แก้ยอดตาม สธ.3 (ยึด สธ.3 เป็นหลัก) */
+                    const hit = (existingAmt.get(key) || []).filter(e => pdfBookClash([e.bk], bk));
+                    if (hit.length === 1 && hit[0].amt !== Number(row.amount)) {
+                        if (!seen.has(key)) seen.set(key, []); seen.get(key).push(bk);
+                        return { ...row, index, duplicate:false, reason:'', amtFix:true, oldAmount:hit[0].amt, selected:true };
+                    }
+                    reason = 'มีเลขตั๋วนี้ในตารางแล้ว';
+                }
                 if (!seen.has(key)) seen.set(key, []); seen.get(key).push(bk);
                 return { ...row, index, duplicate:!!reason, reason, selected:!reason };
             });
             renderPDFImportPreview();
-            const duplicates = pdfImportReadyRecords.filter(x=>x.duplicate).length;
-            document.getElementById('pdf-import-status').innerHTML = `<b class="text-violet-800">เตรียมนำเข้าแล้ว</b><div>วันที่ทำรายการ ${escapeHtml(dateKey)} · พบ ${pdfImportReadyRecords.length} รายการ · ซ้ำ/ข้าม ${duplicates} รายการ</div><div class="text-amber-700">ระบบจะลงข้อมูลในเดือนตามวันที่รับจำนำใน PDF และเว้นประเภทให้ว่าง</div>`;
+            const duplicates = pdfImportReadyRecords.filter(x=>x.duplicate).length, amtFixes = pdfImportReadyRecords.filter(x=>x.amtFix).length;
+            document.getElementById('pdf-import-status').innerHTML = `<b class="text-violet-800">เตรียมนำเข้าแล้ว</b><div>วันที่ทำรายการ ${escapeHtml(dateKey)} · พบ ${pdfImportReadyRecords.length} รายการ · ซ้ำ/ข้าม ${duplicates} รายการ${amtFixes ? ` · <b class="text-amber-700">ยอดเงินไม่ตรง สธ.3 ${amtFixes} ใบ (จะแก้ให้ตรง)</b>` : ''}</div><div class="text-amber-700">ระบบจะลงข้อมูลในเดือนตามวันที่รับจำนำใน PDF และเว้นประเภทให้ว่าง</div>`;
         }
         function renderPDFImportPreview() {
             const tbody = document.getElementById('pdf-import-tbody');
             tbody.innerHTML = pdfImportReadyRecords.map(row => {
                 const disabled = row.duplicate ? 'disabled' : '';
                 const checked = row.selected ? 'checked' : '';
-                const status = row.duplicate ? `<span class="text-rose-700 font-bold">${escapeHtml(row.reason)}</span>` : '<span class="text-emerald-700 font-bold">พร้อมนำเข้า</span>';
-                return `<tr class="${row.duplicate?'bg-rose-50':'bg-white'}"><td class="p-2 border text-center" style="text-align:center"><input type="checkbox" ${checked} ${disabled} onchange="setPDFImportSelected(${row.index},this.checked)"></td><td class="p-2 border" style="text-align:left;word-break:break-word">${status}</td><td class="p-2 border whitespace-nowrap" style="text-align:left">${escapeHtml(row.loanDate)}</td><td class="p-2 border" style="text-align:left">${thaiMonths[row.month-1]}</td><td class="p-2 border text-center font-bold" style="text-align:center;word-break:break-all">${escapeHtml(row.ticket)}</td><td class="p-2 border text-center" style="text-align:center">${escapeHtml(row.book)}</td><td class="p-2 border text-right" style="text-align:right">${formatNumber(row.amount)}</td></tr>`;
+                const status = row.duplicate ? `<span class="text-rose-700 font-bold">${escapeHtml(row.reason)}</span>` : row.amtFix ? `<span class="text-amber-700 font-bold">แก้ยอดตาม สธ.3 (เดิม ${formatNumber(row.oldAmount) || '0'})</span>` : '<span class="text-emerald-700 font-bold">พร้อมนำเข้า</span>';
+                return `<tr class="${row.duplicate?'bg-rose-50':row.amtFix?'bg-amber-50':'bg-white'}"><td class="p-2 border text-center" style="text-align:center"><input type="checkbox" ${checked} ${disabled} onchange="setPDFImportSelected(${row.index},this.checked)"></td><td class="p-2 border" style="text-align:left;word-break:break-word">${status}</td><td class="p-2 border whitespace-nowrap" style="text-align:left">${escapeHtml(row.loanDate)}</td><td class="p-2 border" style="text-align:left">${thaiMonths[row.month-1]}</td><td class="p-2 border text-center font-bold" style="text-align:center;word-break:break-all">${escapeHtml(row.ticket)}</td><td class="p-2 border text-center" style="text-align:center">${escapeHtml(row.book)}</td><td class="p-2 border text-right" style="text-align:right">${formatNumber(row.amount)}</td></tr>`;
             }).join('');
             const selected = pdfImportReadyRecords.filter(x=>x.selected).length;
             document.getElementById('pdf-import-count').textContent = `เลือกนำเข้า ${selected} / ${pdfImportReadyRecords.length} รายการ (เว้นประเภทไว้ให้กรอกเอง)`;
@@ -4501,15 +4509,24 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             if (!pdfImportDateOk(dateKey)) return;
             const selected = pdfImportReadyRecords.filter(row=>row.selected && !row.duplicate);
             if (!selected.length) { alert('กรุณาเลือกรายการที่จะนำเข้า'); return; }
-            const total = selected.reduce((sum,row)=>sum+row.amount,0);
-            if (!confirm(`ยืนยันนำเข้า ${selected.length} รายการ วันที่ ${dateKey}\nยอดเงินต้นรวม ${formatNumber(total)} บาท\nระบบจะเว้นประเภท ส / พ / ผ / ถ ให้คุณเลือกเอง และจะไม่แก้รายการเดิม`)) return;
+            const fixSel = selected.filter(row=>row.amtFix), newSel = selected.filter(row=>!row.amtFix);
+            const total = newSel.reduce((sum,row)=>sum+row.amount,0);
+            if (!confirm((newSel.length ? `ยืนยันนำเข้า ${newSel.length} รายการ วันที่ ${dateKey}\nยอดเงินต้นรวม ${formatNumber(total)} บาท\nระบบจะเว้นประเภท ส / พ / ผ / ถ ให้คุณเลือกเอง` : `วันที่ ${dateKey}`) + (fixSel.length ? `\n\nแก้ยอดเงินตั๋วที่คีย์ไว้ให้ตรง สธ.3 ${fixSel.length} ใบ:\n` + fixSel.slice(0,8).map(r=>`${r.ticket}/${r.book} ${formatNumber(r.oldAmount) || '0'} → ${formatNumber(r.amount)}`).join('\n') + (fixSel.length > 8 ? `\n… อีก ${fixSel.length-8} ใบ` : '') : '') + `\n\nต้องการดำเนินการต่อหรือไม่?`)) return;
             const day = db[dateKey] || getCurrentDayDataForDate(dateKey);
             const oldTotalRows = Math.max(Number(day.totalRows)||60,60);
             day.totalRows = oldTotalRows;
-            let imported = 0;
+            let imported = 0, fixed = 0; const fixLog = [];
             for (const record of selected) {
                 const monthName = thaiMonths[record.month-1];
                 const rows = ensurePDFImportMonth(day, monthName);
+                if (record.amtFix) {
+                    const hits = rows.filter(row=>row && String(row.ticket||'').trim() && normalizeCompareTicket(row.ticket)===normalizeCompareTicket(record.ticket) && pdfBookClash([pdfBookKey(row.book || row.importBook)], pdfBookKey(record.book)));
+                    if (hits.length === 1 && (Number(String(hits[0].amount ?? '').replace(/,/g,''))||0) !== Number(record.amount)) {
+                        fixLog.push(`${record.ticket} ${formatNumber(Number(String(hits[0].amount ?? '').replace(/,/g,''))||0) || '0'}→${formatNumber(record.amount)}`);
+                        hits[0].amount = String(record.amount); fixed++;
+                    }
+                    continue;
+                }
                 const duplicateNow = rows.some(row=>row && String(row.ticket||'').trim() && normalizeCompareTicket(row.ticket)===normalizeCompareTicket(record.ticket) && pdfBookClash([pdfBookKey(row.book || row.importBook)], pdfBookKey(record.book)));
                 if (duplicateNow) continue;
                 let index = rows.findIndex(row => !row || (!String(row.ticket||'').trim() && !String(row.amount??'').trim()));
@@ -4536,13 +4553,14 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 rows[index] = { ...(rows[index] || {}), type:'', ticket:String(record.ticket), amount:String(record.amount), count:'', origIdx:index, timestamp:new Date().toLocaleTimeString('th-TH'), importSource:'PDF', importBook:String(record.book), importLoanDate:record.loanDate };
                 imported++;
             }
-            if (!imported) { alert('ไม่มีรายการใหม่ที่นำเข้าได้ อาจเป็นรายการซ้ำทั้งหมด'); return; }
+            if (!imported && !fixed) { alert('ไม่มีรายการใหม่ที่นำเข้าได้ อาจเป็นรายการซ้ำทั้งหมด'); return; }
+            if (fixed) { try { if (window.__audit) window.__audit('แก้ยอดตาม สธ.3', `วันที่ ${dateKey} · ${fixed} ใบ: ${fixLog.slice(0,20).join(', ')}${fixLog.length>20?' …':''}`); } catch (_) {} }
             if (dateKey === currentDate) renderTable();
             saveDB();
-            document.getElementById('pdf-import-status').innerHTML = `<b class="text-emerald-800">นำเข้าสำเร็จ ${imported} รายการ</b><div>วันที่ ${escapeHtml(dateKey)} · ประเภทเว้นว่างให้เลือกเอง · บันทึกลงตารางแล้ว</div><div>ยอดเงินต้นรวมที่เลือก ${formatNumber(total)} บาท</div>`;
+            document.getElementById('pdf-import-status').innerHTML = `<b class="text-emerald-800">นำเข้าสำเร็จ ${imported} รายการ${fixed ? ` · แก้ยอดตาม สธ.3 ${fixed} ใบ` : ''}</b><div>วันที่ ${escapeHtml(dateKey)} · ประเภทเว้นว่างให้เลือกเอง · บันทึกลงตารางแล้ว</div>${imported ? `<div>ยอดเงินต้นรวมที่เลือก ${formatNumber(total)} บาท</div>` : ''}`;
             document.getElementById('pdf-import-confirm').disabled = true;
-            showToast(`นำเข้าจาก PDF สำเร็จ ${imported} รายการ`);
-            alert(`นำเข้าข้อมูลสำเร็จ ${imported} รายการ\nกรุณาเลือกประเภท ส / พ / ผ / ถ ในตารางด้วยตนเอง`);
+            showToast(`นำเข้าจาก PDF สำเร็จ ${imported} รายการ` + (fixed ? ` · แก้ยอด ${fixed} ใบ` : ''));
+            alert(`นำเข้าข้อมูลสำเร็จ ${imported} รายการ` + (fixed ? `\nแก้ยอดเงินให้ตรง สธ.3 ${fixed} ใบ` : '') + (imported ? `\nกรุณาเลือกประเภท ส / พ / ผ / ถ ในตารางด้วยตนเอง` : ''));
             closePDFImportModal();
         }
         function getCurrentDayDataForDate(dateKey) {
@@ -10089,31 +10107,36 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     var p=String(key).split('-'), dt=p[2]+'/'+p[1]+'/'+((+p[0])+543), t=new Date(n.at), hm=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
     var mo=Object.keys(n.mo||{}).sort(function(a,b){return a-b}).map(function(m){ return (MN[m]||m)+' '+n.mo[m]; }).join(' · ');
     var cnt=0; try{ cnt=window.tkwCountDay(); }catch(e){}
-    el.innerHTML='📥 <b>นำเข้า สธ.3</b> ลงเขียนตั๋ว <b>'+n.added+' ใบ</b>'+(n.skipped?' · ข้าม '+n.skipped:'')+(n.filled?' · เติมเล่ม '+n.filled:'')+' · '+dt+' '+hm+' น.'
+    el.innerHTML='📥 <b>นำเข้า สธ.3</b> ลงเขียนตั๋ว <b>'+n.added+' ใบ</b>'+(n.skipped?' · ข้าม '+n.skipped:'')+(n.filled?' · เติมเล่ม '+n.filled:'')+(n.fixed?' · แก้ยอดตาม สธ.3 '+n.fixed:'')+' · '+dt+' '+hm+' น.'
       +'<small>'+(mo?'เดือน: '+esc(mo)+' (แตะแท็บเดือนเพื่อดู) · ':'')+'ในตารางวันนี้ '+cnt+' ใบ</small>';
     el.className='on';
   }
   window.tkwImportS3=function(k,recs){
-    var d=JSON.parse(JSON.stringify(get(k))), add=0, skip=0, fill=0, addedMo={};
+    var d=JSON.parse(JSON.stringify(get(k))), add=0, skip=0, fill=0, fix=0, fixLog=[], addedMo={};
     (recs||[]).forEach(function(p){
       var t=String(p.ticket||'').trim(); if(!t) return;
       var m=+p.month, b=String(p.book||'').trim(), a=String(p.amount==null?'':p.amount).replace(/,/g,'');
       var g=d.m.indexOf(m); if(g<0){ d.m.push(m); d.r.push(emptyCol()); g=d.m.length-1; }
       var col=d.r[g];
       var hit=null, nz=function(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); }; col.some(function(x){ if(nz(x[0])===nz(t)&&(!b||!x[2]||nz(x[2])===nz(b))){ hit=x; return true; } return false; });   /* เทียบแบบตัดช่องว่าง/ศูนย์นำหน้า เหมือน sameTk — เดิมใช้ === ตั๋วที่คีย์ "0123" หรือมีเว้นวรรค จะถูกลงซ้ำ */
-      if(hit){ skip++; if(b&&!hit[2]){ hit[2]=b; fill++; } return; }   /* มีเลขตั๋วอยู่แล้วแต่ยังไม่มีเล่มที่ → เติมเล่มที่จาก สธ.3 ให้ */
+      if(hit){ skip++; if(b&&!hit[2]){ hit[2]=b; fill++; }
+        /* ยอดเงินไม่ตรง สธ.3 (หรือว่าง) → แก้ตาม สธ.3 · เลขตั๋วนี้ซ้ำหลายแถวในเดือนเดียวกัน = ไม่เดา ให้คนดูเอง (ผู้ใช้ขอ 23 พ.ย. 69) */
+        var hits=col.filter(function(x){ return nz(x[0])===nz(t)&&(!b||!x[2]||nz(x[2])===nz(b)); });
+        if(hits.length===1&&a!==''&&num(a)!==num(hit[1])){ fixLog.push(t+' '+(num(hit[1])||0).toLocaleString('en-US')+'→'+num(a).toLocaleString('en-US')); hit[1]=String(num(a)); fix++; }
+        return; }   /* มีเลขตั๋วอยู่แล้วแต่ยังไม่มีเล่มที่ → เติมเล่มที่จาก สธ.3 ให้ */
       var i=0; while(i<col.length&&(col[i][0]||col[i][1])) i++;
       while(col.length<=i) col.push(['','']);
       col[i]=[t,a===''?'':String(num(a)),b,''];
       if(d.pen) col[i][4]=d.pen;   /* ตั๋วที่นำเข้าได้สีปากกาปัจจุบันของวันนั้นทันที */
       add++; addedMo[m]=(addedMo[m]||0)+1; });
-    if(add||fill){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){}
+    if(fix){ try{ if(window.__audit) window.__audit('แก้ยอดตาม สธ.3 (เขียนตั๋ว)','วันที่ '+k+' · '+fix+' ใบ: '+fixLog.slice(0,20).join(', ')+(fixLog.length>20?' …':'')); }catch(e){} }
+    if(add||fill||fix){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){}
       try{ startSync(); }catch(e){}   /* นำเข้าจาก สธ.3 โดยยังไม่เคยเปิดหน้าเขียนตั๋ว → เริ่มซิงก์ให้ส่งขึ้นคลาวด์ (เดิมค้างในเครื่องจนกว่าจะเปิดหน้า เครื่องอื่นจึงไม่เห็น) */
       if(key===k){ day=d; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } }
     try{ var nn=JSON.parse(localStorage.getItem(NOTEK)||'{}');
-      nn[k]={at:Date.now(),added:add,skipped:skip,filled:fill,mo:addedMo}; var ks=Object.keys(nn).sort(); while(ks.length>40) delete nn[ks.shift()]; localStorage.setItem(NOTEK,JSON.stringify(nn)); }catch(e){}
+      nn[k]={at:Date.now(),added:add,skipped:skip,filled:fill,fixed:fix,mo:addedMo}; var ks=Object.keys(nn).sort(); while(ks.length>40) delete nn[ks.shift()]; localStorage.setItem(NOTEK,JSON.stringify(nn)); }catch(e){}
     try{ noteRender(); }catch(e){}
-    return {added:add,skipped:skip,filled:fill};
+    return {added:add,skipped:skip,filled:fill,fixed:fix};
   };
   /* ใช้โดยหน้าเทียบ สธ.3: อ่านตารางของวัน และแก้ยอดเงินรายตั๋ว */
   window.tkwCountDay=function(){ var n=0; (day&&day.r||[]).forEach(function(c){ c.forEach(function(x){ if(String(x[0]==null?'':x[0]).trim()!=='') n++; }); }); return n; };
@@ -10893,7 +10916,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
       var sel=ready.filter(function(r){ return r.selected&&!r.duplicate; });
       var forT=ready.filter(function(r){ return r.selected||r.reason==='มีเลขตั๋วนี้ในตารางแล้ว'; });
       var btn=document.getElementById('pdf-import-confirm');
-      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')+(r.filled?' · เติมเล่มที่ให้ '+r.filled+' ใบ':'')); }catch(e){} return r; }
+      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')+(r.filled?' · เติมเล่มที่ให้ '+r.filled+' ใบ':'')+(r.fixed?' · แก้ยอดตาม สธ.3 '+r.fixed+' ใบ':'')); }catch(e){} return r; }
       pend=null;
       if(toL&&sel.length){
         var st0=document.getElementById('pdf-import-status'); if(st0&&okText()) st0.innerHTML='';   /* ล้างข้อความสำเร็จรอบก่อน */
@@ -10954,7 +10977,7 @@ body.tbl-lock #ledger-tbody td,body.tbl-lock #tkw-table td{cursor:not-allowed}
     if(!day||!day.data||!ready.length) return out;
     var used={};
     ready.forEach(function(r){
-      if(r.duplicate&&r.reason!=='มีเลขตั๋วนี้ในตารางแล้ว') return;
+      if(r.amtFix||(r.duplicate&&r.reason!=='มีเลขตั๋วนี้ในตารางแล้ว')) return;
       var tgt=thaiMonths[r.month-1]; var key=nrm(r.ticket); if(!tgt||!key) return;
       (day.months||[]).some(function(mn){
         if(!mn||mn===tgt) return false; var rows=day.data[mn]||[];
@@ -12460,10 +12483,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 9dfd1e2106d2 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 5ac7c0b6af07 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='9dfd1e2106d2'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='5ac7c0b6af07'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

@@ -19,7 +19,7 @@
     if(!day||!day.data||!ready.length) return out;
     var used={};
     ready.forEach(function(r){
-      if(r.duplicate&&r.reason!=='มีเลขตั๋วนี้ในตารางแล้ว') return;
+      if(r.amtFix||(r.duplicate&&r.reason!=='มีเลขตั๋วนี้ในตารางแล้ว')) return;
       var tgt=thaiMonths[r.month-1]; var key=nrm(r.ticket); if(!tgt||!key) return;
       (day.months||[]).some(function(mn){
         if(!mn||mn===tgt) return false; var rows=day.data[mn]||[];

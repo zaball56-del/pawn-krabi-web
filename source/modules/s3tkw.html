@@ -22,7 +22,7 @@
       var sel=ready.filter(function(r){ return r.selected&&!r.duplicate; });
       var forT=ready.filter(function(r){ return r.selected||r.reason==='มีเลขตั๋วนี้ในตารางแล้ว'; });
       var btn=document.getElementById('pdf-import-confirm');
-      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')+(r.filled?' · เติมเล่มที่ให้ '+r.filled+' ใบ':'')); }catch(e){} return r; }
+      function doT(){ var r=window.tkwImportS3(dk,forT); try{ showToast('เขียนตั๋ว: ลง '+r.added+' ใบ'+(r.skipped?' · ข้ามที่มีอยู่แล้ว '+r.skipped:'')+(r.filled?' · เติมเล่มที่ให้ '+r.filled+' ใบ':'')+(r.fixed?' · แก้ยอดตาม สธ.3 '+r.fixed+' ใบ':'')); }catch(e){} return r; }
       pend=null;
       if(toL&&sel.length){
         var st0=document.getElementById('pdf-import-status'); if(st0&&okText()) st0.innerHTML='';   /* ล้างข้อความสำเร็จรอบก่อน */
