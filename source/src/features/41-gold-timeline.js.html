@@ -83,7 +83,8 @@
     h+='<div class="gx-2c"><div class="gx-col">'+L+'</div><div class="gx-col">'+R+'</div></div>';
     /* ประวัติรายการทั้งหมด */
     h+='<div class="gx-pane gx-hist"><div class="gx-hh">'+IC2.cb+'<b>ประวัติรายการทั้งหมด</b></div><div class="gx-tb"><div class="gx-tr gx-th"><span>ลำดับ</span><span>วันที่</span><span>เวลา</span><span>ประเภท</span><span>เลขที่ตั๋ว</span><span>เล่มที่</span><span>จำนวนเงิน (฿)</span></div>';
-    list.forEach(function(e,i){
+    /* ลำดับ 1 = ครั้งแรก (เก่าสุด) ไล่ไปจนล่าสุด (ผู้ใช้ขอ 23 พ.ย. 69) */
+    list.slice().reverse().forEach(function(e,i){
       var d=diffOf(e);
       var tk='<span class="gx-tt'+(same(e.o,me)?' me':'')+'">'+esc(e.o.t||'-')+'</span>'+(e.n?'<span class="gx-tn'+(same(e.n,me)?' me':'')+'">→ '+esc(e.n.t)+'</span>':'');
       var bb='<span class="gx-tt">'+esc(bk(e.o)||'–')+'</span>'+(e.n?'<span class="gx-tn">→ '+esc(bk(e.n)||'–')+'</span>':'');
@@ -97,7 +98,7 @@
   }
   /* ปุ่มด้านล่าง: ค้นหาใหม่ = ล้างช่องแล้วโฟกัส · Excel = ไฟล์ .csv (เปิดใน Excel ได้) · พิมพ์/PDF = พิมพ์เฉพาะผลค้นหานี้ในกรอบแยก (ไม่แตะหน้าพิมพ์บัญชี) */
   function sheetRows(){ var L=LAST; if(!L) return []; var r=[['ลำดับ','วันที่','เวลา','เดือน','ประเภท','ตั๋วเดิม','เล่มเดิม','ตั๋วใหม่','เล่มใหม่','ยอดตั๋วเดิม','ยอดตั๋วใหม่','เพิ่ม/ผ่อน']];
-    L.list.forEach(function(e,i){ r.push([i+1,e.d,e.tm,e.mo,e.ty,e.o.t,bk(e.o),e.n?e.n.t:'',e.n?bk(e.n):'',num(e.amt)||'',e.n&&e.n.a?num(e.n.a):'',(function(){ var d=diffOf(e); return d===null?'':diffTxt(d); })()]); }); return r; }
+    L.list.slice().reverse().forEach(function(e,i){ r.push([i+1,e.d,e.tm,e.mo,e.ty,e.o.t,bk(e.o),e.n?e.n.t:'',e.n?bk(e.n):'',num(e.amt)||'',e.n&&e.n.a?num(e.n.a):'',(function(){ var d=diffOf(e); return d===null?'':diffTxt(d); })()]); }); return r; }
   window.__gxAct=function(a){
     var L=LAST, I=document.getElementById('global-search-input'), B=document.getElementById('global-search-book');
     if(a==='new'){ if(I) I.value=''; if(B) B.value=''; host.innerHTML=''; try{ tb.innerHTML=''; }catch(e){} if(I) I.focus(); return; }
