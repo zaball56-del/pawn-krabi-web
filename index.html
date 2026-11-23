@@ -953,6 +953,43 @@
         html body #global-search-modal.fixed .gs-msg{padding:28px;text-align:center;color:#64748b;font-size:15px}
         html body #global-search-modal.fixed .gs-msg.bad{color:#be123c;font-weight:700}
         @media (max-width:640px){html body #global-search-modal.fixed .gs-amt{margin-left:0}html body #global-search-modal.fixed .gs-hero{gap:16px}}
+        /* มือถือ (ผู้ใช้ขอ 23 พ.ย. 69): เต็มจอ · ช่องค้นหามีป้าย · ปุ่มค้นหาเต็มแถว · การ์ด ตั๋วเดิม ↓ ตั๋วใหม่ */
+        #global-search-modal .gm-lbl,#global-search-modal .gm-hero,#global-search-modal .gm-list{display:none}
+        @media (max-width:640px){
+        html body #global-search-modal.fixed{padding:0 !important;align-items:stretch !important}
+        html body #global-search-modal.fixed > div{max-height:none !important;height:100% !important;border-radius:0 !important;max-width:none !important}
+        html body #global-search-modal.fixed > div > div:first-child{padding:12px 14px !important}
+        html body #global-search-modal.fixed > div > div:first-child .rounded-full{display:none !important}
+        html body #global-search-modal.fixed > div > div:first-child h3{font-size:18px !important}
+        html body #global-search-modal.fixed .gm-lbl{display:block;font-size:13px;font-weight:700;color:#475569;margin:0 0 -4px 4px}
+        html body #global-search-modal.fixed #global-search-row{display:grid !important;grid-template-columns:1fr 104px;gap:8px !important;padding:10px 14px 12px !important;border-bottom:1px solid #e2e8f0 !important}
+        html body #global-search-modal.fixed #global-search-book{width:auto !important}
+        html body #global-search-modal.fixed #global-search-row button[onclick="executeGlobalSearch()"]{grid-column:1 / -1;width:100%;height:48px;font-size:17px !important}
+        html body #global-search-modal.fixed > div > div:nth-child(3){padding:10px 12px 24px !important;background:#f1f5f9 !important}
+        html body #global-search-modal.fixed .gs-hero,html body #global-search-modal.fixed .gs-tl{display:none !important}
+        html body #global-search-modal.fixed .gm-hero{display:block;background:#1e1b4b;color:#fff;border-radius:16px;padding:11px 14px;margin:2px 0 12px}
+        html body #global-search-modal.fixed .gm-sum{font-size:13px;color:#c7d2fe}
+        html body #global-search-modal.fixed .gm-sum b{color:#fff;font-size:15px}
+        html body #global-search-modal.fixed .gm-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}
+        html body #global-search-modal.fixed .gm-ct{background:rgba(255,255,255,.13);border-radius:10px;padding:4px 10px;font-weight:800;font-size:18px;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-ct span{font-size:12px;font-weight:600;color:#c7d2fe;margin-left:4px}
+        html body #global-search-modal.fixed .gm-ct.me{background:#fff;color:#1e1b4b}html body #global-search-modal.fixed .gm-ct.me span{color:#4f46e5}
+        html body #global-search-modal.fixed .gm-car{color:#5eead4;font-weight:800}
+        html body #global-search-modal.fixed .gm-list{display:flex;flex-direction:column;gap:8px}
+        html body #global-search-modal.fixed .gm-it{background:#fff;border-radius:14px;padding:10px 12px;border:1px solid #e2e8f0;display:grid;grid-template-columns:40px 1fr auto;gap:3px 10px;align-items:center;color:#0f1b4d}
+        html body #global-search-modal.fixed .gm-it .gs-ch{width:40px;height:40px;font-size:20px;border-radius:11px;grid-row:1 / 3}
+        html body #global-search-modal.fixed .gm-d{font-weight:800;font-size:16px;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-d small{font-weight:600;color:#64748b;font-size:12.5px;margin-left:6px}
+        html body #global-search-modal.fixed .gm-a{font-weight:800;font-size:18px;text-align:right;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-k{grid-column:2 / 4;font-size:15px;color:#334155;line-height:1.45}
+        html body #global-search-modal.fixed .gm-k b{font-size:17px;color:#0f1b4d}
+        html body #global-search-modal.fixed .gm-k b.nw{color:#047857}
+        html body #global-search-modal.fixed .gm-k b.hl{background:#e0e7ff;border-radius:6px;padding:0 5px;color:#3730a3}
+        html body #global-search-modal.fixed .gm-b{color:#64748b;font-size:14px}
+        html body #global-search-modal.fixed .gm-ar{color:#0f766e;font-weight:800}
+        html body #global-search-modal.fixed .gm-nw{color:#047857;font-weight:700;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-red{color:#be123c;font-weight:700}
+        }
         }
 
         /* ===== v1.21 คีย์ด่วน: ดึงยอดเงินจากข้อมูลเดิมในเครื่อง (อ่านอย่างเดียว ไม่แตะสูตร) ===== */
@@ -6850,10 +6887,45 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
   var box=tb.closest('table').parentNode; var host=document.createElement('div'); host.id='gs-timeline'; box.appendChild(host);
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
   var TY={'ส':1,'พ':2,'ผ':3,'ถ':4};
+  var MS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'], ML=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  function nz(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); }
+  /* มือถือ (ผู้ใช้เลือก 23 พ.ย. 69): กล่อง "สายตั๋ว" (แบบ C) + รายการกะทัดรัด 2 บรรทัด (แบบ B) · ไฮไลต์เลขที่ค้น */
+  function mParse(divs){
+    var o={t:'',b:''}, n=null;
+    divs.forEach(function(d){ var tx=d.textContent, b=d.querySelectorAll('b');
+      if(/^\s*ตั๋วเดิม/.test(tx)&&b.length>=2){ o={t:b[1].textContent.trim(),b:b[0].textContent.trim()}; }
+      else if(/^\s*ตั๋วใหม่/.test(tx)&&b.length>=2){ n={t:b[1].textContent.trim(),b:b[0].textContent.trim(),a:tx.indexOf('·')>-1?tx.split('·')[1].replace(/บาท/,'').trim():''}; } });
+    return {o:o,n:n};
+  }
+  function bk(x){ return x&&x.b&&x.b!=='-'?x.b:''; }
+  function same(x,y){ return !!x&&!!y&&nz(x.t)===nz(y.t)&&(!bk(x)||!bk(y)||nz(bk(x))===nz(bk(y))); }
+  function mCard(c,type,divs,via,amt,q,bq){
+    var P=mParse(divs), o=P.o, n=P.n, me={t:q,b:bq};
+    var mo=c[3].textContent.trim(), mi=ML.indexOf(mo), tm=c[2].textContent.trim().replace(/:\d\d(?=\s*น?\.?$)/,'').replace(/\s*น\.?$/,'');
+    var tk=function(x,cls){ var h=same(x,me); return '<b class="'+(cls||'')+(h?' hl':'')+'">'+esc(x.t||'-')+'</b><span class="gm-b">/'+esc(bk(x)||'–')+'</span>'; };
+    var line=tk(o);
+    if(n) line+=' <span class="gm-ar">→</span> <span class="gm-nw">'+tk(n,'nw')+(n.a?' · '+esc(n.a):'')+'</span>';
+    else if(type==='ถ') line+=' <span class="gm-red">· ไถ่ถอนแล้ว</span>';
+    var html='<div class="gm-it"><span class="gs-ch'+(TY[type]?' t'+TY[type]:'')+'">'+esc(type||'-')+'</span><div class="gm-d">'+esc(c[1].textContent.trim())+'<small>'+(tm?esc(tm)+' · ':'')+esc(mi>=0?MS[mi]:mo)+'</small></div><div class="gm-a">'+esc(amt||'')+'</div><div class="gm-k">'+line+'</div></div>';
+    return {html:html,o:o,n:n};
+  }
+  /* สายตั๋ว: เริ่มจากใบที่ค้น ย้อนไปใบก่อนหน้า (ตั๋วใหม่ = ใบนี้) และต่อไปใบถัดไป (ตั๋วเดิม = ใบนี้ แล้วติดตั๋วใหม่) จากผลค้นหา */
+  function mChain(list,q,bq){
+    var me={t:q,b:bq}, start=null;
+    list.forEach(function(e){ if(!start){ if(same(e.o,me)) start=e.o; else if(e.n&&same(e.n,me)) start=e.n; } });
+    if(!start) start={t:q,b:bq};
+    var chain=[start], used=[], cur=start, k, e, guard=0;
+    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].n,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; chain.unshift(e.o); cur=e.o; }
+    cur=start; guard=0;
+    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].o,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; chain.push(e.n); cur=e.n; }
+    return chain.map(function(x){ return '<span class="gm-ct'+(same(x,me)?' me':'')+'">'+esc(x.t||'-')+'<span>เล่ม '+esc(bk(x)||'–')+'</span></span>'; }).join('<span class="gm-car">→</span>');
+  }
+  /* มือถือ: ป้ายบอกช่อง "เลขที่ตั๋ว / เล่มที่" เหนือช่องค้นหา */
+  (function(){ var row=document.getElementById('global-search-row'); if(!row||document.getElementById('gm-lbl')) return; ['เล่มที่','เลขที่ตั๋ว'].forEach(function(t,i){ var l=document.createElement('span'); l.className='gm-lbl'; if(!i) l.id='gm-lbl'; l.textContent=t; row.insertBefore(l,row.firstChild); }); })();
   function build(){
     host.innerHTML=''; var rows=Array.prototype.slice.call(tb.children); if(!rows.length) return;
     if(rows.length===1&&rows[0].children.length===1){var t=rows[0].textContent.trim();host.innerHTML='<div class="gs-msg'+(/ไม่พบ/.test(t)?' bad':'')+'">'+esc(t)+'</div>';return;}
-    var q=(document.getElementById('global-search-input')||{}).value||'',bq=((document.getElementById('global-search-book')||{}).value||'').trim(), evs=[], dates=rows.map(function(r){return r.children[1].textContent.trim()});
+    var q=(document.getElementById('global-search-input')||{}).value||'',bq=((document.getElementById('global-search-book')||{}).value||'').trim(), evs=[], mev=[], dates=rows.map(function(r){return r.children[1].textContent.trim()});
     rows.forEach(function(tr){
       var c=tr.children; if(c.length<7) return;
       var type=c[4].textContent.trim(), cell=c[5], divs=Array.prototype.slice.call(cell.children), via=false, old='', nw='';
@@ -6864,10 +6936,13 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         else if(/^\s*ตั๋วใหม่/.test(tx)&&b.length>=2){var am=tx.indexOf('·')>-1?' · '+esc(tx.split('·')[1].trim()):''; nw='<span class="gs-arrow">→</span><span class="gs-nt">'+esc(b[1].textContent)+' / เล่ม '+esc(b[0].textContent)+am+'</span>';}
       });
       var amt=c[6].textContent.trim();
+      try{ mev.push(mCard(c,type,divs,via,amt,q,bq)); }catch(e){}
       evs.push('<div class="gs-ev'+(type==='ถ'?' red':'')+'"><div class="gs-r1"><span class="gs-d">'+esc(c[1].textContent.trim())+'</span><span class="gs-s">'+esc(c[2].textContent.trim())+'</span><span class="gs-ch'+(TY[type]?' t'+TY[type]:'')+'">'+esc(type||'-')+'</span><span class="gs-s">คอลัมน์ '+esc(c[3].textContent.trim())+'</span>'+(amt?'<span class="gs-amt">฿ '+esc(amt)+'</span>':'')+'</div><div class="gs-tk">'+old+nw+(via?'<span class="gs-via">พบจากเลขตั๋วใหม่</span>':'')+'</div></div>');
     });
     var hero='<div class="gs-hero"><div><small>ค้นหา</small><b>'+esc(q)+(bq?' / เล่ม '+esc(bq):'')+'</b></div><div><small>พบทั้งหมด</small><b>'+evs.length+' ครั้ง</b></div><div><small>ล่าสุด</small><b>'+esc(dates[0])+'</b></div><div><small>ครั้งแรกที่พบ</small><b>'+esc(dates[dates.length-1])+'</b></div></div>';
-    host.innerHTML=hero+'<div class="gs-tl">'+evs.join('')+'</div>';
+    var mhero='';
+    try{ mhero='<div class="gm-hero"><div class="gm-sum">สายตั๋ว · พบ <b>'+mev.length+'</b> ครั้ง'+(dates.length>1?' · '+esc(dates[dates.length-1])+' – '+esc(dates[0]):' · '+esc(dates[0]))+'</div><div class="gm-chain">'+mChain(mev,q,bq)+'</div></div>'; }catch(e){}
+    host.innerHTML=hero+'<div class="gs-tl">'+evs.join('')+'</div>'+mhero+'<div class="gm-list">'+mev.map(function(x){ return x.html; }).join('')+'</div>';
   }
   new MutationObserver(function(){try{build()}catch(e){console.error('gs-timeline',e)}}).observe(tb,{childList:true});
   try{build()}catch(e){}
@@ -12493,10 +12568,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 4fe7b9dca99a และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 3167eb1d343c และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='4fe7b9dca99a'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='3167eb1d343c'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

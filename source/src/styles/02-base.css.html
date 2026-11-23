@@ -945,6 +945,43 @@
         html body #global-search-modal.fixed .gs-msg{padding:28px;text-align:center;color:#64748b;font-size:15px}
         html body #global-search-modal.fixed .gs-msg.bad{color:#be123c;font-weight:700}
         @media (max-width:640px){html body #global-search-modal.fixed .gs-amt{margin-left:0}html body #global-search-modal.fixed .gs-hero{gap:16px}}
+        /* มือถือ (ผู้ใช้ขอ 23 พ.ย. 69): เต็มจอ · ช่องค้นหามีป้าย · ปุ่มค้นหาเต็มแถว · การ์ด ตั๋วเดิม ↓ ตั๋วใหม่ */
+        #global-search-modal .gm-lbl,#global-search-modal .gm-hero,#global-search-modal .gm-list{display:none}
+        @media (max-width:640px){
+        html body #global-search-modal.fixed{padding:0 !important;align-items:stretch !important}
+        html body #global-search-modal.fixed > div{max-height:none !important;height:100% !important;border-radius:0 !important;max-width:none !important}
+        html body #global-search-modal.fixed > div > div:first-child{padding:12px 14px !important}
+        html body #global-search-modal.fixed > div > div:first-child .rounded-full{display:none !important}
+        html body #global-search-modal.fixed > div > div:first-child h3{font-size:18px !important}
+        html body #global-search-modal.fixed .gm-lbl{display:block;font-size:13px;font-weight:700;color:#475569;margin:0 0 -4px 4px}
+        html body #global-search-modal.fixed #global-search-row{display:grid !important;grid-template-columns:1fr 104px;gap:8px !important;padding:10px 14px 12px !important;border-bottom:1px solid #e2e8f0 !important}
+        html body #global-search-modal.fixed #global-search-book{width:auto !important}
+        html body #global-search-modal.fixed #global-search-row button[onclick="executeGlobalSearch()"]{grid-column:1 / -1;width:100%;height:48px;font-size:17px !important}
+        html body #global-search-modal.fixed > div > div:nth-child(3){padding:10px 12px 24px !important;background:#f1f5f9 !important}
+        html body #global-search-modal.fixed .gs-hero,html body #global-search-modal.fixed .gs-tl{display:none !important}
+        html body #global-search-modal.fixed .gm-hero{display:block;background:#1e1b4b;color:#fff;border-radius:16px;padding:11px 14px;margin:2px 0 12px}
+        html body #global-search-modal.fixed .gm-sum{font-size:13px;color:#c7d2fe}
+        html body #global-search-modal.fixed .gm-sum b{color:#fff;font-size:15px}
+        html body #global-search-modal.fixed .gm-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}
+        html body #global-search-modal.fixed .gm-ct{background:rgba(255,255,255,.13);border-radius:10px;padding:4px 10px;font-weight:800;font-size:18px;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-ct span{font-size:12px;font-weight:600;color:#c7d2fe;margin-left:4px}
+        html body #global-search-modal.fixed .gm-ct.me{background:#fff;color:#1e1b4b}html body #global-search-modal.fixed .gm-ct.me span{color:#4f46e5}
+        html body #global-search-modal.fixed .gm-car{color:#5eead4;font-weight:800}
+        html body #global-search-modal.fixed .gm-list{display:flex;flex-direction:column;gap:8px}
+        html body #global-search-modal.fixed .gm-it{background:#fff;border-radius:14px;padding:10px 12px;border:1px solid #e2e8f0;display:grid;grid-template-columns:40px 1fr auto;gap:3px 10px;align-items:center;color:#0f1b4d}
+        html body #global-search-modal.fixed .gm-it .gs-ch{width:40px;height:40px;font-size:20px;border-radius:11px;grid-row:1 / 3}
+        html body #global-search-modal.fixed .gm-d{font-weight:800;font-size:16px;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-d small{font-weight:600;color:#64748b;font-size:12.5px;margin-left:6px}
+        html body #global-search-modal.fixed .gm-a{font-weight:800;font-size:18px;text-align:right;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-k{grid-column:2 / 4;font-size:15px;color:#334155;line-height:1.45}
+        html body #global-search-modal.fixed .gm-k b{font-size:17px;color:#0f1b4d}
+        html body #global-search-modal.fixed .gm-k b.nw{color:#047857}
+        html body #global-search-modal.fixed .gm-k b.hl{background:#e0e7ff;border-radius:6px;padding:0 5px;color:#3730a3}
+        html body #global-search-modal.fixed .gm-b{color:#64748b;font-size:14px}
+        html body #global-search-modal.fixed .gm-ar{color:#0f766e;font-weight:800}
+        html body #global-search-modal.fixed .gm-nw{color:#047857;font-weight:700;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-red{color:#be123c;font-weight:700}
+        }
         }
 
         /* ===== v1.21 คีย์ด่วน: ดึงยอดเงินจากข้อมูลเดิมในเครื่อง (อ่านอย่างเดียว ไม่แตะสูตร) ===== */
