@@ -953,48 +953,96 @@
         html body #global-search-modal.fixed .gs-msg{padding:28px;text-align:center;color:#64748b;font-size:15px}
         html body #global-search-modal.fixed .gs-msg.bad{color:#be123c;font-weight:700}
         @media (max-width:640px){html body #global-search-modal.fixed .gs-amt{margin-left:0}html body #global-search-modal.fixed .gs-hero{gap:16px}}
-        /* มือถือ (ผู้ใช้ขอ 23 พ.ย. 69): เต็มจอ · ช่องค้นหามีป้าย · ปุ่มค้นหาเต็มแถว · การ์ด ตั๋วเดิม ↓ ตั๋วใหม่ */
-        #global-search-modal .gm-lbl,#global-search-modal .gm-hero,#global-search-modal .gm-list{display:none}
+        /* ค้นหาประวัติตั๋ว แบบใหม่ (แบบที่ผู้ใช้ส่งมา 23 พ.ย. 69 รอบ 2 · ไม่มีปุ่มส่งออก Excel) — ใช้ทั้งมือถือและคอม */
+        html body #global-search-modal.fixed > div > div:first-child{padding:12px 16px !important;background:#0b4a8b !important;border:0 !important}
+        html body #global-search-modal.fixed > div > div:first-child *{color:#fff !important}
+        html body #global-search-modal.fixed > div > div:first-child .rounded-full{display:none !important}
+        html body #global-search-modal.fixed > div > div:first-child h3{font-size:20px !important;display:flex;align-items:center;gap:10px}
+        html body #global-search-modal.fixed .gx-hi{display:inline-flex;width:34px;height:26px}html body #global-search-modal.fixed .gx-hi svg{width:100%;height:100%;stroke:#7dd3fc}
+        html body #global-search-modal.fixed button[onclick="closeGlobalSearch()"]{background:transparent !important;color:#fff !important;font-size:26px !important}
+        html body #global-search-modal.fixed #global-search-row{display:grid !important;grid-template-columns:1fr 0.8fr auto;gap:4px 8px !important;padding:12px !important;margin:10px 10px 0;background:#fff !important;border:1px solid #dbe4f0 !important;border-radius:14px;align-items:end}
+        html body #global-search-modal.fixed .gm-lbl{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;color:#0b2a55}
+        html body #global-search-modal.fixed .gm-lbl svg{width:22px;height:18px;color:#1d6fd1}
+        html body #global-search-modal.fixed #global-search-input,html body #global-search-modal.fixed #global-search-book{height:46px !important;border-radius:10px !important;border:1.5px solid #b6c2d2 !important;font-size:20px !important;padding:0 12px !important;text-align:left !important;width:auto !important;flex:none !important}
+        html body #global-search-modal.fixed #global-search-row button[onclick="executeGlobalSearch()"]{height:46px !important;border-radius:10px !important;background:#0b63c5 !important;padding:0 14px !important;font-size:16px !important;display:flex;align-items:center;gap:6px;box-shadow:none !important}
+        html body #global-search-modal.fixed .gx-si{display:inline-flex;width:20px;height:20px}html body #global-search-modal.fixed .gx-si svg{width:100%;height:100%}
+        html body #global-search-modal.fixed > div > div:nth-child(3){padding:10px 10px 0 !important;background:#f4f7fb !important}
+        html body #global-search-modal.fixed .gs-hero,html body #global-search-modal.fixed .gs-tl{display:none !important}
+        html body #global-search-modal.fixed .gx{display:flex;flex-direction:column;gap:10px;color:#0b2a55}
+        html body #global-search-modal.fixed .gx-card,html body #global-search-modal.fixed .gx-pane{background:#fff;border:1px solid #dbe4f0;border-radius:14px}
+        html body #global-search-modal.fixed .gx-ic{display:inline-flex;flex:none}html body #global-search-modal.fixed .gx-ic svg{width:100%;height:100%}
+        html body #global-search-modal.fixed .gx-res{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;background:#e3eefc;border-color:#cfe0f7;padding:10px 14px}
+        html body #global-search-modal.fixed .gx-res .gx-ic{width:34px;height:34px;color:#1d6fd1}html body #global-search-modal.fixed .gx-res > b{font-size:18px}
+        html body #global-search-modal.fixed .gx-rs{font-size:13.5px;color:#1e3a5f}html body #global-search-modal.fixed .gx-rs b{font-size:15px}html body #global-search-modal.fixed .gx-rs i{font-style:normal;color:#94a3b8;margin:0 6px}
+        html body #global-search-modal.fixed .gx-2c{display:flex;flex-direction:column;gap:10px}html body #global-search-modal.fixed .gx-col{display:flex;flex-direction:column;gap:10px}
+        html body #global-search-modal.fixed .gx-ph{display:flex;align-items:center;gap:8px;background:#0b4a8b;color:#fff;font-weight:800;font-size:14.5px;padding:8px 12px;border-radius:13px 13px 0 0}
+        html body #global-search-modal.fixed .gx-ph svg{width:22px;height:22px;flex:none}
+        html body #global-search-modal.fixed .gx-chain .gx-ch-s{display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:10px}
+        html body #global-search-modal.fixed .gx-tk{white-space:nowrap;font-size:13px;color:#334155}html body #global-search-modal.fixed .gx-tk b{font-size:16px;color:#0b2a55}
+        html body #global-search-modal.fixed .gx-tk.c{background:#e9eef5;border-radius:10px;padding:6px 10px;border:1.5px solid transparent}html body #global-search-modal.fixed .gx-tk.c b{font-size:17px}
+        html body #global-search-modal.fixed .gx-tk.c.me{background:#fff;border-color:#1d6fd1}html body #global-search-modal.fixed .gx-tk.me b{color:#1d4ed8}
+        html body #global-search-modal.fixed .gx-ar{color:#0b4a8b;font-weight:900;font-size:18px;flex:none}
+        html body #global-search-modal.fixed .gx-facts ul{list-style:none;margin:0;padding:4px 12px}
+        html body #global-search-modal.fixed .gx-facts li{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #edf1f6;font-size:14px}html body #global-search-modal.fixed .gx-facts li:first-child{border-top:0}
+        html body #global-search-modal.fixed .gx-li-i{display:inline-flex;width:22px;height:22px;color:#1d6fd1;flex:none}html body #global-search-modal.fixed .gx-li-i svg{width:100%;height:100%}
+        html body #global-search-modal.fixed .gx-li-k{flex:0 0 128px;font-weight:700}
+        html body #global-search-modal.fixed .gx-facts b{font-size:17px}html body #global-search-modal.fixed .gx-facts b.bl{color:#1d4ed8}html body #global-search-modal.fixed .gx-facts b.p{background:#dbeafe;color:#1e3a8a;border-radius:7px;padding:0 10px}html body #global-search-modal.fixed .gx-facts b.g{color:#15803d}
+        html body #global-search-modal.fixed .gx-li-v{font-size:13.5px}
+        html body #global-search-modal.fixed .gx-money{display:flex;flex-direction:column}
+        html body #global-search-modal.fixed .gx-mb{display:flex;align-items:center;gap:8px;padding:12px}
+        html body #global-search-modal.fixed .gx-mv{flex:1;text-align:center;border-radius:12px;padding:8px 6px}
+        html body #global-search-modal.fixed .gx-mv.s{background:#e9f0fa}html body #global-search-modal.fixed .gx-mv.e{background:#dcf5e3}
+        html body #global-search-modal.fixed .gx-mv small{display:block;font-size:13.5px;font-weight:800;color:#1e3a5f}
+        html body #global-search-modal.fixed .gx-mv b{display:block;background:#fff;border-radius:10px;margin:5px 4px;padding:6px 0;font-size:22px;font-weight:800;color:#0b2a55}html body #global-search-modal.fixed .gx-mv.e b{color:#15803d}
+        html body #global-search-modal.fixed .gx-mv em{font-style:normal;font-size:11.5px;color:#64748b}
+        html body #global-search-modal.fixed .gx-mar{color:#1d6fd1;font-size:24px;font-weight:900;flex:none}
+        html body #global-search-modal.fixed .gx-mt{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 12px 12px;border-radius:12px;padding:10px;font-size:15px;font-weight:800}
+        html body #global-search-modal.fixed .gx-mt svg{width:24px;height:24px}html body #global-search-modal.fixed .gx-mt b{font-size:20px}html body #global-search-modal.fixed .gx-mt small{font-size:13px;font-weight:700}
+        html body #global-search-modal.fixed .gx-mt.up{background:#e3f6e8;color:#15803d}html body #global-search-modal.fixed .gx-mt.dn{background:#fff4e5;color:#b45309}html body #global-search-modal.fixed .gx-mt.eq{background:#f1f5f9;color:#475569}
+        html body #global-search-modal.fixed .gx-hh{display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:17px}html body #global-search-modal.fixed .gx-hh svg{width:26px;height:26px;color:#0b2a55}
+        html body #global-search-modal.fixed .gx-tb{border-top:1px solid #dbe4f0;overflow:hidden;border-radius:0 0 13px 13px}
+        html body #global-search-modal.fixed .gx-tr{display:grid;grid-template-columns:28px 1fr auto 76px;grid-template-areas:"no d y m" "no t k m" "no t b m";align-items:center;border-top:1px solid #e5ebf3;column-gap:6px;padding:7px 8px}
+        html body #global-search-modal.fixed .gx-tr > span{min-width:0}
+        html body #global-search-modal.fixed .gx-no{grid-area:no;text-align:center;font-weight:800}html body #global-search-modal.fixed .gx-c-d{grid-area:d}html body #global-search-modal.fixed .gx-c-t{grid-area:t}html body #global-search-modal.fixed .gx-c-y{grid-area:y;text-align:right}html body #global-search-modal.fixed .gx-c-k{grid-area:k;text-align:right}html body #global-search-modal.fixed .gx-c-b{grid-area:b;text-align:right}html body #global-search-modal.fixed .gx-m{grid-area:m}
+        html body #global-search-modal.fixed .gx-th{display:none}
+        html body #global-search-modal.fixed .gx-c-d,html body #global-search-modal.fixed .gx-c-t{display:flex;align-items:center;gap:4px;font-size:12.5px;white-space:nowrap}html body #global-search-modal.fixed .gx-c-d svg,html body #global-search-modal.fixed .gx-c-t svg{width:14px;height:14px;flex:none}html body #global-search-modal.fixed .gx-c-d b{font-size:14px}
+        html body #global-search-modal.fixed .gx-ty{display:inline-block;border-radius:8px;padding:2px 10px;font-size:12.5px;font-weight:800;background:#e2e8f0;color:#334155}
+        html body #global-search-modal.fixed .gx-ty.t1{background:#fde68a;color:#78350f}html body #global-search-modal.fixed .gx-ty.t2{background:#ddd6fe;color:#4c1d95}html body #global-search-modal.fixed .gx-ty.t3{background:#bbf7d0;color:#14532d}html body #global-search-modal.fixed .gx-ty.t4{background:#fecdd3;color:#881337}
+        html body #global-search-modal.fixed .gx-c-k,html body #global-search-modal.fixed .gx-c-b{font-size:13px;white-space:nowrap}
+        html body #global-search-modal.fixed .gx-c-k::before{content:"ตั๋ว ";color:#64748b;font-size:11.5px}html body #global-search-modal.fixed .gx-c-b::before{content:"เล่ม ";color:#64748b;font-size:11.5px}
+        html body #global-search-modal.fixed .gx-tt{font-weight:800;font-size:15px}html body #global-search-modal.fixed .gx-tt.me,html body #global-search-modal.fixed .gx-tn.me{color:#1d4ed8}
+        html body #global-search-modal.fixed .gx-tn{margin-left:4px;color:#15803d;font-weight:700}
+        html body #global-search-modal.fixed .gx-m{text-align:right;font-weight:800;font-size:15.5px;color:#1e3a8a}
+        html body #global-search-modal.fixed .gx-df{display:block;font-size:11.5px;font-weight:800;margin-top:2px;line-height:1.2}html body #global-search-modal.fixed .gx-df b{white-space:nowrap}html body #global-search-modal.fixed .gx-df.up{color:#b45309}html body #global-search-modal.fixed .gx-df.dn{color:#15803d}html body #global-search-modal.fixed .gx-df.eq{color:#64748b;font-weight:600}
+        html body #global-search-modal.fixed .gx-na{display:block;font-size:11px;color:#64748b;font-weight:600}
+        html body #global-search-modal.fixed .gx-act{position:sticky;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#fff;margin:0 -10px;padding:10px;border-top:1px solid #dbe4f0}
+        html body #global-search-modal.fixed .gx-b{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;border:0;border-radius:10px;font-size:14px;font-weight:800;color:#fff}
+        html body #global-search-modal.fixed .gx-b svg{width:20px;height:20px}
+        html body #global-search-modal.fixed .gx-b.re{background:#e2e8f0;color:#0b2a55}html body #global-search-modal.fixed .gx-b.pr{background:#0b63c5}html body #global-search-modal.fixed .gx-b.pd{background:#dc2626}
         @media (max-width:640px){
         html body #global-search-modal.fixed{padding:0 !important;align-items:stretch !important}
-        html body #global-search-modal.fixed > div{max-height:none !important;height:100% !important;border-radius:0 !important;max-width:none !important}
-        html body #global-search-modal.fixed > div > div:first-child{padding:12px 14px !important}
-        html body #global-search-modal.fixed > div > div:first-child .rounded-full{display:none !important}
-        html body #global-search-modal.fixed > div > div:first-child h3{font-size:18px !important}
-        html body #global-search-modal.fixed .gm-lbl{display:block;font-size:13px;font-weight:700;color:#475569;margin:0 0 -4px 4px}
-        html body #global-search-modal.fixed #global-search-row{display:grid !important;grid-template-columns:1fr 104px;gap:8px !important;padding:10px 14px 12px !important;border-bottom:1px solid #e2e8f0 !important}
-        html body #global-search-modal.fixed #global-search-book{width:auto !important}
-        html body #global-search-modal.fixed #global-search-row button[onclick="executeGlobalSearch()"]{grid-column:1 / -1;width:100%;height:48px;font-size:17px !important}
-        html body #global-search-modal.fixed > div > div:nth-child(3){padding:10px 12px 24px !important;background:#f1f5f9 !important}
-        html body #global-search-modal.fixed .gs-hero,html body #global-search-modal.fixed .gs-tl{display:none !important}
-        html body #global-search-modal.fixed .gm-hero{display:block;background:#1e1b4b;color:#fff;border-radius:16px;padding:11px 14px;margin:2px 0 12px}
-        html body #global-search-modal.fixed .gm-sum{font-size:13px;color:#c7d2fe}
-        html body #global-search-modal.fixed .gm-sum b{color:#fff;font-size:15px}
-        html body #global-search-modal.fixed .gm-chain{margin-top:8px;display:flex;flex-direction:column}
-        html body #global-search-modal.fixed .gm-cn{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.12);border-radius:12px;padding:6px 12px}
-        html body #global-search-modal.fixed .gm-cn.me{background:#fff;color:#1e1b4b}
-        html body #global-search-modal.fixed .gm-cl{flex:0 0 82px;font-size:13px;font-weight:700;color:#c7d2fe}
-        html body #global-search-modal.fixed .gm-cn.me .gm-cl{color:#4f46e5}
-        html body #global-search-modal.fixed .gm-cv{font-size:22px;font-weight:800;line-height:1.2;white-space:nowrap}
-        html body #global-search-modal.fixed .gm-cv small{font-size:13px;font-weight:600;color:#c7d2fe;margin-left:8px}
-        html body #global-search-modal.fixed .gm-cn.me .gm-cv small{color:#4f46e5}
-        html body #global-search-modal.fixed .gm-cj{display:flex;align-items:center;gap:8px;padding:2px 0 2px 38px;font-size:12.5px;color:#a5b4fc}
-        html body #global-search-modal.fixed .gm-cj span{color:#5eead4;font-weight:800;font-size:17px}
-        html body #global-search-modal.fixed .gm-list{display:flex;flex-direction:column;gap:8px}
-        html body #global-search-modal.fixed .gm-it{background:#fff;border-radius:14px;padding:10px 12px;border:1px solid #e2e8f0;display:grid;grid-template-columns:40px 1fr auto;gap:3px 10px;align-items:center;color:#0f1b4d}
-        html body #global-search-modal.fixed .gm-it .gs-ch{width:40px;height:40px;font-size:20px;border-radius:11px;grid-row:1 / 3}
-        html body #global-search-modal.fixed .gm-d{font-weight:800;font-size:16px;white-space:nowrap}
-        html body #global-search-modal.fixed .gm-d small{font-weight:600;color:#64748b;font-size:12.5px;margin-left:6px}
-        html body #global-search-modal.fixed .gm-a{font-weight:800;font-size:18px;text-align:right;white-space:nowrap}
-        html body #global-search-modal.fixed .gm-k{grid-column:2 / 4;font-size:15px;color:#334155;line-height:1.45}
-        html body #global-search-modal.fixed .gm-k b{font-size:17px;color:#0f1b4d}
-        html body #global-search-modal.fixed .gm-k b.nw{color:#047857}
-        html body #global-search-modal.fixed .gm-k b.hl{background:#e0e7ff;border-radius:6px;padding:0 5px;color:#3730a3}
-        html body #global-search-modal.fixed .gm-b{color:#64748b;font-size:14px}
-        html body #global-search-modal.fixed .gm-ar{color:#0f766e;font-weight:800}
-        html body #global-search-modal.fixed .gm-nw{color:#047857;font-weight:700;white-space:nowrap}
-        html body #global-search-modal.fixed .gm-red{color:#be123c;font-weight:700}
+        html body #global-search-modal.fixed > div{max-height:none !important;height:100% !important;border-radius:0 !important;max-width:none !important;background:#f4f7fb !important}
         }
+        @media (min-width:641px){
+html body #global-search-modal.fixed > div{max-width:1100px !important;background:#f4f7fb !important;max-height:94vh !important}
+html body #global-search-modal.fixed > div > div:first-child{padding:14px 22px !important}
+html body #global-search-modal.fixed #global-search-row{grid-template-columns:1fr 1fr 170px;margin:14px 18px 0;padding:14px 18px !important;column-gap:16px !important}
+html body #global-search-modal.fixed > div > div:nth-child(3){padding:14px 18px 0 !important}
+html body #global-search-modal.fixed .gx{gap:14px}
+html body #global-search-modal.fixed .gx-2c{display:grid;grid-template-columns:1fr 1.15fr;gap:14px;align-items:stretch}
+html body #global-search-modal.fixed .gx-col:last-child > .gx-money{height:100%}
+html body #global-search-modal.fixed .gx-mb{flex:1;padding:16px}html body #global-search-modal.fixed .gx-mv b{font-size:28px;padding:10px 0}html body #global-search-modal.fixed .gx-mt{font-size:17px;padding:14px}html body #global-search-modal.fixed .gx-mt b{font-size:24px}
+html body #global-search-modal.fixed .gx-tr{grid-template-columns:64px 170px 130px 110px 1fr 1fr 170px;grid-template-areas:"no d t y k b m";padding:0;column-gap:0}
+html body #global-search-modal.fixed .gx-tr > span{padding:10px 10px;border-left:1px solid #e5ebf3;align-self:stretch;display:flex;align-items:center}
+html body #global-search-modal.fixed .gx-tr > span:first-child{border-left:0;justify-content:center}
+html body #global-search-modal.fixed .gx-th{display:grid;background:#0b4a8b;color:#fff;font-size:13.5px;font-weight:700;border-top:0}html body #global-search-modal.fixed .gx-th > span{justify-content:center;border-left-color:#2a64a3}
+html body #global-search-modal.fixed .gx-c-y,html body #global-search-modal.fixed .gx-c-k,html body #global-search-modal.fixed .gx-c-b{justify-content:center;text-align:center}
+html body #global-search-modal.fixed .gx-c-k::before,html body #global-search-modal.fixed .gx-c-b::before{content:none}
+html body #global-search-modal.fixed .gx-c-k,html body #global-search-modal.fixed .gx-c-b{flex-direction:column;gap:1px}html body #global-search-modal.fixed .gx-tn{margin-left:0;font-size:13px}
+html body #global-search-modal.fixed .gx-m{flex-direction:column;align-items:flex-end !important;justify-content:center;font-size:19px;padding-right:16px !important}
+html body #global-search-modal.fixed .gx-df{font-size:13px}
+html body #global-search-modal.fixed .gx-act{margin:0 -18px;padding:12px 18px}
+html body #global-search-modal.fixed .gx-b{height:50px;font-size:16px}
         }
 
         /* ===== v1.21 คีย์ด่วน: ดึงยอดเงินจากข้อมูลเดิมในเครื่อง (อ่านอย่างเดียว ไม่แตะสูตร) ===== */
@@ -6894,7 +6942,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
   var TY={'ส':1,'พ':2,'ผ':3,'ถ':4};
   var MS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'], ML=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   function nz(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); }
-  /* มือถือ (ผู้ใช้เลือก 23 พ.ย. 69): กล่อง "สายตั๋ว" (แบบ C) + รายการกะทัดรัด 2 บรรทัด (แบบ B) · ไฮไลต์เลขที่ค้น */
+  /* มือถือ (แบบที่ผู้ใช้ส่งมา 23 พ.ย. 69): หัวสีน้ำเงิน · ช่องค้นหา 3 ช่องในแถวเดียว · ผลการค้นหา · ลำดับการเปลี่ยนเล่ม
+     · ยอดเงินจาก→ไป · ตาราง ลำดับ/วันที่/รายการ/จำนวนเงิน · รายละเอียดเพิ่มเติม · ปุ่มค้นหาใหม่/พิมพ์/Excel/PDF */
   function mParse(divs){
     var o={t:'',b:''}, n=null;
     divs.forEach(function(d){ var tx=d.textContent, b=d.querySelectorAll('b');
@@ -6904,37 +6953,110 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
   }
   function bk(x){ return x&&x.b&&x.b!=='-'?x.b:''; }
   function same(x,y){ return !!x&&!!y&&nz(x.t)===nz(y.t)&&(!bk(x)||!bk(y)||nz(bk(x))===nz(bk(y))); }
+  function num(v){ return Number(String(v==null?'':v).replace(/[^\d.\-]/g,''))||0; }
+  function fm(n){ return Number(n||0).toLocaleString('en-US'); }
+  /* ส่วนต่างยอด = ยอดตั๋วใหม่ − ยอดตั๋วเดิม : บวก = เพิ่มเงิน · ลบ = ผ่อนต้น (ผู้ใช้ขอ 23 พ.ย. 69) */
+  function diffOf(e){ if(!e||!e.n||!e.n.a||!String(e.amt||'').trim()) return null; var d=num(e.n.a)-num(e.amt); return Math.round(d*100)/100; }
+  function diffTxt(d){ return d>0?'เพิ่ม +'+fm(d):(d<0?'ผ่อน −'+fm(-d):'ยอดเท่าเดิม'); }
+  function diffHtml(d){ return d>0?'เพิ่ม <b>+'+fm(d)+'</b>':(d<0?'ผ่อน <b>−'+fm(-d)+'</b>':'ยอดเท่าเดิม'); }
   function mCard(c,type,divs,via,amt,q,bq){
-    var P=mParse(divs), o=P.o, n=P.n, me={t:q,b:bq};
-    var mo=c[3].textContent.trim(), mi=ML.indexOf(mo), tm=c[2].textContent.trim().replace(/:\d\d(?=\s*น?\.?$)/,'').replace(/\s*น\.?$/,'');
-    var tk=function(x,cls){ var h=same(x,me); return '<b class="'+(cls||'')+(h?' hl':'')+'">'+esc(x.t||'-')+'</b><span class="gm-b">/'+esc(bk(x)||'–')+'</span>'; };
-    var line=tk(o);
-    if(n) line+=' <span class="gm-ar">→</span> <span class="gm-nw">'+tk(n,'nw')+(n.a?' · '+esc(n.a):'')+'</span>';
-    else if(type==='ถ') line+=' <span class="gm-red">· ไถ่ถอนแล้ว</span>';
-    var html='<div class="gm-it"><span class="gs-ch'+(TY[type]?' t'+TY[type]:'')+'">'+esc(type||'-')+'</span><div class="gm-d">'+esc(c[1].textContent.trim())+'<small>'+(tm?esc(tm)+' · ':'')+esc(mi>=0?MS[mi]:mo)+'</small></div><div class="gm-a">'+esc(amt||'')+'</div><div class="gm-k">'+line+'</div></div>';
-    return {html:html,o:o,n:n,d:c[1].textContent.trim(),ty:type};
+    var P=mParse(divs), mo=c[3].textContent.trim(), mi=ML.indexOf(mo);
+    var tm=c[2].textContent.trim().replace(/:\d\d(?=\s*น?\.?$)/,'').replace(/\s*น\.?$/,'');
+    return {o:P.o,n:P.n,d:c[1].textContent.trim(),tm:tm,ty:type,amt:amt,mo:mi>=0?MS[mi]:mo};
   }
-  /* สายตั๋ว: เริ่มจากใบที่ค้น ย้อนไปใบก่อนหน้า (ตั๋วใหม่ = ใบนี้) และต่อไปใบถัดไป (ตั๋วเดิม = ใบนี้ แล้วติดตั๋วใหม่) จากผลค้นหา */
-  function mChain(list,q,bq){
-    var me={t:q,b:bq}, start=null;
+  function tkh(x,me,cls){ return '<span class="gx-tk'+(cls?' '+cls:'')+(same(x,me)?' me':'')+'"><b>'+esc(x.t||'-')+'</b> / '+esc(bk(x)||'–')+'</span>'; }
+  function mChain(list,me){
+    var start=null;
     list.forEach(function(e){ if(!start){ if(same(e.o,me)) start=e.o; else if(e.n&&same(e.n,me)) start=e.n; } });
-    if(!start) start={t:q,b:bq};
-    /* แนวตั้ง (ผู้ใช้ขอ 23 พ.ย. 69): ใบละแถว ไม่ตัดบรรทัดกลางสาย · ระหว่างใบบอกวันที่/ประเภทที่เปลี่ยนตั๋ว */
-    var nodes=[start], links=[], used=[], cur=start, k, e, guard=0, meAt=0;
-    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].n,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.unshift(e.o); links.unshift(e); cur=e.o; meAt++; }
-    cur=start; guard=0;
-    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].o,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.push(e.n); links.push(e); cur=e.n; }
-    var h='';
-    nodes.forEach(function(x,i){
-      var lbl=i===meAt?'ใบที่ค้น':(i<meAt?'ใบก่อนหน้า':'ใบใหม่');
-      h+='<div class="gm-cn'+(i===meAt?' me':'')+'"><span class="gm-cl">'+lbl+'</span><span class="gm-cv">'+esc(x.t||'-')+'<small>เล่ม '+esc(bk(x)||'–')+'</small></span></div>';
-      if(links[i]) h+='<div class="gm-cj"><span>↓</span>'+esc(links[i].d)+(links[i].ty?' · '+esc(links[i].ty):'')+'</div>';
-    });
-    return h;
+    if(!start) start=me;
+    var nodes=[start], links=[], used=[], cur=start, k, e, g=0;
+    while(g++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].n,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.unshift(e.o); links.unshift(e); cur=e.o; }
+    cur=start; g=0;
+    while(g++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].o,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.push(e.n); links.push(e); cur=e.n; }
+    return {nodes:nodes,links:links};
   }
-
-  /* มือถือ: ป้ายบอกช่อง "เลขที่ตั๋ว / เล่มที่" เหนือช่องค้นหา */
-  (function(){ var row=document.getElementById('global-search-row'); if(!row||document.getElementById('gm-lbl')) return; ['เล่มที่','เลขที่ตั๋ว'].forEach(function(t,i){ var l=document.createElement('span'); l.className='gm-lbl'; if(!i) l.id='gm-lbl'; l.textContent=t; row.insertBefore(l,row.firstChild); }); })();
+  var IC={
+    tk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M12 9.5l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 11.6l2-.3z" fill="currentColor" stroke="none"/></svg>',
+    bk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>',
+    sr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+    doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6v18h6"/><path d="M14 3l5 5v3"/><path d="M14 3v5h5M8 12h6M8 16h3"/><circle cx="17" cy="17" r="3"/><path d="M19.2 19.2L22 22"/></svg>',
+    coin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="15" cy="6" rx="6" ry="2.5"/><path d="M9 6v4c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V6M9 10v4c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4"/><ellipse cx="8" cy="14" rx="6" ry="2.5"/><path d="M2 14v4c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4"/></svg>',
+    cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+    clk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    inf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+    rst:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 4v6h6"/><path d="M4.5 10A8 8 0 1 1 6 17"/></svg>',
+    prn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>',
+    xls:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8l8 8M16 8l-8 8"/></svg>',
+    pdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M8 15h8M8 18h5"/></svg>'
+  };
+  var LAST=null;
+  var IC2={
+    sw:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></svg>',
+    ly:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+    id:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M14 10h4M14 14h4"/></svg>',
+    ch:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="13" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="11" rx="1"/><rect x="16" y="4" width="4" height="16" rx="1"/></svg>',
+    cb:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg>'
+  };
+  var TN={'ส':'ส่งดอก','พ':'เพิ่มเงิน','ผ':'ผ่อนต้น','ถ':'ไถ่ถอน'};
+  function mRender(list,q,bq,dates){
+    var me={t:q,b:bq}, C=mChain(list,me), first=list[list.length-1], last=list[0];
+    var cur=C.nodes[C.nodes.length-1];
+    var startAmt=first?num(first.amt):0, lastAmt=last?(last.n&&last.n.a?num(last.n.a):num(last.amt)):0;
+    LAST={q:q,bq:bq,list:list,cur:cur,startAmt:startAmt,lastAmt:lastAmt,first:first,last:last,dates:dates};
+    var range=dates.length?esc(dates[dates.length-1])+(dates.length>1?' – '+esc(dates[0]):''):'-';
+    var h='<div class="gx-card gx-res"><span class="gx-ic">'+IC.doc+'</span><b>ผลการค้นหา</b><span class="gx-rs">พบข้อมูล <b>'+list.length+'</b> ครั้ง <i>|</i> ช่วงวันที่ '+range+'</span></div>';
+    /* ซ้าย: ลำดับการเปลี่ยนตั๋ว + ข้อมูลสรุป */
+    var L='<div class="gx-pane gx-chain"><div class="gx-ph">'+IC2.sw+'ลำดับการเปลี่ยนตั๋ว / เล่ม</div><div class="gx-ch-s">'+C.nodes.map(function(x){ return tkh(x,me,'c'); }).join('<span class="gx-ar">→</span>')+'</div></div>';
+    var li=function(ic,k,v){ return '<li><span class="gx-li-i">'+ic+'</span><span class="gx-li-k">'+k+'</span>'+v+'</li>'; };
+    L+='<div class="gx-pane gx-facts"><ul>'+li(IC2.ly,'จำนวนครั้งที่พบ','<b class="bl">'+list.length+' ครั้ง</b>')+li(IC.cal,'ช่วงวันที่','<span class="gx-li-v">'+range+'</span>')+
+       li(IC2.id,'เลขที่ตั๋วปัจจุบัน','<b class="p">'+esc(cur.t||'-')+'</b>')+li(IC.bk,'เล่มปัจจุบัน','<b class="p">'+esc(bk(cur)||'–')+'</b>')+li(IC.coin,'ยอดล่าสุด','<b class="g">'+fm(lastAmt)+' ฿</b>')+'</ul></div>';
+    /* ขวา: ยอดเงินเปลี่ยนจาก → เป็น */
+    var R='<div class="gx-pane gx-money"><div class="gx-ph">'+IC.coin+'ยอดเงินเปลี่ยนจากเท่าไร → เป็นเท่าไร</div><div class="gx-mb">'+
+      '<div class="gx-mv s"><small>ยอดเริ่มต้น</small><b>'+fm(startAmt)+' ฿</b><em>'+esc(first?first.d:'')+'</em></div><span class="gx-mar">→</span>'+
+      '<div class="gx-mv e"><small>ยอดล่าสุด</small><b>'+fm(lastAmt)+' ฿</b><em>'+esc(last?last.d:'')+'</em></div></div>';
+    var dd=Math.round((lastAmt-startAmt)*100)/100, pc=startAmt?Math.round(dd/startAmt*10000)/100:0;
+    R+='<div class="gx-mt '+(dd>0?'up':(dd<0?'dn':'eq'))+'">'+IC2.ch+(dd>0?'เพิ่มขึ้น <b>'+fm(dd)+' ฿</b> <small>(+'+pc.toFixed(2)+'%)</small>':(dd<0?'ลดลง <b>'+fm(-dd)+' ฿</b> <small>('+pc.toFixed(2)+'%)</small>':'ยอดเท่าเดิม'))+'</div></div>';
+    h+='<div class="gx-2c"><div class="gx-col">'+L+'</div><div class="gx-col">'+R+'</div></div>';
+    /* ประวัติรายการทั้งหมด */
+    h+='<div class="gx-pane gx-hist"><div class="gx-hh">'+IC2.cb+'<b>ประวัติรายการทั้งหมด</b></div><div class="gx-tb"><div class="gx-tr gx-th"><span>ลำดับ</span><span>วันที่</span><span>เวลา</span><span>ประเภท</span><span>เลขที่ตั๋ว</span><span>เล่มที่</span><span>จำนวนเงิน (฿)</span></div>';
+    list.forEach(function(e,i){
+      var d=diffOf(e);
+      var tk='<span class="gx-tt'+(same(e.o,me)?' me':'')+'">'+esc(e.o.t||'-')+'</span>'+(e.n?'<span class="gx-tn'+(same(e.n,me)?' me':'')+'">→ '+esc(e.n.t)+'</span>':'');
+      var bb='<span class="gx-tt">'+esc(bk(e.o)||'–')+'</span>'+(e.n?'<span class="gx-tn">→ '+esc(bk(e.n)||'–')+'</span>':'');
+      h+='<div class="gx-tr"><span class="gx-no">'+(i+1)+'</span><span class="gx-c-d">'+IC.cal+'<b>'+esc(e.d)+'</b></span><span class="gx-c-t">'+IC.clk+esc(e.tm||'-')+(e.tm?' น.':'')+'</span>'+
+        '<span class="gx-c-y"><span class="gx-ty'+(TY[e.ty]?' t'+TY[e.ty]:'')+'">'+esc(TN[e.ty]||e.ty||'-')+'</span></span><span class="gx-c-k">'+tk+'</span><span class="gx-c-b">'+bb+'</span>'+
+        '<span class="gx-m">'+esc(e.amt||'')+(d===null?'':'<small class="gx-df '+(d>0?'up':(d<0?'dn':'eq'))+'">'+diffHtml(d)+'</small>')+(e.n&&e.n.a?'<small class="gx-na">ตั๋วใหม่ '+esc(e.n.a)+'</small>':'')+'</span></div>';
+    });
+    h+='</div></div>';
+    h+='<div class="gx-act"><button type="button" class="gx-b re" onclick="__gxAct(\'new\')">'+IC.rst+'ค้นหาใหม่</button><button type="button" class="gx-b pr" onclick="__gxAct(\'print\')">'+IC.prn+'พิมพ์</button><button type="button" class="gx-b pd" onclick="__gxAct(\'pdf\')">'+IC.pdf+'ส่งออก PDF</button></div>';
+    return '<div class="gx">'+h+'</div>';
+  }
+  /* ปุ่มด้านล่าง: ค้นหาใหม่ = ล้างช่องแล้วโฟกัส · Excel = ไฟล์ .csv (เปิดใน Excel ได้) · พิมพ์/PDF = พิมพ์เฉพาะผลค้นหานี้ในกรอบแยก (ไม่แตะหน้าพิมพ์บัญชี) */
+  function sheetRows(){ var L=LAST; if(!L) return []; var r=[['ลำดับ','วันที่','เวลา','เดือน','ประเภท','ตั๋วเดิม','เล่มเดิม','ตั๋วใหม่','เล่มใหม่','ยอดตั๋วเดิม','ยอดตั๋วใหม่','เพิ่ม/ผ่อน']];
+    L.list.forEach(function(e,i){ r.push([i+1,e.d,e.tm,e.mo,e.ty,e.o.t,bk(e.o),e.n?e.n.t:'',e.n?bk(e.n):'',num(e.amt)||'',e.n&&e.n.a?num(e.n.a):'',(function(){ var d=diffOf(e); return d===null?'':diffTxt(d); })()]); }); return r; }
+  window.__gxAct=function(a){
+    var L=LAST, I=document.getElementById('global-search-input'), B=document.getElementById('global-search-book');
+    if(a==='new'){ if(I) I.value=''; if(B) B.value=''; host.innerHTML=''; try{ tb.innerHTML=''; }catch(e){} if(I) I.focus(); return; }
+    if(!L) return;
+    var name='ประวัติตั๋ว_'+String(L.q).replace(/[^\w\-]/g,'')+(L.bq?'_เล่ม'+String(L.bq).replace(/[^\w\-]/g,''):'');
+    if(a==='xls'){
+      var csv='\ufeff'+sheetRows().map(function(r){ return r.map(function(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }).join(','); }).join('\r\n');
+      var url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})), x=document.createElement('a'); x.href=url; x.download=name+'.csv'; document.body.appendChild(x); x.click(); setTimeout(function(){ URL.revokeObjectURL(url); x.remove(); },1500); return;
+    }
+    var rows=sheetRows(), th=rows.shift();
+    var html='<!doctype html><'+'html><'+'head><meta charset="utf-8"><title>'+esc(name)+'</title><'+'style>body{font-family:Sarabun,sans-serif;margin:16mm 12mm;color:#000}h2{margin:0 0 4px;font-size:18px}p{margin:0 0 10px;font-size:13px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #555;padding:4px 6px;text-align:center}th{background:#eee}td.r{text-align:right}</'+'style></'+'head><'+'body>'+
+      '<h2>ประวัติตั๋ว '+esc(L.q)+(L.bq?' / เล่ม '+esc(L.bq):'')+'</h2><p>พบข้อมูล '+L.list.length+' ครั้ง · ตั๋วปัจจุบัน '+esc(L.cur.t||'-')+' / เล่ม '+esc(bk(L.cur)||'–')+' · ยอดเริ่มต้น '+fm(L.startAmt)+' · ยอดล่าสุด '+fm(L.lastAmt)+' บาท</p>'+
+      '<table><thead><tr>'+th.map(function(v){ return '<th>'+esc(v)+'</th>'; }).join('')+'</tr></thead><tbody>'+rows.map(function(r){ return '<tr>'+r.map(function(v,i){ return '<td'+(i>=9?' class="r"':'')+'>'+esc(i>=9&&i<=10&&v!==''?fm(v):v)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></'+'body></'+'html>';
+    var f=document.getElementById('gx-print'); if(f) f.remove();
+    f=document.createElement('iframe'); f.id='gx-print'; f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'; document.body.appendChild(f);
+    var d=f.contentWindow.document; d.open(); d.write(html); d.close();
+    setTimeout(function(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ console.error(e); } },300);
+  };
+  /* มือถือ: ป้ายบอกช่อง + ไอคอนบนหัว */
+  (function(){ var row=document.getElementById('global-search-row'); if(!row||document.getElementById('gm-lbl')) return;
+    [['',''],['เล่มที่',IC.bk],['เลขที่ตั๋ว',IC.tk]].forEach(function(t,i){ var l=document.createElement('span'); l.className='gm-lbl'; if(i===2) l.id='gm-lbl'; l.innerHTML=t[1]+esc(t[0]); row.insertBefore(l,row.firstChild); });
+    var bt=row.querySelector('button[onclick="executeGlobalSearch()"]'); if(bt&&!bt.querySelector('svg')){ var sp=document.createElement('span'); sp.className='gx-si'; sp.innerHTML=IC.sr; bt.insertBefore(sp,bt.firstChild); }
+    var h3=document.querySelector('#global-search-modal h3'); if(h3&&!h3.querySelector('.gx-hi')){ var hi=document.createElement('span'); hi.className='gx-hi'; hi.innerHTML=IC.tk; h3.insertBefore(hi,h3.firstChild); } })();
   function build(){
     host.innerHTML=''; var rows=Array.prototype.slice.call(tb.children); if(!rows.length) return;
     if(rows.length===1&&rows[0].children.length===1){var t=rows[0].textContent.trim();host.innerHTML='<div class="gs-msg'+(/ไม่พบ/.test(t)?' bad':'')+'">'+esc(t)+'</div>';return;}
@@ -6953,9 +7075,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
       evs.push('<div class="gs-ev'+(type==='ถ'?' red':'')+'"><div class="gs-r1"><span class="gs-d">'+esc(c[1].textContent.trim())+'</span><span class="gs-s">'+esc(c[2].textContent.trim())+'</span><span class="gs-ch'+(TY[type]?' t'+TY[type]:'')+'">'+esc(type||'-')+'</span><span class="gs-s">คอลัมน์ '+esc(c[3].textContent.trim())+'</span>'+(amt?'<span class="gs-amt">฿ '+esc(amt)+'</span>':'')+'</div><div class="gs-tk">'+old+nw+(via?'<span class="gs-via">พบจากเลขตั๋วใหม่</span>':'')+'</div></div>');
     });
     var hero='<div class="gs-hero"><div><small>ค้นหา</small><b>'+esc(q)+(bq?' / เล่ม '+esc(bq):'')+'</b></div><div><small>พบทั้งหมด</small><b>'+evs.length+' ครั้ง</b></div><div><small>ล่าสุด</small><b>'+esc(dates[0])+'</b></div><div><small>ครั้งแรกที่พบ</small><b>'+esc(dates[dates.length-1])+'</b></div></div>';
-    var mhero='';
-    try{ mhero='<div class="gm-hero"><div class="gm-sum">สายตั๋ว · พบ <b>'+mev.length+'</b> ครั้ง'+(dates.length>1?' · '+esc(dates[dates.length-1])+' – '+esc(dates[0]):' · '+esc(dates[0]))+'</div><div class="gm-chain">'+mChain(mev,q,bq)+'</div></div>'; }catch(e){}
-    host.innerHTML=hero+'<div class="gs-tl">'+evs.join('')+'</div>'+mhero+'<div class="gm-list">'+mev.map(function(x){ return x.html; }).join('')+'</div>';
+    var mx=''; try{ mx=mRender(mev,q,bq,dates); }catch(e){ console.error('gx',e); }
+    host.innerHTML=hero+'<div class="gs-tl">'+evs.join('')+'</div>'+mx;
   }
   new MutationObserver(function(){try{build()}catch(e){console.error('gs-timeline',e)}}).observe(tb,{childList:true});
   try{build()}catch(e){}
@@ -12581,10 +12702,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 3ddd79aabe76 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน e8628de1ebd7 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='3ddd79aabe76'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='e8628de1ebd7'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
