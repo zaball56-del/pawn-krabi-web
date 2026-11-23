@@ -51,19 +51,22 @@
     try{
       if(!N.value.trim()&&N.classList.contains('qs-copy')){ N.classList.remove('qs-copy'); }
       var isS=String(TY.value||'').trim()==='ส', a=String(A.value||'').trim();
-      if(isS&&a&&(N.value.trim()===''||N.classList.contains('qs-copy'))){
+      if(isS&&a&&!N.classList.contains('qs-own')&&(N.value.trim()===''||N.classList.contains('qs-copy'))){
         if(N.value!==a){ N.value=a; }
         N.classList.add('qs-copy'); hint.textContent='คัดลอกจากยอดตั๋วเดิม (ส) แก้ได้';
       } else if(!isS&&N.classList.contains('qs-copy')){ N.value=''; N.classList.remove('qs-copy'); hint.textContent=''; }
       else if(!N.classList.contains('qs-copy')) hint.textContent='';
     }catch(e){}
   }
-  N.addEventListener('input',function(e){ if(e.isTrusted||!e.__qsCopy){ N.classList.remove('qs-copy'); hint.textContent=''; } });
+  /* พิมพ์ในช่องยอดตั๋วใหม่เอง (รวมลบจนว่างเพื่อพิมพ์ใหม่) = ใช้ค่าของผู้ใช้ ไม่คัดลอกทับอีก จนกว่าจะล้างช่อง/เปลี่ยนประเภท/ใบถัดไป */
+  N.addEventListener('input',function(){ N.classList.remove('qs-copy'); N.classList.add('qs-own'); hint.textContent=''; });
+  TY.addEventListener('change',function(){ N.classList.remove('qs-own'); });
+  var oc2=window.qsClearFields; if(typeof oc2==='function') window.qsClearFields=function(){ var r=oc2.apply(this,arguments); N.classList.remove('qs-own','qs-copy'); hint.textContent=''; return r; };
   document.addEventListener('input',function(e){ if(e.target===A||e.target===TY) setTimeout(sync,0); },true);
   document.addEventListener('change',function(e){ if(e.target===A||e.target===TY) setTimeout(sync,0); },true);
   /* ยอดตั๋วเดิมที่ระบบเติมเอง (ค้นยอด/บาร์โค้ด) ไม่ส่ง event → ตรวจถี่ ๆ เฉพาะตอนหน้าคีย์ด่วนเปิดอยู่ */
   setInterval(function(){ if(!M.classList.contains('hidden')) sync(); },200);
-  var op=window.qsPaintType; if(typeof op==='function') window.qsPaintType=function(){ var r=op.apply(this,arguments); setTimeout(sync,0); return r; };
+  var lastTy=''; var op=window.qsPaintType; if(typeof op==='function') window.qsPaintType=function(){ var r=op.apply(this,arguments); if(TY.value!==lastTy){ lastTy=TY.value; N.classList.remove('qs-own'); } setTimeout(sync,0); return r; };
   window.__qsCopySync=sync;
 })();
 </script>

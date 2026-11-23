@@ -87,5 +87,24 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
     submitQuickScan(); await new Promise(r=>setTimeout(r,400)); closeQuickScanModal(); window.uiConfirm=oc;
     return {asked, saved:db[k].data['ตุลาคม'].some(x=>x&&x.ticket==='1931'&&x.type==='ผ')}; },[M]);
   ok(!/สธ\.3/.test(r.asked)&&r.saved,'21 ตั๋วไม่อยู่ใน สธ.3 ที่นำเข้าวันนี้ → ไม่ถาม บันทึกเลย ('+(r.asked||'ไม่มีหน้าต่าง').slice(0,60)+')');
+  // นำเข้า สธ.2 ก่อนมีระบบนี้ (day.sor2 ไม่มี pledgeSor2) → ยึด สธ.2 · ถ้าเคยถูกบวกซ้ำไปแล้ว → คืนยอด สธ.2
+  r=await pg.evaluate(async([M])=>{ const mk=(k,extra)=>{ currentDate=k; const d=getCurrentDayData(); d.months=[M,'','','','',''];
+      d.data[M]=[{type:'ส',ticket:'1',book:'1',amount:'36000',count:'',newTicket:'1895',newBook:'278',newAmount:'36000'}]; Object.assign(d,extra); saveDB(); document.getElementById('doc-date').value=k; changeDate(); const r=d.data['สรุปประจำวัน'][1]; return r.count+'/'+r.amount; };
+    const fresh=mk('2026-11-28',{sor2:{v:1,at:1}}); db['2026-11-28'].data['สรุปประจำวัน'][1].count=1; db['2026-11-28'].data['สรุปประจำวัน'][1].amount=36000;
+    currentDate='2026-11-29'; const d=getCurrentDayData(); d.months=[M,'','','','','']; d.data[M]=[{type:'ส',ticket:'1',book:'1',amount:'36000',count:'',newTicket:'1895',newBook:'278',newAmount:'36000'}];
+    const sr=d.data['สรุปประจำวัน']; sr[1].count=2; sr[1].amount=72000; d.sor2={v:1,at:1}; d.pledgeManual={count:1,amount:36000}; d.pledgeLast={count:2,amount:72000}; saveDB();
+    document.getElementById('doc-date').value='2026-11-29'; changeDate(); const rep=sr[1].count+'/'+sr[1].amount;
+    currentDate='2026-11-30'; const e=getCurrentDayData(); e.months=[M,'','','','','']; e.data[M]=[{type:'ส',ticket:'1',book:'1',amount:'36000',count:'',newTicket:'1895',newBook:'278',newAmount:'36000'}];
+    e.data['สรุปประจำวัน'][1].count=1; e.data['สรุปประจำวัน'][1].amount=36000; e.sor2={v:1,at:1}; saveDB(); document.getElementById('doc-date').value='2026-11-30'; changeDate(); const keep=e.data['สรุปประจำวัน'][1].count+'/'+e.data['สรุปประจำวัน'][1].amount;
+    return {rep,keep}; },[M]);
+  ok(r.keep==='1/36000','22 นำเข้า สธ.2 ไว้ก่อนอัปเดต → เปิดวันแล้วยังเป็นยอด สธ.2 ไม่บวกตั๋วใหม่ซ้ำ ('+r.keep+')');
+  ok(r.rep==='1/36000','23 วันที่ถูกบวกซ้ำไปแล้ว (72,000) → คืนเป็นยอด สธ.2 36,000 ('+r.rep+')');
+  // ส คัดลอกยอด: ลบช่องยอดตั๋วใหม่จนว่างเพื่อพิมพ์ใหม่ → ไม่ถูกเติมกลับ
+  r=await pg.evaluate(async()=>{ const q=id=>document.getElementById(id), w=ms=>new Promise(r=>setTimeout(r,ms)); openQuickScanModal(); await w(250);
+    q('qs-type').value='ส'; qsPaintType(); q('qs-amount').value='36,000'; await w(300); const N=q('qs-new-amount');
+    N.value=''; N.dispatchEvent(new Event('input',{bubbles:true})); await w(400); const cleared=N.value; N.value='35,500'; N.dispatchEvent(new Event('input',{bubbles:true})); await w(300); const typed=N.value;
+    qsClearFields(true); await w(50); q('qs-type').value='ส'; qsPaintType(); q('qs-amount').value='20,000'; await w(300); const next=N.value; closeQuickScanModal(); return {cleared,typed,next}; });
+  ok(r.cleared===''&&r.typed==='35,500','24 ลบยอดตั๋วใหม่ที่คัดลอกจนว่าง → ไม่ถูกเติมกลับ พิมพ์ใหม่ได้ ('+JSON.stringify(r)+')');
+  ok(r.next==='20,000','25 ใบถัดไป (ล้างช่องแล้ว) → คัดลอกยอดได้ตามปกติ ('+r.next+')');
   ok(!errs.length,'11 ไม่มี error '+errs.join('|'));
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();

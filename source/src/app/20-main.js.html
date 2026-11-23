@@ -1827,6 +1827,21 @@
             const rows = dayData && dayData.data && dayData.data['สรุปประจำวัน'];
             if (!Array.isArray(rows) || rows.length < 2 || !rows[1]) return false;
             if (dayData.pledgeSor2) return false;   // นำเข้า สธ.2 (ตั้งยอดรับจำนำ) แล้ว → ยึด สธ.2 เป็นหลัก ไม่บวกตั๋วใหม่
+            if (dayData.sor2) {
+                /* นำเข้า สธ.2 ก่อนมีระบบนี้ (มี day.sor2 แต่ไม่มี pledgeSor2) → ยึด สธ.2 เหมือนกัน
+                   ถ้าเคยบวกตั๋วใหม่ทับยอด สธ.2 ไปแล้ว (ยอดยังเท่าที่ระบบตั้งไว้ล่าสุด) → คืนเป็นยอดก่อนบวก */
+                const pm0 = dayData.pledgeManual, last0 = dayData.pledgeLast;
+                let changed0 = false;
+                if (pm0 && typeof pm0 === 'object' && last0 && cleanNumberString(rows[1].count === '' || rows[1].count === undefined ? 0 : rows[1].count) === cleanNumberString(last0.count)
+                    && roundMoney(cleanNumberString(rows[1].amount === '' || rows[1].amount === undefined ? 0 : rows[1].amount)) === roundMoney(cleanNumberString(last0.amount))) {
+                    const pc = cleanNumberString(pm0.count), pa = roundMoney(cleanNumberString(pm0.amount));
+                    changed0 = pc !== cleanNumberString(last0.count) || pa !== roundMoney(cleanNumberString(last0.amount));
+                    rows[1].count = pc ? pc : ''; rows[1].amount = pa ? pa : '';
+                }
+                dayData.pledgeSor2 = { count: rows[1].count, amount: rows[1].amount, at: 'sor2-before-auto' };
+                delete dayData.pledgeManual; delete dayData.pledgeLast;
+                return changed0;
+            }
             const auto = getNewTicketPledgeTotals(dayData);
             let pm = dayData.pledgeManual;
             if ((!pm || typeof pm !== 'object') && !auto.count) return false;   // ไม่มีตั๋วใหม่และไม่เคยใช้ → ไม่แตะ (เหมือนเดิม)

@@ -3515,6 +3515,21 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             const rows = dayData && dayData.data && dayData.data['สรุปประจำวัน'];
             if (!Array.isArray(rows) || rows.length < 2 || !rows[1]) return false;
             if (dayData.pledgeSor2) return false;   // นำเข้า สธ.2 (ตั้งยอดรับจำนำ) แล้ว → ยึด สธ.2 เป็นหลัก ไม่บวกตั๋วใหม่
+            if (dayData.sor2) {
+                /* นำเข้า สธ.2 ก่อนมีระบบนี้ (มี day.sor2 แต่ไม่มี pledgeSor2) → ยึด สธ.2 เหมือนกัน
+                   ถ้าเคยบวกตั๋วใหม่ทับยอด สธ.2 ไปแล้ว (ยอดยังเท่าที่ระบบตั้งไว้ล่าสุด) → คืนเป็นยอดก่อนบวก */
+                const pm0 = dayData.pledgeManual, last0 = dayData.pledgeLast;
+                let changed0 = false;
+                if (pm0 && typeof pm0 === 'object' && last0 && cleanNumberString(rows[1].count === '' || rows[1].count === undefined ? 0 : rows[1].count) === cleanNumberString(last0.count)
+                    && roundMoney(cleanNumberString(rows[1].amount === '' || rows[1].amount === undefined ? 0 : rows[1].amount)) === roundMoney(cleanNumberString(last0.amount))) {
+                    const pc = cleanNumberString(pm0.count), pa = roundMoney(cleanNumberString(pm0.amount));
+                    changed0 = pc !== cleanNumberString(last0.count) || pa !== roundMoney(cleanNumberString(last0.amount));
+                    rows[1].count = pc ? pc : ''; rows[1].amount = pa ? pa : '';
+                }
+                dayData.pledgeSor2 = { count: rows[1].count, amount: rows[1].amount, at: 'sor2-before-auto' };
+                delete dayData.pledgeManual; delete dayData.pledgeLast;
+                return changed0;
+            }
             const auto = getNewTicketPledgeTotals(dayData);
             let pm = dayData.pledgeManual;
             if ((!pm || typeof pm !== 'object') && !auto.count) return false;   // ไม่มีตั๋วใหม่และไม่เคยใช้ → ไม่แตะ (เหมือนเดิม)
@@ -6889,19 +6904,22 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     try{
       if(!N.value.trim()&&N.classList.contains('qs-copy')){ N.classList.remove('qs-copy'); }
       var isS=String(TY.value||'').trim()==='ส', a=String(A.value||'').trim();
-      if(isS&&a&&(N.value.trim()===''||N.classList.contains('qs-copy'))){
+      if(isS&&a&&!N.classList.contains('qs-own')&&(N.value.trim()===''||N.classList.contains('qs-copy'))){
         if(N.value!==a){ N.value=a; }
         N.classList.add('qs-copy'); hint.textContent='คัดลอกจากยอดตั๋วเดิม (ส) แก้ได้';
       } else if(!isS&&N.classList.contains('qs-copy')){ N.value=''; N.classList.remove('qs-copy'); hint.textContent=''; }
       else if(!N.classList.contains('qs-copy')) hint.textContent='';
     }catch(e){}
   }
-  N.addEventListener('input',function(e){ if(e.isTrusted||!e.__qsCopy){ N.classList.remove('qs-copy'); hint.textContent=''; } });
+  /* พิมพ์ในช่องยอดตั๋วใหม่เอง (รวมลบจนว่างเพื่อพิมพ์ใหม่) = ใช้ค่าของผู้ใช้ ไม่คัดลอกทับอีก จนกว่าจะล้างช่อง/เปลี่ยนประเภท/ใบถัดไป */
+  N.addEventListener('input',function(){ N.classList.remove('qs-copy'); N.classList.add('qs-own'); hint.textContent=''; });
+  TY.addEventListener('change',function(){ N.classList.remove('qs-own'); });
+  var oc2=window.qsClearFields; if(typeof oc2==='function') window.qsClearFields=function(){ var r=oc2.apply(this,arguments); N.classList.remove('qs-own','qs-copy'); hint.textContent=''; return r; };
   document.addEventListener('input',function(e){ if(e.target===A||e.target===TY) setTimeout(sync,0); },true);
   document.addEventListener('change',function(e){ if(e.target===A||e.target===TY) setTimeout(sync,0); },true);
   /* ยอดตั๋วเดิมที่ระบบเติมเอง (ค้นยอด/บาร์โค้ด) ไม่ส่ง event → ตรวจถี่ ๆ เฉพาะตอนหน้าคีย์ด่วนเปิดอยู่ */
   setInterval(function(){ if(!M.classList.contains('hidden')) sync(); },200);
-  var op=window.qsPaintType; if(typeof op==='function') window.qsPaintType=function(){ var r=op.apply(this,arguments); setTimeout(sync,0); return r; };
+  var lastTy=''; var op=window.qsPaintType; if(typeof op==='function') window.qsPaintType=function(){ var r=op.apply(this,arguments); if(TY.value!==lastTy){ lastTy=TY.value; N.classList.remove('qs-own'); } setTimeout(sync,0); return r; };
   window.__qsCopySync=sync;
 })();
 </script>
@@ -12440,10 +12458,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 32f110208cf3 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน b10d84a68785 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='32f110208cf3'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='b10d84a68785'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
