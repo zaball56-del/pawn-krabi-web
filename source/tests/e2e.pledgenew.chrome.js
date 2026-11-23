@@ -71,5 +71,21 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
   ok(r.c==='','17 เปลี่ยนเป็น ผ → ล้างยอดที่คัดลอกไว้ ('+r.c+')');
   ok(r.d==='12,345','18 พิมพ์ยอดตั๋วใหม่เอง → ไม่ถูกทับ ('+r.d+')');
   ok(r.e==='12,345'||r.e==='','19 เปลี่ยนเป็น ถ → ค่าที่พิมพ์เองไม่ถูกคัดลอกทับ ('+r.e+')');
+  // รายการวันนี้: "ไม่มีตั๋วใหม่" ไม่ขึ้นสำหรับ ถ และซ่อนในโหมดสแกนตั๋วเดิมอย่างเดียว
+  r=await pg.evaluate(async([M])=>{ const k='2026-11-26'; currentDate=k; const d=getCurrentDayData(); d.months=[M,'','','','',''];
+    d.data[M]=[{type:'ถ',ticket:'11',book:'1',amount:'100',count:'',attachedAt:'2'},{type:'ส',ticket:'12',book:'1',amount:'200',count:'',attachedAt:'1'}]; saveDB(); document.getElementById('doc-date').value=k; changeDate();
+    const w=ms=>new Promise(r=>setTimeout(r,ms)); const vis=()=>[...document.querySelectorAll('#qs-recent .qs-nonew')].filter(e=>e.offsetParent!==null).length;
+    document.querySelector('#qs-mode [data-m="full"]').click(); openQuickScanModal(); await w(300); qsRenderRecent(); const all=document.querySelectorAll('#qs-recent .qs-nonew').length, full=vis();
+    document.querySelector('#qs-mode [data-m="single"]').click(); await w(200); const single=vis(); closeQuickScanModal(); document.querySelector('#qs-mode [data-m="full"]').click(); return {all,full,single}; },[M]);
+  ok(r.all===1&&r.full===1&&r.single===0,'20 "ไม่มีตั๋วใหม่": ถ ไม่ขึ้น · ส ขึ้นในโหมดปกติ · โหมดสแกนตั๋วเดิมอย่างเดียวไม่ขึ้น '+JSON.stringify(r));
+  // ไม่ถามก่อนบันทึกเมื่อตั๋วไม่อยู่ใน สธ.3 ที่นำเข้าวันนี้
+  r=await pg.evaluate(async([M])=>{ const k='2026-11-27'; currentDate=k; const d=getCurrentDayData(); d.months=['ตุลาคม','','','','',''];
+    d.data['ตุลาคม']=[{type:'',ticket:'500',book:'200',amount:'1000',count:'',importSource:'PDF'}]; saveDB(); document.getElementById('doc-date').value=k; changeDate();
+    let asked=''; const oc=window.uiConfirm; window.uiConfirm=async(m)=>{ asked+=m; return true; };
+    document.querySelector('#qs-mode [data-m="full"]').click(); openQuickScanModal(); await new Promise(r=>setTimeout(r,250)); const q=id=>document.getElementById(id);
+    q('qs-type').value='ผ'; qsPaintType(); q('qs-month').value='10'; q('qs-ticket').value='1931'; q('qs-book').value='251'; q('qs-amount').value='34000'; ['qs-new-ticket','qs-new-book','qs-new-amount'].forEach(i=>q(i).value='');
+    submitQuickScan(); await new Promise(r=>setTimeout(r,400)); closeQuickScanModal(); window.uiConfirm=oc;
+    return {asked, saved:db[k].data['ตุลาคม'].some(x=>x&&x.ticket==='1931'&&x.type==='ผ')}; },[M]);
+  ok(!/สธ\.3/.test(r.asked)&&r.saved,'21 ตั๋วไม่อยู่ใน สธ.3 ที่นำเข้าวันนี้ → ไม่ถาม บันทึกเลย ('+(r.asked||'ไม่มีหน้าต่าง').slice(0,60)+')');
   ok(!errs.length,'11 ไม่มี error '+errs.join('|'));
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();

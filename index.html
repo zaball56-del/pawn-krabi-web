@@ -2099,7 +2099,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 const amt = (r.amount !== '' && cleanNumberString(r.amount) !== 0) ? ' · ' + formatNumber(r.amount) : '';
                 const nAmt = (r.newAmount !== undefined && r.newAmount !== '' && cleanNumberString(r.newAmount) !== 0) ? ' · ' + formatNumber(r.newAmount) : '';
                 const oldTxt = '<b>' + escapeHtml(r.type || '-') + '</b> ' + escapeHtml(m) + ' แถว ' + (i + 1) + '<br>เดิม: ' + (r.book ? 'เล่ม ' + escapeHtml(r.book) + ' ' : '') + '<b>' + escapeHtml(r.ticket) + '</b>' + amt;
-                const newTxt = r.newTicket ? '<br><span style="color:#047857">ใหม่: ' + (r.newBook ? 'เล่ม ' + escapeHtml(r.newBook) + ' ' : '') + '<b>' + escapeHtml(r.newTicket) + '</b>' + nAmt + '</span>' : '<br><span style="color:#94a3b8">ไม่มีตั๋วใหม่</span>';
+                const newTxt = r.newTicket ? '<br><span style="color:#047857">ใหม่: ' + (r.newBook ? 'เล่ม ' + escapeHtml(r.newBook) + ' ' : '') + '<b>' + escapeHtml(r.newTicket) + '</b>' + nAmt + '</span>' : (String(r.type || '').trim() === 'ถ' ? '' : '<br><span class="qs-nonew" style="color:#94a3b8">ไม่มีตั๋วใหม่</span>');   // ถ ไม่มีตั๋วใหม่อยู่แล้ว · โหมดสแกนตั๋วเดิมอย่างเดียวซ่อนด้วย CSS (scanmode.html)
                 const btn = r.newTicket ? '<button type="button" data-m="' + escapeHtml(m) + '" data-i="' + i + '" onclick="qsUnlink(this)">ยกเลิกการติด</button>' : '';
                 return '<div class="qs-item"><div>' + oldTxt + newTxt + '</div>' + btn + '</div>';
             }).join('');
@@ -6326,7 +6326,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             if(oldB&&!exact){
                 var otherBook=same.filter(function(x){ return x.b&&nt(x.b)!==bkey; });
                 if(otherBook.length) warn.push('พบตั๋วเลข '+oldT+' ในตารางวันนี้ แต่เป็นเล่มที่ '+otherBook.map(function(x){ return x.b+' ('+x.m+')'; }).join(', ')+' ไม่ใช่เล่มที่ '+oldB+' — ตรวจกับตัวตั๋วอีกครั้ง');
-                else if(hasImport) warn.push('ตั๋วเลข '+oldT+' เล่มที่ '+oldB+' ไม่อยู่ในรายการ สธ.3 ที่นำเข้าวันนี้');
+                /* เดิมเตือน "ไม่อยู่ในรายการ สธ.3 ที่นำเข้าวันนี้" ก่อนบันทึก — ผู้ใช้ให้เอาออก (23 พ.ย. 69): ตั๋วไม่อยู่ใน สธ.3 ของวันนี้เป็นเรื่องปกติ ไม่ต้องถาม */
             } else if(exact&&exact.m!==out.month) warn.push('ตั๋วนี้อยู่ในตารางเดือน'+exact.m+' แต่คุณเลือกเดือน'+out.month);
             if(oldB&&exact&&exact.r.type&&exact.r.type!==type) warn.push('แถวนี้มีประเภท "'+exact.r.type+'" อยู่แล้ว แต่คุณเลือก "'+type+'"');
             out.exactRow=exact?exact.r:null;
@@ -9208,6 +9208,7 @@ window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; va
 #qs-bigscan:active{transform:scale(.98)}
 #qs-bigscan svg{width:22px;height:22px;flex:none}
 #quick-scan-modal.qs-single #qs-count{display:flex}
+#quick-scan-modal.qs-single .qs-nonew{display:none}
 #quick-scan-modal.qs-single .qs-sec.new,#quick-scan-modal.qs-single #qs-pv-new,#quick-scan-modal.qs-single .qs-pv-arrow,#quick-scan-modal.qs-single .qs-pv-h{display:none !important}
 @media (max-width:640px){#quick-scan-modal #qs-bigscan{display:block}
 #quick-scan-modal #qs-month-name{position:absolute !important;left:0;top:0;height:auto !important;font-size:12px !important;line-height:19px;color:#047857}
@@ -12439,10 +12440,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน b2fd12776847 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 32f110208cf3 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='b2fd12776847'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='32f110208cf3'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

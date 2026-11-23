@@ -23,7 +23,7 @@
             if(oldB&&!exact){
                 var otherBook=same.filter(function(x){ return x.b&&nt(x.b)!==bkey; });
                 if(otherBook.length) warn.push('พบตั๋วเลข '+oldT+' ในตารางวันนี้ แต่เป็นเล่มที่ '+otherBook.map(function(x){ return x.b+' ('+x.m+')'; }).join(', ')+' ไม่ใช่เล่มที่ '+oldB+' — ตรวจกับตัวตั๋วอีกครั้ง');
-                else if(hasImport) warn.push('ตั๋วเลข '+oldT+' เล่มที่ '+oldB+' ไม่อยู่ในรายการ สธ.3 ที่นำเข้าวันนี้');
+                /* เดิมเตือน "ไม่อยู่ในรายการ สธ.3 ที่นำเข้าวันนี้" ก่อนบันทึก — ผู้ใช้ให้เอาออก (23 พ.ย. 69): ตั๋วไม่อยู่ใน สธ.3 ของวันนี้เป็นเรื่องปกติ ไม่ต้องถาม */
             } else if(exact&&exact.m!==out.month) warn.push('ตั๋วนี้อยู่ในตารางเดือน'+exact.m+' แต่คุณเลือกเดือน'+out.month);
             if(oldB&&exact&&exact.r.type&&exact.r.type!==type) warn.push('แถวนี้มีประเภท "'+exact.r.type+'" อยู่แล้ว แต่คุณเลือก "'+type+'"');
             out.exactRow=exact?exact.r:null;

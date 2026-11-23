@@ -411,7 +411,7 @@
                 const amt = (r.amount !== '' && cleanNumberString(r.amount) !== 0) ? ' · ' + formatNumber(r.amount) : '';
                 const nAmt = (r.newAmount !== undefined && r.newAmount !== '' && cleanNumberString(r.newAmount) !== 0) ? ' · ' + formatNumber(r.newAmount) : '';
                 const oldTxt = '<b>' + escapeHtml(r.type || '-') + '</b> ' + escapeHtml(m) + ' แถว ' + (i + 1) + '<br>เดิม: ' + (r.book ? 'เล่ม ' + escapeHtml(r.book) + ' ' : '') + '<b>' + escapeHtml(r.ticket) + '</b>' + amt;
-                const newTxt = r.newTicket ? '<br><span style="color:#047857">ใหม่: ' + (r.newBook ? 'เล่ม ' + escapeHtml(r.newBook) + ' ' : '') + '<b>' + escapeHtml(r.newTicket) + '</b>' + nAmt + '</span>' : '<br><span style="color:#94a3b8">ไม่มีตั๋วใหม่</span>';
+                const newTxt = r.newTicket ? '<br><span style="color:#047857">ใหม่: ' + (r.newBook ? 'เล่ม ' + escapeHtml(r.newBook) + ' ' : '') + '<b>' + escapeHtml(r.newTicket) + '</b>' + nAmt + '</span>' : (String(r.type || '').trim() === 'ถ' ? '' : '<br><span class="qs-nonew" style="color:#94a3b8">ไม่มีตั๋วใหม่</span>');   // ถ ไม่มีตั๋วใหม่อยู่แล้ว · โหมดสแกนตั๋วเดิมอย่างเดียวซ่อนด้วย CSS (scanmode.html)
                 const btn = r.newTicket ? '<button type="button" data-m="' + escapeHtml(m) + '" data-i="' + i + '" onclick="qsUnlink(this)">ยกเลิกการติด</button>' : '';
                 return '<div class="qs-item"><div>' + oldTxt + newTxt + '</div>' + btn + '</div>';
             }).join('');
