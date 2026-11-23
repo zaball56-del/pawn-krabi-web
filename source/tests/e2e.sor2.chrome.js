@@ -33,7 +33,7 @@ const CHECK=([dk])=>{ const S='สรุปประจำวัน', n=v=>Numbe
   const sum=k=>db[k].months.filter(Boolean).reduce((t,m)=>({a:roundMoney(t.a+getMonthCarriedBalance(k,m)),c:t.c+getMonthCarriedCount(k,m)}),{a:0,c:0});
   out.nov=getMonthCarriedBalance(dk,'พฤศจิกายน')+'/'+getMonthCarriedCount(dk,'พฤศจิกายน');
   ['2026-11-19','2026-11-20'].forEach(k=>{ const s=db[k].data[S], c=sum(k); out['bal'+k.slice(-2)]=n(s[3].amount)+'/'+n(s[3].count); out['sum'+k.slice(-2)]=c.a+'/'+c.c; out['ym'+k.slice(-2)]=n(s[0].amount)+'/'+n(s[0].count); });
-  out.s1raw=String(d.data[S][1].amount); return out; };
+  out.s1raw=String(d.data[S][1].amount); out.ps=!!d.pledgeSor2; if(typeof updateSummaryColumn==='function'&&typeof currentDate!=='undefined'&&currentDate===dk){ updateSummaryColumn(); out.s1after=d.data[S][1].count+'/'+d.data[S][1].amount; } else out.s1after=out.s1; return out; };
 (async()=>{
   const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
   for(const mode of ['ปัจจุบัน','ย้อนหลัง','บล็อก']){
@@ -46,6 +46,7 @@ const CHECK=([dk])=>{ const S='สรุปประจำวัน', n=v=>Numbe
     ok(r.r801==='ถ/9001/230/2500.4'&&r.r902==='ส/9002'&&r.r303==='ถ','['+mode+'] เติมตั๋วเดิม (ประเภท/ตั๋วใหม่/เล่ม/ยอด) และเติม ถ ให้แถวที่ว่าง');
     ok(r.sor2&&r.sor2.startsWith('พฤศจิกายน 4 '),'['+mode+'] ตั๋วใหม่ 4 ราย เข้าเดือนพฤศจิกายน');
     ok(r.s1==='4/6801.5','['+mode+'] สรุปประจำวัน "รับจำนำ" = 4 ราย / 6,801.50 (ไม่มีเศษทศนิยมเพี้ยน: '+r.s1raw+')');
+    ok(r.ps&&r.s1after==='4/6801.5','['+mode+'] นำเข้า สธ.2 แล้วยึดยอด สธ.2 (ไม่บวกตั๋วใหม่ซ้ำหลังคำนวณสรุปใหม่: '+r.s1after+')');
     ok(r.bal19===r.sum19,'['+mode+'] วันที่นำเข้า: คงเหลือ = ยกไปรวม ('+r.bal19+' vs '+r.sum19+')');
     ok(r.ym20===r.bal19&&r.bal20===r.sum20,'['+mode+'] วันถัดไป: ย/ม = คงเหลือวันนำเข้า และคงเหลือ = ยกไปรวม (ย/ม '+r.ym20+' · คงเหลือ '+r.bal20+' vs '+r.sum20+')');
     ok(!pg.errs.length,'['+mode+'] ไม่มี error '+pg.errs.join('|')); await pg.close(); }

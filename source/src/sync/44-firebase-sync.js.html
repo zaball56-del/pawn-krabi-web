@@ -141,7 +141,7 @@
   function recalcAfterMerge(keys){ var ks=(keys||[]).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k); }).sort(); if(!ks.length) return;
     /* สรุปของวันที่รวมเอง (ไถ่ถอน/คงเหลือ) ต้องคำนวณจากแถวที่รวมแล้วก่อน ไม่งั้นค้างค่าเครื่องเดียว แล้ววันถัดไปรับ ย/ม ผิด */
     ks.forEach(function(k){ try{ var d=db[k], rows=d&&d.data&&d.data['สรุปประจำวัน']; if(!d||!Array.isArray(d.months)||!Array.isArray(rows)||rows.length<4||typeof getDailyRedemptionTotals!=='function') return;
-      var t=getDailyRedemptionTotals(d); rows[2].type='ไถ่ถอน'; rows[2].count=t.count||''; rows[2].amount=t.amount||''; if(typeof recomputeStoredBalance==='function') recomputeStoredBalance(k); }catch(e){ console.warn('recalc own summary',k,e); } });
+      var t=getDailyRedemptionTotals(d); rows[2].type='ไถ่ถอน'; rows[2].count=t.count||''; rows[2].amount=t.amount||''; if(typeof window.syncPledgeFromNewTickets==='function') window.syncPledgeFromNewTickets(d,k); if(typeof recomputeStoredBalance==='function') recomputeStoredBalance(k); }catch(e){ console.warn('recalc own summary',k,e); } });
     try{ if(typeof recalculateFutureBroughtForwardBalances==='function') recalculateFutureBroughtForwardBalances(ks[0]); }catch(e){ console.warn('recalc after merge',e); } }
   /* โควตาฟรีรีเซ็ตเที่ยงคืนเวลาแปซิฟิก = 08:00 UTC (ฤดูหนาว PST) / 07:00 UTC (ฤดูร้อน PDT) → แปลงเป็นเวลาเครื่อง (ไทย = 15:00 / 14:00) */
   function quotaResetText(){ try{ var utcH=8, nm=(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',timeZoneName:'short'}).formatToParts(new Date()).filter(function(p){ return p.type==='timeZoneName'; })[0]||{}).value||'';

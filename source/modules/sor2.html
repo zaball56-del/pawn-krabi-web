@@ -164,7 +164,7 @@
         if(nt(ln)!==nt(r.ticket)){conflict=true;o.msgs.push('บัญชีผูกตั๋วใหม่ '+ln+(found.newBook?'/'+found.newBook:'')+' แต่ สธ.2 = '+r.ticket+'/'+r.book);}
         else{
           if(String(found.newBook||'').trim()&&nt(found.newBook)!==nt(r.book)){conflict=true;o.msgs.push('เล่มตั๋วใหม่ในบัญชี '+found.newBook+' แต่ สธ.2 = '+r.book);} else if(!String(found.newBook||'').trim()) o.fill.push('เล่มใหม่');
-          if(String(found.newAmount||'').trim()!==''&&Math.abs(num(found.newAmount)-r.amount)>0.009){conflict=true;o.msgs.push('ยอดตั๋วใหม่ในบัญชี '+fmt(num(found.newAmount))+' แต่ สธ.2 = '+fmt(r.amount));} else if(String(found.newAmount||'').trim()==='') o.fill.push('ยอดตั๋วใหม่');
+          if(String(found.newAmount||'').trim()!==''&&Math.abs(num(found.newAmount)-r.amount)>0.009){ /* เลขตั๋ว/เล่มตรง ต่างแค่ยอด → คีย์ยอดผิด: ปรับตาม สธ.2 ให้เอง (ผู้ใช้ตัดสินใจ 23 พ.ย. 69) */ o.amtFix=true; o.fill.push('ปรับยอดตั๋วใหม่ตาม สธ.2: '+fmt(num(found.newAmount))+' → '+fmt(r.amount)); } else if(String(found.newAmount||'').trim()==='') o.fill.push('ยอดตั๋วใหม่');
         }
       } else o.fill.push('ตั๋วใหม่ '+r.ticket+'/'+r.book);
       // ตั๋วใหม่นี้ถูกผูกกับแถวอื่นอยู่หรือไม่
@@ -288,7 +288,7 @@
     var nNew=a.res.filter(function(o){return o.kind==='new'}), newAmt=nNew.reduce(function(s,o){return s+o.row.amount},0);
     var willFill=0,willFix=0;
     a.res.forEach(function(o,i){ if(o.kind==='fill'||o.kind==='ok'){ if(o.fill.length) willFill++; } else if(o.kind==='conflict'&&S.fix[i]) willFix++; });
-    if(!confirm('ยืนยันบันทึก สธ.2 วันที่ '+dk+'\nรวม '+n+' ราย '+fmt(sum)+' บาท (จำนำใหม่ '+nNew.length+' ราย)\n• เติมข้อมูลตั๋ว '+willFill+' แถว\n• แก้ตาม สธ.2 '+willFix+' แถว\n• ข้ามรายการที่ขัดกับบัญชี/ไม่พบตั๋วเดิมที่ไม่ได้ติ๊ก')) return;
+    if(!confirm('ยืนยันบันทึก สธ.2 วันที่ '+dk+'\nรวม '+n+' ราย '+fmt(sum)+' บาท (จำนำใหม่ '+nNew.length+' ราย)\n• เติมข้อมูลตั๋ว '+willFill+' แถว'+(a.res.filter(function(x){return x.kind==='fill'&&x.amtFix}).length?' (ปรับยอดตั๋วใหม่ตาม สธ.2 '+a.res.filter(function(x){return x.kind==='fill'&&x.amtFix}).length+' ใบ)':'')+'\n• แก้ตาม สธ.2 '+willFix+' แถว\n• ข้ามรายการที่ขัดกับบัญชี/ไม่พบตั๋วเดิมที่ไม่ได้ติ๊ก')) return;
     var day=db[dk]||getCurrentDayDataForDate(dk);
     var addedCol=(S.addCol!==false&&colMissing(day,dk))?addMonthColumn(day,mnOf(dk)):false;
     a=analyze(P,dk);
@@ -299,12 +299,13 @@
       if(!lr.type||fix) lr.type=r.type;
       if(!String(lr.newTicket||'').trim()||fix) lr.newTicket=String(r.ticket);
       if(!String(lr.newBook||'').trim()||fix) lr.newBook=String(r.book);
-      if(String(lr.newAmount==null?'':lr.newAmount).trim()===''||fix) lr.newAmount=String(r.amount);
+      if(String(lr.newAmount==null?'':lr.newAmount).trim()===''||fix||o.amtFix) lr.newAmount=String(r.amount);
     });
     var tN=0; if(S.fillT&&!S.fillLock){ blankRows(day,a.res).forEach(function(r){ r.type='ถ'; tN++; }); }
     day.sor2={v:1,file:S.file,at:Date.now(),mn:(['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(dk.slice(5,7))-1]),n:n,amt:sum,newN:nNew.length,newAmt:newAmt,month:P.month,goldBuy:P.goldBuy,goldSell:P.goldSell,
       tN:tN,rows:P.rows.map(function(r){return [r.type,r.oldT,r.oldM,r.ticket,r.book,r.weight,r.amount]})};
-    if(S.setSummary){ var sr=day.data&&day.data['สรุปประจำวัน']; if(sr&&sr[1]){sr[1].count=n;sr[1].amount=(typeof roundMoney==='function'?roundMoney(sum):sum);} }   /* ปัดสตางค์ กันเศษทศนิยมเพี้ยนจากการบวกหลายแถว */
+    if(S.setSummary){ var sr=day.data&&day.data['สรุปประจำวัน']; if(sr&&sr[1]){sr[1].count=n;sr[1].amount=(typeof roundMoney==='function'?roundMoney(sum):sum);
+      /* ยึด สธ.2 เป็นหลัก: วันนี้รับจำนำ = ยอด สธ.2 ไม่บวกตั๋วใหม่ (ส/ผ/พ) อัตโนมัติอีก */ day.pledgeSor2={count:n,amount:sr[1].amount,at:Date.now()}; delete day.pledgeManual; delete day.pledgeLast;} }   /* ปัดสตางค์ กันเศษทศนิยมเพี้ยนจากการบวกหลายแถว */
     try{
       if(dk===currentDate){ renderTable(); updateSummaryColumn(); }
       else { var tt=getDailyRedemptionTotals(day), sr2=day.data&&day.data['สรุปประจำวัน']; if(sr2&&sr2[2]){ sr2[2].count=tt.count||''; sr2[2].amount=tt.amount||''; }

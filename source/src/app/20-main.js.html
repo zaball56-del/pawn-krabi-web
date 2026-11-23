@@ -1809,6 +1809,43 @@
             saveDB();
         }
 
+        /* ตั๋วใหม่ที่ติดแทนตั๋วเดิม (ประเภท ส/ผ/พ: newTicket/newAmount) นับเป็น "รับจำนำ" ของวันนั้นทันที (ผู้ใช้ตัดสินใจ 23 พ.ย. 69)
+           รับจำนำ = ส่วนที่กรอกเอง/นำเข้า สธ.2 (pledgeManual) + ตั๋วใหม่ (คำนวณจากแถวทุกครั้ง)
+           - กรอกรับจำนำเอง หรือนำเข้า สธ.2 (ตั้งยอดรวม) → ถือว่ายอดนั้นรวมตั๋วใหม่แล้ว: pledgeManual = ยอดที่ตั้ง − ตั๋วใหม่ (ไม่นับซ้ำ)
+           - นำเข้า สธ.2 แบบตั้งยอดรับจำนำ (pledgeSor2) → วันนั้นยึดยอด สธ.2 เป็นหลัก ไม่บวกตั๋วใหม่อีก
+           - วันก่อน PLEDGE_AUTO_FROM: ยอดรับจำนำเดิมไม่เปลี่ยน (ถือว่ารวมไว้แล้ว) */
+        const PLEDGE_AUTO_FROM = '2026-11-23';
+        function getNewTicketPledgeTotals(dayData) {
+            let count = 0, amount = 0;
+            (dayData && Array.isArray(dayData.months) ? dayData.months : []).forEach(m => {
+                if (!m || !dayData.data || !Array.isArray(dayData.data[m])) return;
+                dayData.data[m].forEach(r => { if (r && String(r.newTicket || '').trim() && ['ส', 'ผ', 'พ'].includes(String(r.type || '').trim())) { count++; amount += cleanNumberString(r.newAmount === undefined || r.newAmount === '' ? 0 : r.newAmount); } });
+            });
+            return { count, amount: roundMoney(amount) };
+        }
+        function syncPledgeFromNewTickets(dayData, dateKey) {
+            const rows = dayData && dayData.data && dayData.data['สรุปประจำวัน'];
+            if (!Array.isArray(rows) || rows.length < 2 || !rows[1]) return false;
+            if (dayData.pledgeSor2) return false;   // นำเข้า สธ.2 (ตั้งยอดรับจำนำ) แล้ว → ยึด สธ.2 เป็นหลัก ไม่บวกตั๋วใหม่
+            const auto = getNewTicketPledgeTotals(dayData);
+            let pm = dayData.pledgeManual;
+            if ((!pm || typeof pm !== 'object') && !auto.count) return false;   // ไม่มีตั๋วใหม่และไม่เคยใช้ → ไม่แตะ (เหมือนเดิม)
+            const curC = cleanNumberString(rows[1].count === undefined || rows[1].count === '' ? 0 : rows[1].count);
+            const curA = roundMoney(cleanNumberString(rows[1].amount === undefined || rows[1].amount === '' ? 0 : rows[1].amount));
+            const last = dayData.pledgeLast;
+            if (!pm || typeof pm !== 'object') {
+                pm = String(dateKey || '') >= PLEDGE_AUTO_FROM ? { count: curC, amount: curA } : { count: curC - auto.count, amount: roundMoney(curA - auto.amount) };
+            } else if (!last || cleanNumberString(last.count) !== curC || roundMoney(cleanNumberString(last.amount)) !== curA) {
+                pm = { count: curC - auto.count, amount: roundMoney(curA - auto.amount) };   // ยอดรวมถูกตั้งจากที่อื่น (กรอกเอง/สธ.2)
+            }
+            const tc = pm.count + auto.count, ta = roundMoney(pm.amount + auto.amount);
+            const changed = tc !== curC || ta !== curA;
+            rows[1].count = tc ? tc : ''; rows[1].amount = ta ? ta : '';
+            dayData.pledgeManual = { count: pm.count, amount: pm.amount }; dayData.pledgeLast = { count: tc, amount: ta };
+            return changed;
+        }
+        window.syncPledgeFromNewTickets = syncPledgeFromNewTickets;
+
         function updateSummaryColumn() {
             // ยอดไถ่ถอนในสรุปประจำวันรวมอัตโนมัติเฉพาะรายการประเภท ถ, ส, พ, ผ
             // จากนั้นตารางคำนวณภายนอกอ่านค่า ย/ม + รับจำนำ - ไถ่ถอน เพื่ออัปเดตคงเหลือ
@@ -1828,15 +1865,18 @@
             sumRows[3].type = 'คงเหลือ';
             sumRows[2].count = totals.count || '';
             sumRows[2].amount = totals.amount || '';
+            syncPledgeFromNewTickets(dayData, currentDate);
 
             // อัปเดตเฉพาะยอดไถ่ถอน ไม่แตะต้องยอดคงเหลือที่กรอกเอง
             const fields = [
+                ['.summary-count-1', cleanNumberString(sumRows[1].count === '' ? 0 : sumRows[1].count)],
+                ['.summary-amount-1', cleanNumberString(sumRows[1].amount === '' ? 0 : sumRows[1].amount)],
                 ['.summary-count-2', totals.count],
                 ['.summary-amount-2', totals.amount]
             ];
             fields.forEach(([selector, value]) => {
                 const input = document.querySelector(selector);
-                if (input) input.value = value ? formatNumber(value) : '';
+                if (input && input !== document.activeElement) input.value = value ? formatNumber(value) : '';   // ไม่ทับช่องที่กำลังพิมพ์ (รับจำนำ)
             });
             saveDB();
             updateFooterTotalsOnly();
@@ -3394,7 +3434,9 @@
                 
                 let countClass = '';
                 let amountClass = '';
-                if (r === 2) { 
+                if (r === 1) {
+                    countClass = 'summary-count-1'; amountClass = 'summary-amount-1';
+                } else if (r === 2) { 
                     countClass = 'summary-count-2'; amountClass = 'summary-amount-2';
                 } else if (r === 3) { 
                     countClass = 'summary-count-3'; amountClass = 'summary-amount-3';
