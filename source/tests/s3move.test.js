@@ -46,7 +46,11 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   { const w=boot(); await wait(600);
     put(w,'สิงหาคม',2,{type:'ผ',ticket:'2291',amount:13000,count:'',origIdx:2,timestamp:'t',book:'227'});
     setRecs(w,[rec(2291,9,'227',12000)]); w.preparePDFImport(); w.commitPDFImport();
-    ok(rows(w,'สิงหาคม').length===1&&rows(w,'กันยายน').length===1,'5 เลขตั๋วเดียวกันแต่เงินต่าง → ไม่ย้าย ไม่ลบ'); }
+    { const s=rows(w,'กันยายน'); ok(rows(w,'สิงหาคม').length===0&&s.length===1&&String(s[0].amount)==='12000'&&s[0].type==='ผ','5 เลขตั๋ว+เล่มตรง แต่เงินต่าง → ย้ายและใช้ยอด สธ.3 (ผู้ใช้ตัดสินใจ 23 พ.ย. 69)'); } }
+  { const w=boot(); await wait(600);
+    put(w,'สิงหาคม',2,{type:'ผ',ticket:'2291',amount:13000,count:'',origIdx:2,timestamp:'t'});
+    setRecs(w,[rec(2291,9,'227',12000)]); w.preparePDFImport(); w.commitPDFImport();
+    ok(rows(w,'สิงหาคม').length===1&&rows(w,'กันยายน').length===1,'5b ไม่มีเล่มในแถวที่คีย์ + เงินต่าง → ไม่ย้าย ไม่ลบ'); }
   { const w=boot(); await wait(600);
     put(w,'สิงหาคม',2,{type:'ส',ticket:'2291',amount:12000,count:'',origIdx:2,timestamp:'t',book:'300'});
     setRecs(w,[rec(2291,9,'227',12000)]); w.preparePDFImport(); w.commitPDFImport();

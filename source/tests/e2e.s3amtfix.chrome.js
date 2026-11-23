@@ -64,5 +64,18 @@ async function run(mode,opt){ opt=opt||{}; const b=await chromium.launch({execut
       const D=window.tkwAll().find(x=>x.k===K); return D.r[D.m.indexOf(10)].filter(x=>x[0]).map(x=>x[1]).join(','); },K);
     await sleep(600); const pin=await pg.evaluate(()=>!![...document.querySelectorAll('input[type=password]')].find(x=>x.offsetParent));
     ok(B==='7700'&&pin,'11 วันที่ปิดยอดแล้ว + ลงเฉพาะเขียนตั๋ว → ถาม PIN ก่อน ไม่แก้ยอดเอง '+B+' pin='+pin);
+    const C=await pg.evaluate(()=>{ const K='2026-11-23'; Object.keys(db).forEach(k=>delete db[k]); currentDate=K; const d=getCurrentDayData(); d.months=['ตุลาคม','พฤศจิกายน','','','','']; d.data['ตุลาคม']=[]; d.data['พฤศจิกายน']=[];
+      d.data['พฤศจิกายน'].push({type:'ส',ticket:'204',book:'10',amount:'100',newTicket:'950',newBook:'60',newAmount:'2000'});   // ผิดเดือน+ยอดผิด มีเล่ม → ย้าย+ยอด สธ.3
+      d.data['พฤศจิกายน'].push({type:'ถ',ticket:'205',book:'',amount:'100'});    // ผิดเดือน+ยอดผิด ไม่มีเล่ม → ไม่ย้าย (ไม่แน่ใจว่าใบเดียวกัน)
+      saveDB(); document.getElementById('pdf-import-date').value=K; document.getElementById('pdf-dest-ledger').checked=true; document.getElementById('pdf-dest-tkw').checked=false;
+      pdfImportParsedRecords=[{ticket:'204',book:'10',month:10,amount:2000,loanDate:'1/10/2569'},{ticket:'205',book:'10',month:10,amount:900,loanDate:'1/10/2569'}]; pdfImportDetectedDate=K; pdfImportReportTotal=null;
+      preparePDFImport(); const box=(document.getElementById('s3mv-box')||{}).textContent||''; commitPDFImport();
+      const L=['ตุลาคม','พฤศจิกายน'].map(m=>db[K].data[m].filter(x=>x&&x.ticket).map(x=>x.ticket+'='+x.amount+(x.type||'')+(x.newTicket?'>'+x.newTicket:'')).join(',')).join(' | ');
+      let au=''; try{ au=(JSON.parse(localStorage.getItem('pawn_krabi_audit_v1'))||[]).filter(x=>/ย้ายเดือน/.test(x.a)).map(x=>x.d).join(';'); }catch(e){}
+      return {box,L,au}; });
+    await sleep(600);
+    const L2=await pg.evaluate(()=>['ตุลาคม','พฤศจิกายน'].map(m=>db['2026-11-23'].data[m].filter(x=>x&&x.ticket).map(x=>x.ticket+'='+x.amount+(x.type||'')+(x.newTicket?'>'+x.newTicket:'')).join(',')).join(' | '));
+    ok(/100 → 2,000/.test(C.box)&&L2==='204=2000ส>950,205=900 | 205=100ถ'&&/204 พฤศจิกายน→ตุลาคม 100→2,000/.test(await pg.evaluate(()=>{ try{ return (JSON.parse(localStorage.getItem('pawn_krabi_audit_v1'))||[]).map(x=>x.d).join(';'); }catch(e){ return ''; } })),
+      '12-13 ผิดเดือน+ยอดผิด: มีเล่มตรง = ย้าย+ยอด สธ.3 เก็บประเภท/ตั๋วใหม่ · ไม่มีเล่ม = ไม่ย้าย '+L2+' '+C.box);
     await b.close(); }
   console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();

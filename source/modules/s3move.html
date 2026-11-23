@@ -21,18 +21,21 @@
     ready.forEach(function(r){
       if(r.amtFix||(r.duplicate&&r.reason!=='มีเลขตั๋วนี้ในตารางแล้ว')) return;
       var tgt=thaiMonths[r.month-1]; var key=nrm(r.ticket); if(!tgt||!key) return;
-      (day.months||[]).some(function(mn){
+      /* รอบ 1: เลขตั๋ว+เงินต้นตรง (เล่มไม่ขัด) · รอบ 2: เลขตั๋ว+เล่มตรงทั้งสองฝั่ง แต่ยอดต่าง = ใบเดียวกันที่คีย์ผิดทั้งเดือนและยอด → ย้ายและใช้ยอดตาม สธ.3 (ผู้ใช้ตัดสินใจ 23 พ.ย. 69) */
+      var rb=trim(r.book)?String(Number(trim(r.book))||trim(r.book)):'';
+      [1,2].some(function(pass){ return (day.months||[]).some(function(mn){
         if(!mn||mn===tgt) return false; var rows=day.data[mn]||[];
         for(var i=0;i<rows.length;i++){
           var w=rows[i]; if(!w||nrm(w.ticket)!==key||used[mn+'|'+i]) continue;
-          if(num(w.amount)!==num(r.amount)) continue;
-          if(trim(w.book)&&trim(r.book)&&trim(w.book)!==trim(r.book)) continue;
+          var wbRaw=trim(w.book)||trim(w.importBook), wb=wbRaw?String(Number(wbRaw)||wbRaw):'';
+          if(pass===1){ if(num(w.amount)!==num(r.amount)) continue; if(wb&&rb&&wb!==rb) continue; }
+          else { if(!wb||!rb||wb!==rb||num(w.amount)===num(r.amount)) continue; }
           used[mn+'|'+i]=1;
-          (r.duplicate?out.dups:out.moves).push({rec:r,from:mn,to:tgt,idx:i,row:w,ticket:trim(r.ticket),amount:num(r.amount)});
+          (r.duplicate?out.dups:out.moves).push({rec:r,from:mn,to:tgt,idx:i,row:w,ticket:trim(r.ticket),amount:num(r.amount),oldAmount:pass===2?num(w.amount):null});
           return true;
         }
         return false;
-      });
+      }); });
     });
     return out;
   }
@@ -43,7 +46,7 @@
     var b=document.createElement('div'); b.id='s3mv-box'; var h='';
     if(S.moves.length){
       h+='<label><input type="checkbox" id="s3mv-on" checked><span>พบตั๋วที่คีย์ผิดเดือน '+S.moves.length+' ใบ — ย้ายไปเดือนที่ถูกต้องตอนนำเข้า (เก็บประเภท/ตั๋วใหม่ที่กรอกไว้)</span></label><ul>'+
-        S.moves.map(function(m){ return '<li>'+m.ticket+' ('+fmt(m.amount)+') : '+m.from+' → '+m.to+'</li>'; }).join('')+'</ul>';
+        S.moves.map(function(m){ return '<li>'+m.ticket+' ('+fmt(m.amount)+') : '+m.from+' → '+m.to+(m.oldAmount!=null?' <b>(ยอด '+fmt(m.oldAmount)+' → '+fmt(m.amount)+' ตาม สธ.3)</b>':'')+'</li>'; }).join('')+'</ul>';
     }
     if(S.dups.length){
       h+='<div class="s3mv-w">⚠ ตั๋วซ้ำผิดเดือน '+S.dups.length+' ใบ (มีในเดือนที่ถูกอยู่แล้ว ระบบไม่ลบให้): '+
@@ -52,7 +55,7 @@
     b.innerHTML=h; wrap.parentNode.insertBefore(b,wrap);
   }
   function apply(moves,dateKey){
-    var day=db[dateKey]; if(!day) return 0; var n=0;
+    var day=db[dateKey]; if(!day) return 0; var n=0, log=[];
     moves.forEach(function(m){
       var from=day.data[m.from]||[]; var w=from[m.idx]; if(!w||w!==m.row) return;
       var rows=day.data[m.to]||[]; var key=nrm(m.ticket); var t=null;
@@ -63,7 +66,9 @@
         if(t[k]===undefined||t[k]===''||t[k]===null) t[k]=w[k];
       });
       from[m.idx]={type:'',ticket:'',amount:'',count:'',origIdx:m.idx,timestamp:''}; n++;
+      if(m.oldAmount!=null) log.push(m.ticket+' '+m.from+'→'+m.to+' '+fmt(m.oldAmount)+'→'+fmt(m.amount));
     });
+    if(log.length){ try{ if(window.__audit) window.__audit('ย้ายเดือน+แก้ยอดตาม สธ.3','วันที่ '+dateKey+' · '+log.length+' ใบ: '+log.slice(0,20).join(', ')+(log.length>20?' …':'')); }catch(e){} }
     return n;
   }
   function wrapPrep(){
