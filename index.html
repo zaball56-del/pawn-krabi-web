@@ -970,11 +970,16 @@
         html body #global-search-modal.fixed .gm-hero{display:block;background:#1e1b4b;color:#fff;border-radius:16px;padding:11px 14px;margin:2px 0 12px}
         html body #global-search-modal.fixed .gm-sum{font-size:13px;color:#c7d2fe}
         html body #global-search-modal.fixed .gm-sum b{color:#fff;font-size:15px}
-        html body #global-search-modal.fixed .gm-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}
-        html body #global-search-modal.fixed .gm-ct{background:rgba(255,255,255,.13);border-radius:10px;padding:4px 10px;font-weight:800;font-size:18px;white-space:nowrap}
-        html body #global-search-modal.fixed .gm-ct span{font-size:12px;font-weight:600;color:#c7d2fe;margin-left:4px}
-        html body #global-search-modal.fixed .gm-ct.me{background:#fff;color:#1e1b4b}html body #global-search-modal.fixed .gm-ct.me span{color:#4f46e5}
-        html body #global-search-modal.fixed .gm-car{color:#5eead4;font-weight:800}
+        html body #global-search-modal.fixed .gm-chain{margin-top:8px;display:flex;flex-direction:column}
+        html body #global-search-modal.fixed .gm-cn{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.12);border-radius:12px;padding:6px 12px}
+        html body #global-search-modal.fixed .gm-cn.me{background:#fff;color:#1e1b4b}
+        html body #global-search-modal.fixed .gm-cl{flex:0 0 82px;font-size:13px;font-weight:700;color:#c7d2fe}
+        html body #global-search-modal.fixed .gm-cn.me .gm-cl{color:#4f46e5}
+        html body #global-search-modal.fixed .gm-cv{font-size:22px;font-weight:800;line-height:1.2;white-space:nowrap}
+        html body #global-search-modal.fixed .gm-cv small{font-size:13px;font-weight:600;color:#c7d2fe;margin-left:8px}
+        html body #global-search-modal.fixed .gm-cn.me .gm-cv small{color:#4f46e5}
+        html body #global-search-modal.fixed .gm-cj{display:flex;align-items:center;gap:8px;padding:2px 0 2px 38px;font-size:12.5px;color:#a5b4fc}
+        html body #global-search-modal.fixed .gm-cj span{color:#5eead4;font-weight:800;font-size:17px}
         html body #global-search-modal.fixed .gm-list{display:flex;flex-direction:column;gap:8px}
         html body #global-search-modal.fixed .gm-it{background:#fff;border-radius:14px;padding:10px 12px;border:1px solid #e2e8f0;display:grid;grid-template-columns:40px 1fr auto;gap:3px 10px;align-items:center;color:#0f1b4d}
         html body #global-search-modal.fixed .gm-it .gs-ch{width:40px;height:40px;font-size:20px;border-radius:11px;grid-row:1 / 3}
@@ -6907,19 +6912,27 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     if(n) line+=' <span class="gm-ar">→</span> <span class="gm-nw">'+tk(n,'nw')+(n.a?' · '+esc(n.a):'')+'</span>';
     else if(type==='ถ') line+=' <span class="gm-red">· ไถ่ถอนแล้ว</span>';
     var html='<div class="gm-it"><span class="gs-ch'+(TY[type]?' t'+TY[type]:'')+'">'+esc(type||'-')+'</span><div class="gm-d">'+esc(c[1].textContent.trim())+'<small>'+(tm?esc(tm)+' · ':'')+esc(mi>=0?MS[mi]:mo)+'</small></div><div class="gm-a">'+esc(amt||'')+'</div><div class="gm-k">'+line+'</div></div>';
-    return {html:html,o:o,n:n};
+    return {html:html,o:o,n:n,d:c[1].textContent.trim(),ty:type};
   }
   /* สายตั๋ว: เริ่มจากใบที่ค้น ย้อนไปใบก่อนหน้า (ตั๋วใหม่ = ใบนี้) และต่อไปใบถัดไป (ตั๋วเดิม = ใบนี้ แล้วติดตั๋วใหม่) จากผลค้นหา */
   function mChain(list,q,bq){
     var me={t:q,b:bq}, start=null;
     list.forEach(function(e){ if(!start){ if(same(e.o,me)) start=e.o; else if(e.n&&same(e.n,me)) start=e.n; } });
     if(!start) start={t:q,b:bq};
-    var chain=[start], used=[], cur=start, k, e, guard=0;
-    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].n,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; chain.unshift(e.o); cur=e.o; }
+    /* แนวตั้ง (ผู้ใช้ขอ 23 พ.ย. 69): ใบละแถว ไม่ตัดบรรทัดกลางสาย · ระหว่างใบบอกวันที่/ประเภทที่เปลี่ยนตั๋ว */
+    var nodes=[start], links=[], used=[], cur=start, k, e, guard=0, meAt=0;
+    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].n,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.unshift(e.o); links.unshift(e); cur=e.o; meAt++; }
     cur=start; guard=0;
-    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].o,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; chain.push(e.n); cur=e.n; }
-    return chain.map(function(x){ return '<span class="gm-ct'+(same(x,me)?' me':'')+'">'+esc(x.t||'-')+'<span>เล่ม '+esc(bk(x)||'–')+'</span></span>'; }).join('<span class="gm-car">→</span>');
+    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].o,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.push(e.n); links.push(e); cur=e.n; }
+    var h='';
+    nodes.forEach(function(x,i){
+      var lbl=i===meAt?'ใบที่ค้น':(i<meAt?'ใบก่อนหน้า':'ใบใหม่');
+      h+='<div class="gm-cn'+(i===meAt?' me':'')+'"><span class="gm-cl">'+lbl+'</span><span class="gm-cv">'+esc(x.t||'-')+'<small>เล่ม '+esc(bk(x)||'–')+'</small></span></div>';
+      if(links[i]) h+='<div class="gm-cj"><span>↓</span>'+esc(links[i].d)+(links[i].ty?' · '+esc(links[i].ty):'')+'</div>';
+    });
+    return h;
   }
+
   /* มือถือ: ป้ายบอกช่อง "เลขที่ตั๋ว / เล่มที่" เหนือช่องค้นหา */
   (function(){ var row=document.getElementById('global-search-row'); if(!row||document.getElementById('gm-lbl')) return; ['เล่มที่','เลขที่ตั๋ว'].forEach(function(t,i){ var l=document.createElement('span'); l.className='gm-lbl'; if(!i) l.id='gm-lbl'; l.textContent=t; row.insertBefore(l,row.firstChild); }); })();
   function build(){
@@ -12568,10 +12581,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 3167eb1d343c และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 3ddd79aabe76 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='3167eb1d343c'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='3ddd79aabe76'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

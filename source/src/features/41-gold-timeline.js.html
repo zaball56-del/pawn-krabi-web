@@ -24,19 +24,27 @@
     if(n) line+=' <span class="gm-ar">→</span> <span class="gm-nw">'+tk(n,'nw')+(n.a?' · '+esc(n.a):'')+'</span>';
     else if(type==='ถ') line+=' <span class="gm-red">· ไถ่ถอนแล้ว</span>';
     var html='<div class="gm-it"><span class="gs-ch'+(TY[type]?' t'+TY[type]:'')+'">'+esc(type||'-')+'</span><div class="gm-d">'+esc(c[1].textContent.trim())+'<small>'+(tm?esc(tm)+' · ':'')+esc(mi>=0?MS[mi]:mo)+'</small></div><div class="gm-a">'+esc(amt||'')+'</div><div class="gm-k">'+line+'</div></div>';
-    return {html:html,o:o,n:n};
+    return {html:html,o:o,n:n,d:c[1].textContent.trim(),ty:type};
   }
   /* สายตั๋ว: เริ่มจากใบที่ค้น ย้อนไปใบก่อนหน้า (ตั๋วใหม่ = ใบนี้) และต่อไปใบถัดไป (ตั๋วเดิม = ใบนี้ แล้วติดตั๋วใหม่) จากผลค้นหา */
   function mChain(list,q,bq){
     var me={t:q,b:bq}, start=null;
     list.forEach(function(e){ if(!start){ if(same(e.o,me)) start=e.o; else if(e.n&&same(e.n,me)) start=e.n; } });
     if(!start) start={t:q,b:bq};
-    var chain=[start], used=[], cur=start, k, e, guard=0;
-    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].n,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; chain.unshift(e.o); cur=e.o; }
+    /* แนวตั้ง (ผู้ใช้ขอ 23 พ.ย. 69): ใบละแถว ไม่ตัดบรรทัดกลางสาย · ระหว่างใบบอกวันที่/ประเภทที่เปลี่ยนตั๋ว */
+    var nodes=[start], links=[], used=[], cur=start, k, e, guard=0, meAt=0;
+    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].n,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.unshift(e.o); links.unshift(e); cur=e.o; meAt++; }
     cur=start; guard=0;
-    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].o,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; chain.push(e.n); cur=e.n; }
-    return chain.map(function(x){ return '<span class="gm-ct'+(same(x,me)?' me':'')+'">'+esc(x.t||'-')+'<span>เล่ม '+esc(bk(x)||'–')+'</span></span>'; }).join('<span class="gm-car">→</span>');
+    while(guard++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].o,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.push(e.n); links.push(e); cur=e.n; }
+    var h='';
+    nodes.forEach(function(x,i){
+      var lbl=i===meAt?'ใบที่ค้น':(i<meAt?'ใบก่อนหน้า':'ใบใหม่');
+      h+='<div class="gm-cn'+(i===meAt?' me':'')+'"><span class="gm-cl">'+lbl+'</span><span class="gm-cv">'+esc(x.t||'-')+'<small>เล่ม '+esc(bk(x)||'–')+'</small></span></div>';
+      if(links[i]) h+='<div class="gm-cj"><span>↓</span>'+esc(links[i].d)+(links[i].ty?' · '+esc(links[i].ty):'')+'</div>';
+    });
+    return h;
   }
+
   /* มือถือ: ป้ายบอกช่อง "เลขที่ตั๋ว / เล่มที่" เหนือช่องค้นหา */
   (function(){ var row=document.getElementById('global-search-row'); if(!row||document.getElementById('gm-lbl')) return; ['เล่มที่','เลขที่ตั๋ว'].forEach(function(t,i){ var l=document.createElement('span'); l.className='gm-lbl'; if(!i) l.id='gm-lbl'; l.textContent=t; row.insertBefore(l,row.firstChild); }); })();
   function build(){
