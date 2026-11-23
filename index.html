@@ -6878,6 +6878,32 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
   var oc=window.qsClearFields;
   if(typeof oc==='function') window.qsClearFields=function(){ window.__qsMonthTyped=false; var r=oc.apply(this,arguments); A.classList.remove('qs-auto'); hint.textContent=''; hint.className='qs-amt-hint'; return r; };
 })();
+/* ประเภท ส (ส่งดอก): ยอดตั๋วใหม่ = ยอดตั๋วเดิม → คัดลอกให้เอง (ผู้ใช้ขอ 23 พ.ย. 69)
+   - คัดลอกเมื่อช่องยอดตั๋วใหม่ว่าง หรือเป็นค่าที่คัดลอกไว้เอง (class qs-copy) · ยอดตั๋วเดิมเปลี่ยน → ตามให้
+   - พิมพ์ยอดตั๋วใหม่เอง = หยุดคัดลอก · เปลี่ยนเป็น ผ/พ/ถ → ล้างค่าที่คัดลอกไว้ (ยอดมักไม่เท่าเดิม) */
+(function(){
+  var TY=document.getElementById('qs-type'), A=document.getElementById('qs-amount'), N=document.getElementById('qs-new-amount'), M=document.getElementById('quick-scan-modal');
+  if(!TY||!A||!N||!M) return;
+  var hint=document.createElement('div'); hint.className='qs-amt-hint'; hint.id='qs-new-amt-hint'; N.parentNode.appendChild(hint);
+  function sync(){
+    try{
+      if(!N.value.trim()&&N.classList.contains('qs-copy')){ N.classList.remove('qs-copy'); }
+      var isS=String(TY.value||'').trim()==='ส', a=String(A.value||'').trim();
+      if(isS&&a&&(N.value.trim()===''||N.classList.contains('qs-copy'))){
+        if(N.value!==a){ N.value=a; }
+        N.classList.add('qs-copy'); hint.textContent='คัดลอกจากยอดตั๋วเดิม (ส) แก้ได้';
+      } else if(!isS&&N.classList.contains('qs-copy')){ N.value=''; N.classList.remove('qs-copy'); hint.textContent=''; }
+      else if(!N.classList.contains('qs-copy')) hint.textContent='';
+    }catch(e){}
+  }
+  N.addEventListener('input',function(e){ if(e.isTrusted||!e.__qsCopy){ N.classList.remove('qs-copy'); hint.textContent=''; } });
+  document.addEventListener('input',function(e){ if(e.target===A||e.target===TY) setTimeout(sync,0); },true);
+  document.addEventListener('change',function(e){ if(e.target===A||e.target===TY) setTimeout(sync,0); },true);
+  /* ยอดตั๋วเดิมที่ระบบเติมเอง (ค้นยอด/บาร์โค้ด) ไม่ส่ง event → ตรวจถี่ ๆ เฉพาะตอนหน้าคีย์ด่วนเปิดอยู่ */
+  setInterval(function(){ if(!M.classList.contains('hidden')) sync(); },200);
+  var op=window.qsPaintType; if(typeof op==='function') window.qsPaintType=function(){ var r=op.apply(this,arguments); setTimeout(sync,0); return r; };
+  window.__qsCopySync=sync;
+})();
 </script>
 
 <script id="custody-js">
@@ -12413,10 +12439,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 01eaa2bfd86e และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน b2fd12776847 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='01eaa2bfd86e'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='b2fd12776847'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

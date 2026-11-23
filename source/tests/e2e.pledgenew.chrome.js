@@ -58,5 +58,18 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
   ok(r.na==='36000','12 คีย์ยอดตั๋วใหม่ 35,000 แต่ สธ.2 = 36,000 → นำเข้าแล้วแถวถูกปรับเป็น 36,000 ('+r.na+')');
   ok(r.pc===1&&r.pa===36000,'13 รับจำนำหลังนำเข้า = ยอด สธ.2 1 ราย 36,000 ('+r.pc+' / '+r.pa+')');
   ok(/ปรับยอดตั๋วใหม่ตาม สธ\.2 1 ใบ/.test(r.cmsg),'14 หน้าต่างยืนยันบอกจำนวนใบที่ปรับยอดตาม สธ.2');
+  // ส: ยอดตั๋วใหม่คัดลอกจากยอดตั๋วเดิมให้เอง
+  r=await pg.evaluate(async()=>{ const q=id=>document.getElementById(id), w=ms=>new Promise(r=>setTimeout(r,ms)); openQuickScanModal(); await w(250);
+    q('qs-type').value='ส'; qsPaintType(); q('qs-amount').value='36,000'; await w(350); const a=q('qs-new-amount').value, h=(q('qs-new-amt-hint')||{}).textContent||'';
+    q('qs-amount').value='40,000'; await w(350); const b=q('qs-new-amount').value;
+    q('qs-type').value='ผ'; qsPaintType(); await w(350); const c=q('qs-new-amount').value;
+    q('qs-type').value='ส'; qsPaintType(); await w(350); q('qs-new-amount').value='12,345'; q('qs-new-amount').dispatchEvent(new Event('input',{bubbles:true})); q('qs-amount').value='50,000'; await w(350); const d=q('qs-new-amount').value;
+    q('qs-type').value='ถ'; qsPaintType(); await w(300); const e=q('qs-new-amount').value;
+    closeQuickScanModal(); return {a,h,b,c,d,e}; });
+  ok(r.a==='36,000'&&/คัดลอก/.test(r.h),'15 กด ส → ยอดตั๋วใหม่ = ยอดตั๋วเดิม 36,000 ให้เอง ('+r.a+')');
+  ok(r.b==='40,000','16 ยอดตั๋วเดิมเปลี่ยน → ยอดตั๋วใหม่ตาม ('+r.b+')');
+  ok(r.c==='','17 เปลี่ยนเป็น ผ → ล้างยอดที่คัดลอกไว้ ('+r.c+')');
+  ok(r.d==='12,345','18 พิมพ์ยอดตั๋วใหม่เอง → ไม่ถูกทับ ('+r.d+')');
+  ok(r.e==='12,345'||r.e==='','19 เปลี่ยนเป็น ถ → ค่าที่พิมพ์เองไม่ถูกคัดลอกทับ ('+r.e+')');
   ok(!errs.length,'11 ไม่มี error '+errs.join('|'));
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();
