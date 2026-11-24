@@ -14,7 +14,7 @@ let fail=0; const ok=(c,m)=>{ if(!c) fail++; console.log((c?'ok  ':'FAIL')+' '+m
  let pg=await mk(true);
  await pg.tap('#qs-mode button[data-m="full"]'); await pg.tap('.qs-type-btn[data-type="ถ"]'); await pg.focus('#qs-month');
  ok(await pg.evaluate(()=>document.getElementById('qsnp').classList.contains('on')),'1 มือถือ: แตะช่อง → แป้นเล็กขึ้น');
- for(const k of ['1','1','ถัดไป','5','5']) await K(pg,k); await sleep(1600);
+ for(const k of ['1','1','ถัดไป','5','5']) await K(pg,k); await sleep(2800);   /* พิมพ์เองบนแป้น → รอหยุดพิมพ์ 2 วิก่อนบันทึก */
  const sv=await pg.evaluate(()=>{ const x=(db[currentDate].data['พฤศจิกายน']||[]).find(r=>r&&r.ticket==='55'); return x?x.type+'|'+x.book+'|'+x.amount:''; });
  ok(/^ถ\|262\|3,?000/.test(sv),'2 กดแป้นเล็ก → ระบบดึงเล่ม/ยอดเอง → บันทึกอัตโนมัติ '+sv);
  await pg.focus('#qs-ticket'); for(const k of ['1','2','3','⌫']) await K(pg,k);

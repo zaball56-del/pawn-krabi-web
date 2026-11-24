@@ -60,14 +60,24 @@
     if(t==='ถ') return !g('qs-new-ticket')&&!g('qs-new-book')&&A.classList.contains('qs-auto')&&!!A.value.trim();
     if(['ส','พ','ผ'].indexOf(t)<0||!A.value.trim()) return false;
     return !!(g('qs-new-ticket')&&g('qs-new-book')&&NA&&NA.value.trim()); }
-  var typedAt=0; function typedNew(){ return mode()!=='single'&&(Date.now()-typedAt<2500||(NA&&NA.classList.contains('qs-own')&&document.activeElement===NA)); }
+  /* แยก "คนพิมพ์" กับ "เครื่องยิงบาร์โค้ด/กล้อง" (แก้บั๊ค 24 พ.ย. 69: พิมพ์ 55 แล้วหยุดหลังเลข 5 → ระบบบันทึกตั๋ว 5 ไปเอง)
+     คนพิมพ์ = ค่าเปลี่ยนทีละ 1 ตัว และห่างจากตัวก่อน > 60 มิลลิวินาที → รอหยุดพิมพ์ 2 วินาทีก่อนบันทึก (ทั้ง 2 โหมด)
+     เครื่องยิง = ตัวอักษรติดกันเร็ว < 60 มิลลิวินาที · กล้อง = ใส่ทั้งเลขทีเดียว → บันทึกเร็วเหมือนเดิม */
+  var typedAt=0, lastIn={}, lastVal={};
+  ['qs-month','qs-ticket','qs-book','qs-amount','qs-new-ticket','qs-new-book','qs-new-amount'].forEach(function(i){ var e=document.getElementById(i); if(!e) return;
+    lastVal[i]=e.value;
+    e.addEventListener('input',function(){ var now=Date.now(), dt=now-(lastIn[i]||0), v=String(e.value).replace(/,/g,''), p=String(lastVal[i]||'').replace(/,/g,'');
+      if(!(v.indexOf(p)===0||p.indexOf(v)===0)) p='';   /* ค่าถูกล้าง/เปลี่ยนโดยโปรแกรมระหว่างนั้น → นับจากช่องว่าง */
+      var dl=Math.abs(v.length-p.length); lastIn[i]=now; lastVal[i]=e.value;
+      if(dt<60) typedAt=0; else if(dl===1) typedAt=now; },true); });
+  function typedNew(){ return Date.now()-typedAt<2500||(mode()!=='single'&&NA&&NA.classList.contains('qs-own')&&document.activeElement===NA); }
   /* รอก่อนบันทึก (ตั้งค่า → การใช้งาน: qsAutoDelay มิลลิวินาที ค่าเริ่มต้น 800) · ระหว่างมีหน้าต่างเตือน (เช่น ตั๋วซ้ำ) เปิดอยู่ → รอจนกดตอบก่อน
      ตอบ "ยกเลิก" = ช่องถูกล้าง ไม่บันทึก · ตอบ "ยืนยัน" = บันทึกหลังหน้าต่างปิด */
   function delay(){ try{ var v=Number((JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}')||{}).qsAutoDelay); return [300,500,800,1200].indexOf(v)>=0?v:800; }catch(e){ return 800; } }
   function dlgOpen(){ var d=document.getElementById('ui-dialog'); return !!d&&d.style.display!=='none'&&d.style.display!==''; }
   function fire(){ if(dlgOpen()){ tmA=setTimeout(fire,250); return; } if(ready()&&typeof window.submitQuickScan==='function'){ window.__qsAutoSave=true; try{ window.submitQuickScan(); } finally{ window.__qsAutoSave=false; } } }
   function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(fire,typedNew()?Math.max(2000,delay()):delay()); }
-  if(A){ new MutationObserver(sched).observe(A,{attributes:true,attributeFilter:['class']}); ['qs-ticket','qs-book','qs-month','qs-new-ticket','qs-new-book','qs-new-amount'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('input',function(){ clearTimeout(tmA); setTimeout(sched,200); }); }); A.addEventListener('input',function(){ clearTimeout(tmA); typedAt=Date.now(); if(mode()!=='single') setTimeout(sched,200); }); if(NA) NA.addEventListener('input',function(){ typedAt=Date.now(); });
+  if(A){ new MutationObserver(sched).observe(A,{attributes:true,attributeFilter:['class']}); ['qs-ticket','qs-book','qs-month','qs-new-ticket','qs-new-book','qs-new-amount'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('input',function(){ clearTimeout(tmA); setTimeout(sched,200); }); }); A.addEventListener('input',function(){ clearTimeout(tmA); if(mode()!=='single') setTimeout(sched,200); });
     /* ฟังเฉพาะตอนสถานะยอดตั๋วใหม่เปลี่ยนจริง (คัดลอก/ดึงเอง/พิมพ์เอง) — คลาสอื่นของช่องนี้เปลี่ยนบ่อย ถ้าฟังทุกครั้ง ตัวจับเวลาจะถูกรีเซ็ตไม่จบ */
     var nk=function(){ return ['qs-copy','qs-auto','qs-own'].filter(function(c){ return NA.classList.contains(c); }).join(','); }, nkPrev=NA?nk():'';
     if(NA) new MutationObserver(function(){ var k=nk(); if(k!==nkPrev){ nkPrev=k; sched(); } }).observe(NA,{attributes:true,attributeFilter:['class']});
