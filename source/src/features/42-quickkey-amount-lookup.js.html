@@ -14,12 +14,17 @@
   };
   function run(){
     try{
-      var tk=T.value.trim(); var editable=(A.value.trim()===''||A.classList.contains('qs-auto'));
+      var tk=T.value.trim();
+      /* เล่ม/เดือนที่ระบบเติมให้จากตั๋วใบก่อน (เช่น ระหว่างพิมพ์ 12 → 1290) → เลขตั๋วเปลี่ยนแล้ว ต้องล้าง/คืนค่าเดิมก่อนค้นใหม่ (แก้บั๊ค 24 พ.ย. 69) */
+      var ME0=document.getElementById('qs-month');
+      if(B.dataset.qsAutoFor!==undefined&&B.dataset.qsAutoFor!==tk){ B.value=''; delete B.dataset.qsAutoFor; }
+      if(ME0&&ME0.dataset.qsAutoFor!==undefined&&ME0.dataset.qsAutoFor!==tk){ ME0.value=ME0.dataset.qsAutoPrev||''; delete ME0.dataset.qsAutoFor; delete ME0.dataset.qsAutoPrev; try{qsMonthHint()}catch(e){} }
+      var editable=(A.value.trim()===''||A.classList.contains('qs-auto'));
       if(!tk){ if(A.classList.contains('qs-auto')){A.value='';A.classList.remove('qs-auto')} hint.textContent='';hint.className='qs-amt-hint'; return; }
       var r=qsLookupKnownAmount(tk,B.value.trim());
       if(r.status==='ok'){
-        if(!B.value.trim()){ var kb=(r.base&&r.base.book)||r.book||''; if(kb) B.value=String(kb); }   /* เดิมเติมเฉพาะ r.base (ตั๋วที่มาจาก สธ.3) — ตั๋วที่มาจาก สธ.2 ไม่ได้เล่ม ทั้งที่หน้าเขียนตั๋วเติมให้ */
-        var ME=document.getElementById('qs-month'); if(ME&&(!ME.value||r.monthFallback)){ var mo=r.base?+r.base.month:((['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'].indexOf(String(r.month||'').trim()))); if(mo>=1&&mo<=12){ ME.value=String(mo); try{qsMonthHint()}catch(e){} } }
+        if(!B.value.trim()){ var kb=(r.base&&r.base.book)||r.book||''; if(kb){ B.value=String(kb); B.dataset.qsAutoFor=tk; } }   /* เดิมเติมเฉพาะ r.base (ตั๋วที่มาจาก สธ.3) — ตั๋วที่มาจาก สธ.2 ไม่ได้เล่ม ทั้งที่หน้าเขียนตั๋วเติมให้ */
+        var ME=document.getElementById('qs-month'); if(ME&&(!ME.value||r.monthFallback)){ var mo=r.base?+r.base.month:((['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'].indexOf(String(r.month||'').trim()))); if(mo>=1&&mo<=12&&String(mo)!==String(ME.value)){ if(ME.dataset.qsAutoFor===undefined) ME.dataset.qsAutoPrev=ME.value; ME.value=String(mo); ME.dataset.qsAutoFor=tk; try{qsMonthHint()}catch(e){} } }
         if(editable){ A.value=formatNumber(r.amount); A.classList.add('qs-auto');
           if(r.base){ hint.className='qs-amt-hint'; hint.textContent='ดึงยอดจากทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+') แก้ไขได้'; }
           else {
@@ -32,13 +37,19 @@
       }
     }catch(e){console.error('qs-amount-lookup',e)}
   }
-  var tm=null; function sched(){clearTimeout(tm);tm=setTimeout(run,120)}
+  /* ค้นหลังพิมพ์เสร็จ: คนพิมพ์ทีละตัว (ห่าง > 60 มิลลิวินาที) → รอหยุด 0.6 วิ · เครื่องยิงบาร์โค้ด/กล้อง → ค้นเร็วเหมือนเดิม (แก้บั๊ค 24 พ.ย. 69) */
+  var tm=null, li={}, lv={};
+  function sched(ev){ var e=ev&&ev.target, w=120;
+    if(e&&e.id){ var now=Date.now(), dt=now-(li[e.id]||0), v=String(e.value||''), p=String(lv[e.id]||''); if(!(v.indexOf(p)===0||p.indexOf(v)===0)) p='';
+      if(dt>=60&&Math.abs(v.length-p.length)===1) w=600; li[e.id]=now; lv[e.id]=v; }
+    clearTimeout(tm); tm=setTimeout(run,w); }
   window.__qsRun=run;
-  T.addEventListener('input',sched); B.addEventListener('input',sched);
-  var MO=document.getElementById('qs-month'); if(MO) MO.addEventListener('input',function(){ window.__qsMonthTyped=true; sched(); });
+  T.addEventListener('input',sched);
+  B.addEventListener('input',function(ev){ delete B.dataset.qsAutoFor; sched(ev); });   /* พิมพ์เล่มเอง = ของผู้ใช้ ระบบไม่ล้าง/เขียนทับ */
+  var MO=document.getElementById('qs-month'); if(MO) MO.addEventListener('input',function(ev){ window.__qsMonthTyped=true; delete MO.dataset.qsAutoFor; delete MO.dataset.qsAutoPrev; sched(ev); });
   A.addEventListener('input',function(){A.classList.remove('qs-auto')});
   var oc=window.qsClearFields;
-  if(typeof oc==='function') window.qsClearFields=function(){ window.__qsMonthTyped=false; var r=oc.apply(this,arguments); A.classList.remove('qs-auto'); hint.textContent=''; hint.className='qs-amt-hint'; return r; };
+  if(typeof oc==='function') window.qsClearFields=function(){ window.__qsMonthTyped=false; var r=oc.apply(this,arguments); A.classList.remove('qs-auto'); delete B.dataset.qsAutoFor; var M2=document.getElementById('qs-month'); if(M2){ delete M2.dataset.qsAutoFor; delete M2.dataset.qsAutoPrev; } hint.textContent=''; hint.className='qs-amt-hint'; return r; };
 })();
 /* ประเภท ส (ส่งดอก): ยอดตั๋วใหม่ = ยอดตั๋วเดิม → คัดลอกให้เอง (ผู้ใช้ขอ 23 พ.ย. 69)
    - คัดลอกเมื่อช่องยอดตั๋วใหม่ว่าง หรือเป็นค่าที่คัดลอกไว้เอง (class qs-copy) · ยอดตั๋วเดิมเปลี่ยน → ตามให้

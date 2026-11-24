@@ -62,5 +62,26 @@ async function oldPart(pg,mode,type,t){ await sleep(1200); await pg.tap('#qs-mod
   await sleep(600); await pg.evaluate(()=>{ const t=document.getElementById('qs-ticket'); t.value='56'; t.dispatchEvent(new Event('input',{bubbles:true})); }); await sleep(1300);
   ok(/^ถ\|4,?000/.test(await saved(pg,'56')),'11 สแกนด้วยกล้อง (ใส่ทั้งเลขทีเดียว) → บันทึกเร็วเหมือนเดิม '+await saved(pg,'56'));
   ok(!pg.errs.length,'12 ไม่มี error '+JSON.stringify(pg.errs)); await pg.context().close();
+  /* ผู้ใช้ขอ 24 พ.ย. 69: ข้อมูลครบทุกช่อง (ยอดพิมพ์เอง) ก็บันทึกเอง ทั้ง 2 โหมด · ระหว่างพิมพ์ห้ามดึงข้อมูลตั๋วใบอื่นมาใส่ */
+  for(const mode of ['single','full']){
+    pg=await page(b,true,true); const K2=async k=>{ await pg.tap('#qsnp button[data-k="'+k+'"]'); await sleep(120); };
+    await pg.tap('#qs-mode button[data-m="'+mode+'"]'); await pg.tap('.qs-type-btn[data-type="ถ"]'); await pg.focus('#qs-month'); await pg.evaluate(()=>{ document.getElementById('qs-month').value=''; });
+    for(const k of ['1','1','ถัดไป','9','9','9']) await K2(k); await pg.focus('#qs-book'); for(const k of ['7']) await K2(k); await pg.focus('#qs-amount'); for(const k of ['1','5','0','0']) await K2(k);
+    await sleep(1200); const mid=await saved(pg,'999'); await sleep(1800);
+    ok(!mid&&/^ถ\|1,?500/.test(await saved(pg,'999')),'13 '+mode+' · ตั๋วที่ไม่มีในข้อมูลเดิม พิมพ์ยอดเอง → ครบทุกช่องแล้วบันทึกเอง (รอหยุดพิมพ์) '+await saved(pg,'999'));
+    await pg.context().close(); }
+  pg=await page(b,false,true); await pg.evaluate(()=>{ const r=db['2026-11-03'].sor2.rows; r.push(['','',0,'5','250','1',1500]); saveDB(); });
+  const K3=async k=>{ await pg.tap('#qsnp button[data-k="'+k+'"]'); await sleep(120); };
+  const V3=()=>pg.evaluate(()=>['qs-ticket','qs-book','qs-amount'].map(i=>document.getElementById(i).value).join('|'));
+  await pg.tap('#qs-mode button[data-m="full"]'); await pg.tap('.qs-type-btn[data-type="ถ"]'); await pg.focus('#qs-month'); await pg.evaluate(()=>{ document.getElementById('qs-month').value=''; });
+  for(const k of ['1','1','ถัดไป','5']) await K3(k);
+  ok((await V3())==='5||','14a ระหว่างพิมพ์ (กดต่อเนื่อง) ยังไม่ดึงข้อมูลตั๋ว 5 มาใส่ '+await V3());
+  await sleep(900); const a5=await V3();
+  await K3('6'); await sleep(900);
+  ok(/^5\|250\|1,?500$/.test(a5)&&/^56\|262\|4,?000$/.test(await V3()),'14 หยุดที่ 5 → ดึงเล่ม 250 · พิมพ์ต่อเป็น 56 → ล้างเล่มเก่า ดึงเล่ม 262 ของ 56 ถูกต้อง '+a5+' → '+await V3());
+  await pg.focus('#qs-book'); await pg.evaluate(()=>{ const e=document.getElementById('qs-book'); e.value=''; e.dispatchEvent(new Event('input',{bubbles:true})); }); for(const k of ['2','6','2']) await K3(k);
+  await pg.focus('#qs-ticket'); await K3('⌫'); await K3('6'); await sleep(900);
+  ok((await V3()).split('|')[1]==='262','15 เล่มที่พิมพ์เอง ระบบไม่ล้าง/ไม่เขียนทับเมื่อแก้เลขตั๋ว '+await V3());
+  ok(!pg.errs.length,'16 ไม่มี error '+JSON.stringify(pg.errs)); await pg.context().close();
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0);
 })();

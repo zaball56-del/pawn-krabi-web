@@ -519,35 +519,45 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
   function sqCount(){ var n=0, sm=0; for(var g=0;g<NG();g++){ var t=totals(g); n+=t.c; sm=Math.round((sm+t.s)*100)/100; } $('tkw-sq-n').textContent=n; var e=$('tkw-sq-sum'); if(e) e.textContent=sm?fmt(sm):'0'; }
   function mhint(){ var m=+SM.value, el=$('tkw-sq-mn'); if(m>=1&&m<=12){ var has=day.m.indexOf(m)>=0; el.textContent=MN[m]+(has?' ✓':' (จะเพิ่มคอลัมน์ใหม่)'); el.className='mn '+(has?'ok':'new'); } else { el.textContent=''; el.className='mn'; } }
-  function sqOpen(){ if(!day) return; P.classList.add('sq-on'); dupOk=''; try{ recPaint(); }catch(e){} monTyped=false; SM.value=lastM(); ST.value=''; SA.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); $('tkw-sq-cont').checked=ls(KC)==='1'; msg('สแกนตั๋ว → เดือนกับยอดมาเอง (ถ้าเจอในข้อมูลเดิม) → Enter'); mhint(); sqCount(); setTimeout(function(){ ST.focus(); },50); }
+  function sqOpen(){ if(!day) return; autoMonFor=null; autoMonPrev=''; P.classList.add('sq-on'); dupOk=''; try{ recPaint(); }catch(e){} monTyped=false; SM.value=lastM(); ST.value=''; SA.value=''; SA.classList.remove('auto'); autoAmt=false; lastBook=''; lastYY=''; hint(''); $('tkw-sq-cont').checked=ls(KC)==='1'; msg('สแกนตั๋ว → เดือนกับยอดมาเอง (ถ้าเจอในข้อมูลเดิม) → Enter'); mhint(); sqCount(); setTimeout(function(){ ST.focus(); },50); }
   function sqClose(){ P.classList.remove('sq-on'); render(); }
   function camOpen(){ if(typeof window.__camOpen==='function'){ var ov=document.getElementById('cam-ov'); if(ov){ ov.classList.add('tkw-cam'); if(!ov.__tkwObs){ ov.__tkwObs=new MutationObserver(function(){ if(!ov.classList.contains('on')&&ov.classList.contains('tkw-cam')) ov.classList.remove('tkw-cam'); }); ov.__tkwObs.observe(ov,{attributes:true,attributeFilter:['class']}); } } window.__camOpen('tkw-sq-t','สแกนตั๋วเดิม'); } else msg('ยังเปิดกล้องไม่ได้ ลองโหลดหน้าใหม่','er'); }
   var lastBook='', lastYY='', autoAmt=false, tmL=null;
   function hint(t,w){ var h=$('tkw-sq-hint'); h.textContent=t||''; h.className='hint'+(w?' warn':''); }
   function dth(k){ var p=String(k).split('-'); return p[2]+'/'+p[1]+'/'+(parseInt(p[0],10)+543); }
+  var autoMonFor=null, autoMonPrev='';
   function lookup(){
-    var t=ST.value.trim(); if(!t){ if(autoAmt){ SA.value=''; SA.classList.remove('auto'); autoAmt=false; } hint(''); return; }
+    var t=ST.value.trim();
+    if(!t) autoMonFor=null;   /* ช่องว่าง (เช่น หลังบันทึก) = จบใบนั้น เดือนคงไว้ */
+    if(autoMonFor!==null&&autoMonFor!==t){ SM.value=autoMonPrev; autoMonFor=null; autoMonPrev=''; mhint(); }   /* เดือนที่ระบบเปลี่ยนให้จากตั๋วใบก่อน → คืนค่าเดิม */
+    if(!t){ if(autoAmt){ SA.value=''; SA.classList.remove('auto'); autoAmt=false; } hint(''); return; }
     if(typeof window.qsLookupKnownAmount!=='function'){ hint(''); return; }
     var r; window.__qsSoft=!monTyped; window.__qsMonthOverride=(+SM.value>=1&&+SM.value<=12)?+SM.value:0;
     try{ r=window.qsLookupKnownAmount(t,lastBook); }catch(e){ r={status:'none'}; } finally{ window.__qsMonthOverride=null; window.__qsSoft=false; }
     if(!r||r.status!=='ok'){ if(autoAmt){ SA.value=''; SA.classList.remove('auto'); autoAmt=false; } hint(r&&r.status==='multibook'?'พบเลขตั๋วนี้หลายเล่ม สแกนบาร์โค้ดเพื่อระบุเล่ม':(r&&r.status==='bookmismatch'?'เลขตั๋วนี้มีในฐานข้อมูล แต่เล่มไม่ตรง ('+r.books+')':'ไม่พบตั๋วนี้ในข้อมูลเดิม ใส่ยอดเอง'),true); return; }
     if(!lastBook){ var kb=(r.base&&r.base.book)||r.book||''; if(kb) lastBook=String(kb); }
     var mo=0; if(r.base) mo=+r.base.month; else { var ix=MN.indexOf(String(r.month||'').trim()); if(ix>0) mo=ix; }
-    if((!SM.value||r.monthFallback)&&mo>=1&&mo<=12){ SM.value=String(mo); mhint(); }
+    if((!SM.value||r.monthFallback)&&mo>=1&&mo<=12&&String(mo)!==String(SM.value)){ if(autoMonFor===null) autoMonPrev=SM.value; SM.value=String(mo); autoMonFor=t; mhint(); }
     if(SA.value.trim()===''||autoAmt){ SA.value=fmt(num(r.amount)); SA.classList.add('auto'); autoAmt=true;
       hint('ดึงยอดจาก'+(r.base?'ทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+')':(r.manual?(r.src==='ตารางเขียนตั๋ว'?'ตารางเขียนตั๋ว':'ข้อมูลที่คีย์เอง'):'ข้อมูลเดิม')+' ('+dth(r.date)+' · '+r.month+')')+(r.manual?' · คีย์เอง ยังไม่ยืนยันกับ สธ.3 ตรวจก่อนบันทึก':' แก้ไขได้'),!!(r.differs||r.manual)); autoSaveMaybe(r); }
     else hint('พบในข้อมูลเดิม ยอด '+fmt(num(r.amount))+(r.manual?' (คีย์เอง ยังไม่ยืนยันกับ สธ.3)':'')+' (ยอดที่ใส่ไว้ไม่ถูกเปลี่ยน)',!!r.manual);
   }
   var AK='pawn_tkw_auto', tmA=null;
-  function autoSaveMaybe(r){ clearTimeout(tmA); if(!$('tkw-sq-auto').checked||!r||r.manual||r.differs) return; var m=+SM.value; if(!(m>=1&&m<=12)||!ST.value.trim()||!lastBook||!(num(SA.value.replace(/,/g,''))>0)) return; tmA=setTimeout(function(){ if(P.classList.contains('sq-on')&&$('tkw-sq-auto').checked){ window.__tkwAuto=true; sqSave(); } },800); }
-  function schedL(){ clearTimeout(tmL); tmL=setTimeout(function(){ lookup(); try{ dupHint(); }catch(e){} },120); }
-  ST.addEventListener('input',function(){ if(!/^\d{12,13}$/.test(ST.value.trim())){ lastBook=''; lastYY=''; } schedL(); });
+  /* บันทึกอัตโนมัติ: ข้อมูลครบทุกช่อง (เดือน + เลขตั๋ว + ยอด) → บันทึกเอง ไม่ว่ายอดดึงเองหรือพิมพ์เอง (ผู้ใช้ขอ 24 พ.ย. 69 ให้เหมือนหน้าคีย์ด่วน)
+     คนพิมพ์ทีละตัว → รอหยุดพิมพ์ 2 วิ · เครื่องยิงบาร์โค้ด/กล้อง → 0.8 วิเหมือนเดิม */
+  var hTyped=0, hLast={}, hVal={};
+  function human(e){ if(!e||!e.id) return false; var now=Date.now(), dt=now-(hLast[e.id]||0), v=String(e.value||'').replace(/,/g,''), p=String(hVal[e.id]||'').replace(/,/g,''); if(!(v.indexOf(p)===0||p.indexOf(v)===0)) p='';
+    var h=(dt>=60&&Math.abs(v.length-p.length)===1); hLast[e.id]=now; hVal[e.id]=e.value; if(dt<60) hTyped=0; else if(h) hTyped=now; return h; }
+  function autoSaveMaybe(r){ clearTimeout(tmA); if(!$('tkw-sq-auto').checked) return; var m=+SM.value; if(!(m>=1&&m<=12)||!ST.value.trim()||!(num(SA.value.replace(/,/g,''))>0)) return; var w=(Date.now()-hTyped<2500)?2000:800; tmA=setTimeout(function(){ if(P.classList.contains('sq-on')&&$('tkw-sq-auto').checked){ window.__tkwAuto=true; sqSave(); } },w); }
+  /* ค้นหลังพิมพ์เสร็จ: คนพิมพ์ทีละตัว → รอหยุด 0.6 วิ (กันดึงข้อมูลตั๋วใบอื่นระหว่างพิมพ์) · เครื่องยิง/กล้อง → เร็วเหมือนเดิม */
+  function schedL(ev){ var h=ev&&ev.target?human(ev.target):false; clearTimeout(tmL); tmL=setTimeout(function(){ lookup(); try{ dupHint(); }catch(e){} try{ autoSaveMaybe(null); }catch(e){} },h?600:120); }
+  ST.addEventListener('input',function(ev){ if(!/^\d{12,13}$/.test(ST.value.trim())){ lastBook=''; lastYY=''; } schedL(ev); });
   SM.addEventListener('input',schedL);
-  SA.addEventListener('input',function(){ autoAmt=false; SA.classList.remove('auto'); });
+  SA.addEventListener('input',function(){ autoAmt=false; SA.classList.remove('auto'); human(SA); autoSaveMaybe(null); });
   var busy=false;
   function onTk(){ if(busy) return; var v=ST.value.trim(); if(!/^\d{12,13}$/.test(v)) return; var Pf=window.__parseTicketBarcode, r=(typeof Pf==='function')?Pf(v):null; if(!r){ msg('อ่านได้ '+v+' แต่ไม่ตรงรูปแบบตั๋ว ลองสแกนใหม่','er'); return; } busy=true; ST.value=String(r.ticket); lastBook=String(r.book); lastYY=String(r.yy); busy=false; schedL(); msg('อ่านบาร์โค้ดแล้ว: ปีงบ '+r.yy+' · เล่ม '+r.book+' · เลขที่ '+r.ticket,'ok'); setTimeout(function(){ (SM.value?SA:SM).focus(); },300); }
   ST.addEventListener('input',onTk); ST.addEventListener('change',onTk);
-  SM.addEventListener('input',mhint); SM.addEventListener('input',function(){ monTyped=true; var v=+SM.value; if(v>=1&&v<=12) lastMon=String(v); });
+  SM.addEventListener('input',mhint); SM.addEventListener('input',function(){ monTyped=true; autoMonFor=null; autoMonPrev=''; var v=+SM.value; if(v>=1&&v<=12) lastMon=String(v); });
   /* ตั๋วซ้ำข้ามวัน/ข้ามเดือน (ย้อนหลัง 1 ปี) · เล่มต่างกันชัดเจน = คนละใบ */
   /* เทียบเลขตั๋ว/เล่มแบบเดียวกับการนำเข้า สธ.3: "0134" = "134" */
   function nzT(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); }
@@ -668,7 +678,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   SA.addEventListener('blur',function(){ if(SA.value.trim()) SA.value=fmt(num(SA.value)); });
   $('tkw-sq-save').onclick=sqSave; $('tkw-sq-cam').onclick=camOpen; $('tkw-sq-x').onclick=sqClose;
   $('tkw-sq-auto').checked=ls(AK)!=='0'; $('tkw-sq-auto').onchange=function(){ ls(AK,this.checked?'1':'0'); if(!this.checked) clearTimeout(tmA); };
-  SA.addEventListener('input',function(){ clearTimeout(tmA); }); SM.addEventListener('input',function(){ clearTimeout(tmA); });
+  /* พิมพ์ยอดเอง: autoSaveMaybe ในตัวฟังของ SA ด้านบนจัดการตั้งเวลาใหม่เอง (เดิมตัวนี้ล้างตัวจับเวลาทิ้ง ทำให้ยอดพิมพ์เองไม่บันทึกอัตโนมัติ) */ SM.addEventListener('input',function(){ clearTimeout(tmA); });
   $('tkw-sq-cont').onchange=function(){ ls(KC,this.checked?'1':'0'); };
   $('tkw-scan-btn').onclick=sqOpen;
 
