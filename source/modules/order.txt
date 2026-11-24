@@ -48,3 +48,4 @@ tkwdesk.html
 lgdesk.html
 newver.html
 qsskin.html
+qsnumpad.html

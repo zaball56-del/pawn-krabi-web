@@ -5672,7 +5672,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
           +ck('ds-warn','แสดงแถบเตือนเมื่อไม่ได้สำรองข้อมูลเกิน 7 วัน','ปิดไว้เป็นค่าเริ่มต้น',s.warnBackup)+'</div>'
           +'<div class="ds-sec"><h3>เครื่องสแกนบาร์โค้ด</h3>'
           +ck('ds-scan-enter','กด Enter ที่ช่องเลขตั๋ว/เล่มที่ = บันทึกทันที (ประเภท ถ เมื่อมียอดขึ้นแล้ว)','ปิด = Enter พาไปช่องยอดเงินก่อน ให้ตรวจยอดแล้วกด Enter อีกครั้ง',s.scanEnterSave!==false)
-          +ck('ds-scan-auto','บันทึกอัตโนมัติ (โหมด "สแกนตั๋วเดิมอย่างเดียว")','ยอดขึ้นเองครบแล้วรอตามเวลาด้านล่างแล้วบันทึกเอง ไม่ต้องกด Enter · เป็นช่องเดียวกับ "บันทึกอัตโนมัติ" ในหน้าคีย์ด่วน · ถ้ามีหน้าต่างเตือน (เช่น ตั๋วซ้ำ) จะรอให้กดตอบก่อน',(function(){ try{ return localStorage.getItem('pawn_qs_auto')!=='0'; }catch(e){ return true; } })())
+          +ck('ds-scan-auto','บันทึกอัตโนมัติเมื่อข้อมูลครบ (ทั้ง 2 โหมดสแกน)','ตั๋วเดิมอย่างเดียว / ถ: ยอดขึ้นเองครบแล้วรอตามเวลาด้านล่างแล้วบันทึก · ส พ ผ (โหมดตั๋วเดิม+ตั๋วใหม่): ใส่ตั๋วใหม่+เล่ม+ยอดครบแล้วบันทึก ยอดที่พิมพ์เองรอหยุดพิมพ์ 2 วินาที · เป็นช่องเดียวกับ "บันทึกอัตโนมัติ" ในหน้าคีย์ด่วน · ถ้ามีหน้าต่างเตือน (เช่น ตั๋วซ้ำ) จะรอให้กดตอบก่อน',(function(){ try{ return localStorage.getItem('pawn_qs_auto')!=='0'; }catch(e){ return true; } })())
+          +ck('ds-scan-numpad','ใช้แป้นตัวเลขของโปรแกรม (มือถือ)','แป้นเล็กในหน้าคีย์ด่วนแทนแป้นของมือถือ · กด "แป้นมือถือ" บนแป้นเพื่อกลับไปใช้แป้นของเครื่อง แล้วมาเปิดใหม่ที่นี่',(function(){ try{ return localStorage.getItem('pawn_qs_numpad')!=='0'; }catch(e){ return true; } })())
           +'<div class="ds-f" style="margin-top:8px"><label for="ds-qs-delay">บันทึกอัตโนมัติหลังยอดขึ้น</label><select id="ds-qs-delay">'+[[300,'0.3 วินาที (เร็วมาก)'],[500,'0.5 วินาที (เร็ว)'],[800,'0.8 วินาที (ค่าเริ่มต้น)'],[1200,'1.2 วินาที (มีเวลาดูยอดก่อน)']].map(function(o){ return '<option value="'+o[0]+'"'+((Number(s.qsAutoDelay)||800)===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div>'
           +'<div class="ds-f" style="margin-top:8px"><label for="ds-qs-type">ประเภทเริ่มต้นตอนเปิดคีย์ด่วน</label><select id="ds-qs-type">'+[['','ไม่เลือก (เลือกเองทุกครั้ง)'],['ถ','ถ'],['ส','ส'],['พ','พ'],['ผ','ผ']].map(function(o){ return '<option value="'+o[0]+'"'+(String(s.qsDefaultType||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div>'
           +ck('ds-scan-beep','เสียงตอนสแกน','อ่านบาร์โค้ดได้ = ติ๊กสั้น · บันทึกแล้ว = ติ๊กสูงสองครั้ง · ผิดพลาด/ตั๋วซ้ำ = เสียงต่ำสองครั้ง',s.scanBeep!==false)
@@ -5732,6 +5733,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
             q('ds-sound').addEventListener('change',function(){ set('sound',this.checked); });
             q('ds-devname').addEventListener('change',function(){ var v=String(this.value||'').replace(/\s+/g,' ').trim().slice(0,40); this.value=v; var old=String(load().deviceName||''); if(v===old) return; set('deviceName',v); try{ if(window.__audit) window.__audit('ตั้งชื่อเครื่อง',(old||'(ไม่มีชื่อ)')+' → '+(v||'(ไม่มีชื่อ)')); }catch(e){} toast(v?'ตั้งชื่อเครื่องนี้เป็น "'+v+'" แล้ว':'ลบชื่อเครื่องแล้ว'); });
             q('ds-scan-enter').addEventListener('change',function(){ set('scanEnterSave',this.checked); });
+            q('ds-scan-numpad').addEventListener('change',function(){ try{ if(typeof window.qsNumpadEnable==='function') window.qsNumpadEnable(this.checked); else localStorage.setItem('pawn_qs_numpad',this.checked?'1':'0'); }catch(e){} toast(this.checked?'เปิดแป้นตัวเลขของโปรแกรมแล้ว':'ใช้แป้นของมือถือแล้ว'); });
             q('ds-scan-auto').addEventListener('change',function(){ try{ localStorage.setItem('pawn_qs_auto',this.checked?'1':'0'); }catch(e){} toast(this.checked?'เปิดบันทึกอัตโนมัติแล้ว':'ปิดบันทึกอัตโนมัติแล้ว'); });
             q('ds-qs-delay').addEventListener('change',function(){ var v=Number(this.value); set('qsAutoDelay',[300,500,800,1200].indexOf(v)>=0?v:800); toast('บันทึกแล้ว'); });
             q('ds-qs-type').addEventListener('change',function(){ set('qsDefaultType',/^[สพผถ]$/.test(this.value)?this.value:''); toast('บันทึกแล้ว'); });
@@ -12719,10 +12721,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 4ee19dbe3818 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 74278dd77aa8 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='4ee19dbe3818'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='74278dd77aa8'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
@@ -12965,6 +12967,77 @@ html body #quick-scan-modal.fixed.qsx .qs-in{scroll-margin-top:70px;scroll-margi
   M.addEventListener('focusout',function(){ setTimeout(kb,150); });
   decorate();
 }catch(e){ try{ console.error('qsx',e); }catch(_){} } })();
+</script>
+
+<style id="qsnp-css">
+/* แป้นตัวเลขของหน้าคีย์ด่วน (มือถือ) — เล็กกว่าแป้นของเครื่อง · ผู้ใช้ขอ 24 พ.ย. 69
+   ปิดได้: ปุ่ม ⌨ บนแป้น = กลับไปใช้แป้นของมือถือ (จำค่าไว้) */
+#qsnp{display:none}
+html body #qsnp:not(.on){display:none !important}
+@media (max-width:640px){
+html body #qsnp.on{display:grid;position:fixed;top:auto;height:auto;left:0;right:0;bottom:0;z-index:80;grid-template-columns:repeat(4,1fr);gap:5px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:#0b2350;border-top:3px solid #d4a84b;box-shadow:0 -10px 24px -12px rgba(0,0,0,.55);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+html body #qsnp button{height:42px;border:0;border-radius:10px;background:#fff;color:#0b2a55;font:800 21px/1 Sarabun,sans-serif;box-shadow:0 2px 0 rgba(0,0,0,.25);-webkit-tap-highlight-color:transparent}
+html body #qsnp button:active{transform:translateY(1px);box-shadow:none;background:#e2e8f0}
+html body #qsnp button.f{background:#dbe4f3;font-size:15px}
+html body #qsnp button.nx{background:linear-gradient(180deg,#e9c463,#c89422);color:#fff;font-size:16px;grid-row:span 2;height:auto;text-shadow:0 1px 0 rgba(0,0,0,.2)}
+html body #qsnp button.hd{background:transparent;color:#cbd5e1;font-size:13px;box-shadow:none;border:1px solid rgba(255,255,255,.25)}
+html body #qsnp .lb{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;color:#f3d27a;font:700 12.5px Sarabun,sans-serif;padding:0 4px;height:18px}
+html body #qsnp .lb span{color:#fff;font-weight:800;font-size:14px;margin-left:6px}
+/* แป้นเปิดอยู่: เว้นที่ด้านล่างให้ช่องกรอกไม่ถูกบัง · ซ่อนแถบ ล้างข้อมูล/บันทึก (ไม่ต้องตามแป้น) */
+html body #quick-scan-modal.fixed.qsnp-on .qs-cols{padding-bottom:250px !important}
+html body #quick-scan-modal.fixed.qsnp-on .qs-right > div:last-child,html body #quick-scan-modal.fixed.qsx-kb .qs-right > div:last-child{display:none !important}
+html body #quick-scan-modal.fixed.qsnp-on .qs-types{position:static !important;box-shadow:none !important}
+html body #quick-scan-modal.fixed.qsnp-on .qs-pv-card,html body #quick-scan-modal.fixed.qsnp-on #qs-mode,html body #quick-scan-modal.fixed.qsnp-on #qs-count{display:none !important}
+html body #quick-scan-modal.fixed.qsnp-on .qs-in.qsnp-f{border-color:#c89422 !important;box-shadow:0 0 0 3px rgba(212,168,75,.35) !important}
+}
+</style>
+<script id="qsnp-js">
+(function(){ try{
+  var M=document.getElementById('quick-scan-modal'); if(!M) return;
+  var IDS=['qs-month','qs-ticket','qs-book','qs-amount','qs-new-ticket','qs-new-book','qs-new-amount'];
+  var NAME={'qs-month':'เดือน','qs-ticket':'เลขตั๋วเดิม','qs-book':'เล่มที่','qs-amount':'ยอดเงิน','qs-new-ticket':'เลขตั๋วใหม่','qs-new-book':'เล่มตั๋วใหม่','qs-new-amount':'ยอดตั๋วใหม่'};
+  var KEY='pawn_qs_numpad';
+  function want(){ try{ return localStorage.getItem(KEY)!=='0'; }catch(e){ return true; } }
+  function small(){ return window.innerWidth<=640 && (('ontouchstart' in window) || (window.matchMedia&&matchMedia('(pointer:coarse)').matches)); }
+  var pad=document.createElement('div'); pad.id='qsnp'; pad.setAttribute('aria-label','แป้นตัวเลข');
+  pad.innerHTML='<div class="lb">กำลังกรอก<span id="qsnp-n"></span><em style="font-style:normal;color:#cbd5e1;font-weight:600">แป้นตัวเลข</em></div>'+
+    ['1','2','3','⌫','4','5','6','ถัดไป','7','8','9','0','00','000','⌨'].map(function(k){ var c=k==='⌫'?'f':(k==='ถัดไป'?'nx':(k==='⌨'?'hd':(k.length>1?'f':''))); return '<button type="button" class="'+c+'" data-k="'+k+'"'+(k==='⌨'?' title="ใช้แป้นของมือถือ" aria-label="ใช้แป้นของมือถือ"':'')+'>'+(k==='⌨'?'แป้นมือถือ':k)+'</button>'; }).join('');
+  document.body.appendChild(pad);
+  var cur=null;
+  function el(){ return cur&&document.body.contains(cur)?cur:null; }
+  function show(t){ cur=t; IDS.forEach(function(i){ var e=document.getElementById(i); if(e) e.classList.toggle('qsnp-f',e===t); });
+    var n=document.getElementById('qsnp-n'); if(n) n.textContent=NAME[t.id]||''; M.classList.add('qsnp-on'); pad.classList.add('on');
+    setTimeout(function(){ try{ t.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){} },30); }
+  function hide(){ M.classList.remove('qsnp-on'); pad.classList.remove('on'); IDS.forEach(function(i){ var e=document.getElementById(i); if(e) e.classList.remove('qsnp-f'); }); cur=null; }
+  function arm(){ var on=want()&&small(); IDS.forEach(function(i){ var e=document.getElementById(i); if(!e) return;
+      if(on){ if(!e.dataset.qsnpIm) e.dataset.qsnpIm=e.getAttribute('inputmode')||''; e.setAttribute('inputmode','none'); }
+      else if(e.dataset.qsnpIm!==undefined){ if(e.dataset.qsnpIm) e.setAttribute('inputmode',e.dataset.qsnpIm); else e.removeAttribute('inputmode'); delete e.dataset.qsnpIm; } });
+    if(!on) hide(); return on; }
+  M.addEventListener('focusin',function(e){ var t=e.target; if(!t||IDS.indexOf(t.id)<0) return; if(arm()) show(t); });
+  M.addEventListener('focusout',function(){ setTimeout(function(){ var a=document.activeElement; if(!a||IDS.indexOf(a.id)<0) hide(); },120); });
+  function put(t,txt){
+    var v=t.value, s=v.length, e2=v.length;
+    try{ if(typeof t.selectionStart==='number'&&t.type!=='number'){ s=t.selectionStart; e2=t.selectionEnd; } }catch(_){}
+    if(txt===null){ if(s===e2){ if(s===0) return; s=s-1; } t.value=v.slice(0,s)+v.slice(e2); }
+    else t.value=v.slice(0,s)+txt+v.slice(e2);
+    var p=(txt===null)?s:s+txt.length; try{ if(t.type!=='number') t.setSelectionRange(p,p); }catch(_){}
+    t.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  function enter(t){ var ev=new KeyboardEvent('keydown',{key:'Enter',code:'Enter',keyCode:13,which:13,bubbles:true,cancelable:true}); t.dispatchEvent(ev); }
+  /* กดปุ่มแป้น: ห้ามช่องเสียโฟกัส (ไม่งั้นแป้นจะหาย) */
+  pad.addEventListener('pointerdown',function(e){ e.preventDefault(); });
+  pad.addEventListener('mousedown',function(e){ e.preventDefault(); });
+  pad.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return; var k=b.dataset.k, t=el(); if(!t) return;
+    if(k==='⌨'){ try{ localStorage.setItem(KEY,'0'); }catch(_){} arm(); hide(); t.blur(); setTimeout(function(){ t.focus(); },60); return; }
+    if(k==='⌫') return put(t,null);
+    if(k==='ถัดไป'){ enter(t); var a=document.activeElement; if(a&&IDS.indexOf(a.id)>=0&&a!==t) show(a); else if(!a||IDS.indexOf(a.id)<0) hide(); return; }
+    put(t,k);
+  });
+  window.addEventListener('resize',function(){ if(!small()) { arm(); } });
+  window.qsNumpadEnable=function(on){ try{ localStorage.setItem(KEY,on?'1':'0'); }catch(_){} arm(); };
+  arm();
+}catch(e){ try{ console.error('qsnp',e); }catch(_){} } })();
 </script>
 
 </body>
