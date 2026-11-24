@@ -48,14 +48,30 @@
   ca.addEventListener('change',function(){ ls(AK,ca.checked?'1':'0'); if(!ca.checked) clearTimeout(tmA); });
   var A=document.getElementById('qs-amount');
   function ready(){ var g=function(i){ var e=document.getElementById(i); return e?e.value.trim():''; }; var m=parseInt(g('qs-month'),10);
-    return ca.checked&&mode()==='single'&&M.classList.contains('qs-single')&&!M.classList.contains('hidden')&&g('qs-type')&&m>=1&&m<=12&&g('qs-ticket')&&g('qs-book')&&!g('qs-new-ticket')&&A&&A.classList.contains('qs-auto')&&A.value.trim(); }
+    if(!(ca.checked&&!M.classList.contains('hidden')&&g('qs-type')&&m>=1&&m<=12&&g('qs-ticket')&&g('qs-book')&&A)) return false;
+    if(mode()==='single') return M.classList.contains('qs-single')&&!g('qs-new-ticket')&&A.classList.contains('qs-auto')&&!!A.value.trim();
+    return fullReady(g); }
+  /* โหมดตั๋วเดิม+ตั๋วใหม่ (ผู้ใช้เลือกแบบ ข 24 พ.ย. 69)
+     ถ: เหมือนโหมดตั๋วเดิมอย่างเดียว (ไม่มีตั๋วใหม่ · ยอดที่ดึงมาเองครบ) → บันทึกเอง
+     ส/พ/ผ: ยอดตั๋วเดิมมีแล้ว + เลขตั๋วใหม่ + เล่ม + ยอดตั๋วใหม่ครบ → บันทึกเอง
+       ยอดตั๋วใหม่ที่ระบบใส่ให้ (คัดลอกของ ส / ดึงจากข้อมูลเดิม) = รอตามเวลาที่ตั้งไว้ · ยอดที่พิมพ์เอง = รอให้หยุดพิมพ์ 2 วินาทีก่อน */
+  var NA=document.getElementById('qs-new-amount');
+  function fullReady(g){ var t=g('qs-type');
+    if(t==='ถ') return !g('qs-new-ticket')&&!g('qs-new-book')&&A.classList.contains('qs-auto')&&!!A.value.trim();
+    if(['ส','พ','ผ'].indexOf(t)<0||!A.value.trim()) return false;
+    return !!(g('qs-new-ticket')&&g('qs-new-book')&&NA&&NA.value.trim()); }
+  var typedAt=0; function typedNew(){ return mode()!=='single'&&(Date.now()-typedAt<2500||(NA&&NA.classList.contains('qs-own')&&document.activeElement===NA)); }
   /* รอก่อนบันทึก (ตั้งค่า → การใช้งาน: qsAutoDelay มิลลิวินาที ค่าเริ่มต้น 800) · ระหว่างมีหน้าต่างเตือน (เช่น ตั๋วซ้ำ) เปิดอยู่ → รอจนกดตอบก่อน
      ตอบ "ยกเลิก" = ช่องถูกล้าง ไม่บันทึก · ตอบ "ยืนยัน" = บันทึกหลังหน้าต่างปิด */
   function delay(){ try{ var v=Number((JSON.parse(localStorage.getItem('pawn_krabi_app_settings')||'{}')||{}).qsAutoDelay); return [300,500,800,1200].indexOf(v)>=0?v:800; }catch(e){ return 800; } }
   function dlgOpen(){ var d=document.getElementById('ui-dialog'); return !!d&&d.style.display!=='none'&&d.style.display!==''; }
   function fire(){ if(dlgOpen()){ tmA=setTimeout(fire,250); return; } if(ready()&&typeof window.submitQuickScan==='function'){ window.__qsAutoSave=true; try{ window.submitQuickScan(); } finally{ window.__qsAutoSave=false; } } }
-  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(fire,delay()); }
-  if(A){ new MutationObserver(sched).observe(A,{attributes:true,attributeFilter:['class']}); ['qs-ticket','qs-book','qs-month'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('input',function(){ clearTimeout(tmA); setTimeout(sched,200); }); }); A.addEventListener('input',function(){ clearTimeout(tmA); }); }
+  function sched(){ clearTimeout(tmA); if(!ready()) return; tmA=setTimeout(fire,typedNew()?Math.max(2000,delay()):delay()); }
+  if(A){ new MutationObserver(sched).observe(A,{attributes:true,attributeFilter:['class']}); ['qs-ticket','qs-book','qs-month','qs-new-ticket','qs-new-book','qs-new-amount'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('input',function(){ clearTimeout(tmA); setTimeout(sched,200); }); }); A.addEventListener('input',function(){ clearTimeout(tmA); typedAt=Date.now(); if(mode()!=='single') setTimeout(sched,200); }); if(NA) NA.addEventListener('input',function(){ typedAt=Date.now(); });
+    /* ฟังเฉพาะตอนสถานะยอดตั๋วใหม่เปลี่ยนจริง (คัดลอก/ดึงเอง/พิมพ์เอง) — คลาสอื่นของช่องนี้เปลี่ยนบ่อย ถ้าฟังทุกครั้ง ตัวจับเวลาจะถูกรีเซ็ตไม่จบ */
+    var nk=function(){ return ['qs-copy','qs-auto','qs-own'].filter(function(c){ return NA.classList.contains(c); }).join(','); }, nkPrev=NA?nk():'';
+    if(NA) new MutationObserver(function(){ var k=nk(); if(k!==nkPrev){ nkPrev=k; sched(); } }).observe(NA,{attributes:true,attributeFilter:['class']});
+    var TT=document.getElementById('qs-type'), tv=TT?TT.value:''; setInterval(function(){ if(TT&&TT.value!==tv){ tv=TT.value; sched(); } },300); }
   var cc=cnt.querySelector('#qs-cont'); cc.checked=ls(KC)==='1'; cc.addEventListener('change',function(){ ls(KC,cc.checked?'1':'0'); });
   new MutationObserver(function(){ if(M.classList.contains('on')||!M.classList.contains('hidden')){ count(); ca.checked=ls(AK)!=='0'; } }).observe(M,{attributes:true,attributeFilter:['class']});   /* ช่องบันทึกอัตโนมัติ: อ่านค่าใหม่ทุกครั้งที่เปิด (แก้ได้จากหน้าตั้งค่าด้วย) */
   var msg=document.getElementById('qs-msg');
