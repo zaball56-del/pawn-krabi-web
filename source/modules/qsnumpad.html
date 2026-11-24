@@ -8,7 +8,8 @@ html body #qsnp.on{display:grid;position:fixed;top:auto;height:auto;left:0;right
 html body #qsnp button{height:42px;border:0;border-radius:10px;background:#fff;color:#0b2a55;font:800 21px/1 Sarabun,sans-serif;box-shadow:0 2px 0 rgba(0,0,0,.25);-webkit-tap-highlight-color:transparent}
 html body #qsnp button:active{transform:translateY(1px);box-shadow:none;background:#e2e8f0}
 html body #qsnp button.f{background:#dbe4f3;font-size:15px}
-html body #qsnp button.nx{background:linear-gradient(180deg,#e9c463,#c89422);color:#fff;font-size:16px;grid-row:span 2;height:auto;text-shadow:0 1px 0 rgba(0,0,0,.2)}
+html body #qsnp button.nx{background:linear-gradient(180deg,#e9c463,#c89422);color:#fff;font-size:17px;grid-row:span 3;height:auto;text-shadow:0 1px 0 rgba(0,0,0,.2)}
+html body #qsnp button[data-k="0"]{grid-column:span 2}
 html body #qsnp button.hd{background:transparent;color:#cbd5e1;font-size:13px;box-shadow:none;border:1px solid rgba(255,255,255,.25)}
 html body #qsnp .lb{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;color:#f3d27a;font:700 12.5px Sarabun,sans-serif;padding:0 4px;height:18px}
 html body #qsnp .lb span{color:#fff;font-weight:800;font-size:14px;margin-left:6px}
@@ -30,7 +31,7 @@ html body #quick-scan-modal.fixed.qsnp-on .qs-in.qsnp-f{border-color:#c89422 !im
   function small(){ return window.innerWidth<=640 && (('ontouchstart' in window) || (window.matchMedia&&matchMedia('(pointer:coarse)').matches)); }
   var pad=document.createElement('div'); pad.id='qsnp'; pad.setAttribute('aria-label','แป้นตัวเลข');
   pad.innerHTML='<div class="lb">กำลังกรอก<span id="qsnp-n"></span><em style="font-style:normal;color:#cbd5e1;font-weight:600">แป้นตัวเลข</em></div>'+
-    ['1','2','3','⌫','4','5','6','ถัดไป','7','8','9','0','00','000','⌨'].map(function(k){ var c=k==='⌫'?'f':(k==='ถัดไป'?'nx':(k==='⌨'?'hd':(k.length>1?'f':''))); return '<button type="button" class="'+c+'" data-k="'+k+'"'+(k==='⌨'?' title="ใช้แป้นของมือถือ" aria-label="ใช้แป้นของมือถือ"':'')+'>'+(k==='⌨'?'แป้นมือถือ':k)+'</button>'; }).join('');
+    ['1','2','3','⌫','4','5','6','ถัดไป','7','8','9','⌨','0'].map(function(k){ var c=k==='⌫'?'f':(k==='ถัดไป'?'nx':(k==='⌨'?'hd':'')); return '<button type="button" class="'+c+'" data-k="'+k+'"'+(k==='⌨'?' title="ใช้แป้นของมือถือ" aria-label="ใช้แป้นของมือถือ"':'')+'>'+(k==='⌨'?'แป้นมือถือ':k)+'</button>'; }).join('');
   document.body.appendChild(pad);
   var cur=null;
   function el(){ return cur&&document.body.contains(cur)?cur:null; }

@@ -19,8 +19,8 @@ let fail=0; const ok=(c,m)=>{ if(!c) fail++; console.log((c?'ok  ':'FAIL')+' '+m
  ok(/^ถ\|262\|3,?000/.test(sv),'2 กดแป้นเล็ก → ระบบดึงเล่ม/ยอดเอง → บันทึกอัตโนมัติ '+sv);
  await pg.focus('#qs-ticket'); for(const k of ['1','2','3','⌫']) await K(pg,k);
  ok(await pg.evaluate(()=>document.getElementById('qs-ticket').value)==='12','3 ปุ่มลบ ⌫ '+await pg.evaluate(()=>document.getElementById('qs-ticket').value));
- await pg.focus('#qs-amount'); await pg.evaluate(()=>{ document.getElementById('qs-amount').value=''; }); for(const k of ['5','000']) await K(pg,k);
- ok(await pg.evaluate(()=>document.getElementById('qs-amount').value.replace(/,/g,''))==='5000','4 ปุ่ม 000 ในช่องยอด');
+ await pg.focus('#qs-amount'); await pg.evaluate(()=>{ document.getElementById('qs-amount').value=''; }); for(const k of ['5','0','0','0']) await K(pg,k);
+ ok(await pg.evaluate(()=>document.getElementById('qs-amount').value.replace(/,/g,'')==='5000'&&!document.querySelector('#qsnp button[data-k="00"],#qsnp button[data-k="000"]')),'4 พิมพ์ยอด 5000 ในช่องยอด · ไม่มีปุ่ม 00/000 แล้ว');
  ok(await pg.evaluate(()=>getComputedStyle(document.querySelector('.qs-right > div:last-child')).display)==='none','5 แป้นเปิด → ซ่อนแถบ ล้างข้อมูล/บันทึก');
  await pg.evaluate(()=>{ qsPickType('ส'); }); await pg.evaluate(()=>document.activeElement.blur()); await sleep(250);
  ok(await pg.evaluate(()=>!document.getElementById('qsnp').classList.contains('on')&&getComputedStyle(document.querySelector('.qs-right > div:last-child')).display!=='none'),'6 แตะที่อื่น → แป้นหาย แถบบันทึกกลับมา');
