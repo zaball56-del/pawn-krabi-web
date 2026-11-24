@@ -197,7 +197,7 @@
             }
             (d.months||[]).forEach(function(m){ if(!m) return; try{ var cb=getMonthCarriedBalance(k,m); if(cb<0) F.push({sev:'warn',date:k,t:'ยอดยกไปของเดือน'+m+' ติดลบ',x:'ไถ่ถอนมากกว่ายอดยกมา: '+fmt(cb)+' บาท'}); }catch(e){} });
         });
-        Object.keys(seen).forEach(function(key){ var a=seen[key]; if(a.length>1) F.push({sev:'warn',date:a[a.length-1].k,t:'ตั๋ว '+a[0].t+' ถูกไถ่/ส่งขายมากกว่า 1 ครั้ง',x:a.map(function(z){ return thDate(z.k)+' ['+z.m+']'; }).join(' · ')}); });
+        Object.keys(seen).forEach(function(key){ var a=seen[key]; if(a.length>1) F.push({sev:'warn',date:a[a.length-1].k,t:'ตั๋ว '+a[0].t+' ถูกไถ่ถอน/ลงรายการ (ส·พ·ผ) มากกว่า 1 ครั้ง',x:a.map(function(z){ return thDate(z.k)+' ['+z.m+']'; }).join(' · ')}); });
         try{ var st=window.__closeStale&&window.__closeStale(); if(st&&st.stale) F.push({sev:'bad',date:currentDate,t:'ข้อมูลเปลี่ยนหลังปิดยอด',x:'ยอดที่ควรมีตอนปิด '+fmt(num(st.stored))+' แต่ตอนนี้คำนวณได้ '+fmt(num(st.now))+' บาท'}); }catch(e){}
         F.sort(function(a,b){ return (a.sev===b.sev?0:(a.sev==='bad'?-1:1))||(a.date<b.date?1:-1); });
         return F;

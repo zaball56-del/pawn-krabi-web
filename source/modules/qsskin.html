@@ -1,0 +1,189 @@
+<style id="qsx-css">
+/* หน้าคีย์ด่วน/สแกน — หน้าตาใหม่ตามแบบที่ผู้ใช้ส่งมา 23 พ.ย. 69 (น้ำเงินกรมท่า + ทอง) · เปลี่ยนเฉพาะหน้าตา ไม่แตะการบันทึก/สูตร
+   สีประเภทเหมือนกันทุกตาราง: ส เขียว · พ น้ำเงิน · ผ เหลือง · ถ แดง */
+html body #quick-scan-modal.fixed.qsx > div{padding:0 !important;background:#f6f7fb !important;border:0 !important;color:#0b2a55 !important}
+html body #quick-scan-modal.fixed.qsx .qs-cols{padding:12px !important}
+html body #quick-scan-modal.fixed.qsx .qs-left > h2,html body #quick-scan-modal.fixed.qsx .qs-left > p{display:none !important}
+#qsx-head{display:none}
+html body #quick-scan-modal.fixed.qsx #qsx-head{display:flex;align-items:center;gap:12px;padding:12px 56px 12px 14px;background:linear-gradient(120deg,#0b2350,#173a73 70%,#0b2350);border-bottom:3px solid #d4a84b;color:#fff;position:sticky;top:0;z-index:6}
+#qsx-head .lg{flex:none;width:44px;height:44px;border-radius:50%;border:2px solid #d4a84b;display:flex;align-items:center;justify-content:center;color:#f3d27a;background:rgba(255,255,255,.06)}
+#qsx-head .lg svg{width:26px;height:26px}
+#qsx-head .tt{min-width:0;flex:1}
+#qsx-head .tt b{display:flex;align-items:center;gap:6px;font-size:22px;font-weight:800;color:#f3d27a;line-height:1.15}
+#qsx-head .tt b svg{width:20px;height:20px}
+#qsx-head .tt small{display:block;font-size:12.5px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#qsx-head .dt{flex:none;display:flex;align-items:center;gap:6px;background:#fff;color:#0b2a55;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
+#qsx-head .dt svg{width:16px;height:16px}
+html body #quick-scan-modal.fixed.qsx > div > button[aria-label="ปิด"]{z-index:7;top:14px !important;right:12px !important;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.12) !important;color:#fff !important}
+/* โหมดสแกน */
+html body #quick-scan-modal.fixed.qsx #qs-mode{background:#eef1f7 !important;border-radius:16px !important;padding:5px !important;gap:6px !important;margin:2px 0 10px !important}
+html body #quick-scan-modal.fixed.qsx #qs-mode button{display:flex;align-items:center;justify-content:center;gap:10px;text-align:left;background:#fff !important;color:#0b2a55 !important;border:1.5px solid #e2e8f0 !important;border-radius:12px !important;padding:9px 8px !important;font-size:15px !important;font-weight:800 !important}
+html body #quick-scan-modal.fixed.qsx #qs-mode button small{color:#64748b !important;font-size:11.5px !important}
+html body #quick-scan-modal.fixed.qsx #qs-mode button.on{background:linear-gradient(135deg,#0b2350,#1b3f7a) !important;color:#fff !important;border:2px solid #d4a84b !important;box-shadow:0 6px 16px -8px rgba(11,35,80,.6) !important}
+html body #quick-scan-modal.fixed.qsx #qs-mode button.on small{color:#dbe3f2 !important}
+#qs-mode .qsx-bi{flex:none;width:30px;height:30px}#qs-mode .qsx-bi svg{width:100%;height:100%}
+/* สรุปวันนี้ */
+html body #quick-scan-modal.fixed.qsx #qs-count{background:linear-gradient(135deg,#fffaf0,#fdf3dc) !important;border:1.5px solid #e8cf91 !important;border-radius:14px !important;color:#0b2a55 !important}
+html body #quick-scan-modal.fixed.qsx #qs-count b{color:#0b2a55 !important}
+/* ประเภท ส พ ผ ถ */
+html body #quick-scan-modal.fixed.qsx .qs-types{display:grid !important;grid-template-columns:repeat(4,1fr) !important;gap:8px !important;background:transparent !important;box-shadow:none !important}
+html body #quick-scan-modal.fixed.qsx .qs-types .qs-type-btn{width:auto !important;min-width:0 !important;flex:none !important}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn{position:relative;display:flex !important;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:76px !important;min-height:76px !important;width:auto !important;background:#fff !important;color:#0b2a55 !important;border:1.5px solid #e2e8f0 !important;border-radius:16px !important;box-shadow:0 3px 8px -4px rgba(15,23,42,.25) !important;padding:4px 2px !important}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn .k{font-size:28px;font-weight:900;line-height:1}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn .w{display:flex;align-items:center;gap:4px;font-size:13.5px;font-weight:800;line-height:1.1}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn .w svg{width:17px;height:17px;flex:none}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn.on{background:linear-gradient(135deg,#0b2350,#1b3f7a) !important;color:#fff !important;border:2.5px solid #d4a84b !important}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn.on .w svg{color:#f3d27a}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn.on::after{content:"✓";position:absolute;top:-7px;right:-5px;width:24px;height:24px;border-radius:12px;background:#f3c54e;color:#0b2350;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+/* การ์ดตั๋วเดิม / ตั๋วใหม่ */
+html body #quick-scan-modal.fixed.qsx .qs-sec{background:#fff !important;border:1px solid #e2e8f0 !important;border-radius:16px !important;padding:12px !important;box-shadow:0 4px 14px -10px rgba(15,23,42,.35) !important}
+html body #quick-scan-modal.fixed.qsx .qs-sec h3{display:flex;align-items:center;gap:8px;font-size:17px !important;font-weight:800 !important;color:#0b2a55 !important;margin:0 0 6px !important}
+html body #quick-scan-modal.fixed.qsx .qs-sec h3 svg{width:24px;height:24px;color:#0b2a55;flex:none}
+html body #quick-scan-modal.fixed.qsx .qs-sec.new{background:linear-gradient(180deg,#f2f6fc,#fff 60px) !important}
+html body #quick-scan-modal.fixed.qsx .qs-sec label{color:#0b2a55 !important;font-weight:700 !important;font-size:13px !important}
+html body #quick-scan-modal.fixed.qsx .qs-in{border:1.5px solid #cfd8e3 !important;border-radius:10px !important;background:#fff no-repeat 10px center/20px 20px !important;color:#0b2a55 !important;padding-left:38px !important;font-weight:700}
+html body #quick-scan-modal.fixed.qsx .qs-in:focus{border-color:#1b3f7a !important;box-shadow:0 0 0 3px rgba(27,63,122,.15) !important}
+html body #quick-scan-modal.fixed.qsx #qs-month{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b2a55' stroke-width='2'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E") !important}
+html body #quick-scan-modal.fixed.qsx #qs-ticket,html body #quick-scan-modal.fixed.qsx #qs-new-ticket{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230b2a55'%3E%3Crect x='3' y='5' width='2' height='14'/%3E%3Crect x='7' y='5' width='1' height='14'/%3E%3Crect x='10' y='5' width='2' height='14'/%3E%3Crect x='14' y='5' width='1' height='14'/%3E%3Crect x='17' y='5' width='2' height='14'/%3E%3Crect x='20' y='5' width='1' height='14'/%3E%3C/svg%3E") !important}
+html body #quick-scan-modal.fixed.qsx #qs-book,html body #quick-scan-modal.fixed.qsx #qs-new-book{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b2a55' stroke-width='2'%3E%3Cpath d='M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z'/%3E%3C/svg%3E") !important}
+html body #quick-scan-modal.fixed.qsx #qs-amount,html body #quick-scan-modal.fixed.qsx #qs-new-amount{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b8862b' stroke-width='2'%3E%3Cellipse cx='12' cy='6' rx='7' ry='2.6'/%3E%3Cpath d='M5 6v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 10v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4M5 14v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4'/%3E%3C/svg%3E") !important}
+/* ปุ่มสแกน (กล้อง) สีทอง */
+html body #quick-scan-modal.fixed.qsx #qs-bigscan,html body #quick-scan-modal.fixed.qsx .qs-camrow button,html body #quick-scan-modal.fixed.qsx .cam-btn{background:linear-gradient(180deg,#e9c463,#c89422) !important;color:#fff !important;border:0 !important;border-radius:12px !important;box-shadow:0 6px 14px -8px rgba(160,110,20,.8) !important;font-weight:800 !important;text-shadow:0 1px 0 rgba(0,0,0,.15)}
+/* ตัวอย่างสด */
+html body #quick-scan-modal.fixed.qsx .qs-pv-card{border-radius:14px !important;background:#fff !important;border:1px solid #e2e8f0 !important;color:#0b2a55 !important}
+html body #quick-scan-modal.fixed.qsx .qs-pv-card.new{background:#f2f8f4 !important;border-color:#cfe8d6 !important}
+html body #quick-scan-modal.fixed.qsx .qs-pv-card *{color:inherit}
+/* ข้อความแจ้ง */
+html body #quick-scan-modal.fixed.qsx .qs-msg:not(:empty){border-radius:12px !important;padding:10px 12px !important;font-weight:700}
+html body #quick-scan-modal.fixed.qsx .qs-msg.err{background:#fff1f0 !important;border:1px solid #f5c2c0 !important;color:#b42318 !important}
+html body #quick-scan-modal.fixed.qsx .qs-msg.ok{background:#effaf3 !important;border:1px solid #b7e4c7 !important;color:#166534 !important}
+/* รายการวันนี้ (ตาราง) */
+#qsx-tb{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden}
+#qsx-tb .r{display:grid;grid-template-columns:34px 52px 82px 1fr 74px;align-items:center;border-top:1px solid #edf1f6;font-size:13.5px;color:#0b2a55}
+#qsx-tb .r > span{padding:8px 4px;text-align:center;min-width:0}
+#qsx-tb .r.h{background:#0b2350;color:#fff;font-size:12px;font-weight:700;border-top:0}
+#qsx-tb .no{font-weight:800}
+#qsx-tb .tm{display:flex;align-items:center;justify-content:center;gap:3px;color:#475569}
+#qsx-tb .tm svg{width:13px;height:13px;color:#b8862b;flex:none}
+#qsx-tb .tk{font-weight:800;line-height:1.25}
+#qsx-tb .tk small{display:block;font-weight:700;color:#15803d;font-size:12px}
+#qsx-tb .am{text-align:right !important;padding-right:10px !important;font-weight:800;color:#1e3a8a;font-size:14.5px}
+#qsx-tb .ul{display:block;margin:3px auto 0;border:1px solid #f5c2c0;background:#fff5f5;color:#b42318;border-radius:8px;font-size:11px;font-weight:700;padding:1px 6px}
+#qsx-tb .em{padding:14px;text-align:center;color:#94a3b8;font-size:13px}
+.qsx-ty{display:inline-flex;align-items:center;gap:4px;border-radius:9px;padding:3px 8px;font-weight:800;font-size:12.5px;white-space:nowrap}
+.qsx-ty b{font-size:16px}
+.qsx-ty.t1{background:#dcfce7;color:#15803d}.qsx-ty.t2{background:#dbeafe;color:#1d4ed8}.qsx-ty.t3{background:#fef3c7;color:#b45309}.qsx-ty.t4{background:#ffe4e6;color:#be123c}
+/* ปุ่มล่าง: ล้างข้อมูล (ซ้าย) · บันทึก (ขวา) */
+html body #quick-scan-modal.fixed.qsx .qs-right > div:last-child button[onclick*="submitQuickScan"]{background:linear-gradient(135deg,#0b2350,#1b3f7a) !important;color:#fff !important;border:2px solid #d4a84b !important;border-radius:14px !important;font-size:17px !important;font-weight:800 !important;box-shadow:0 8px 18px -10px rgba(11,35,80,.8) !important}
+html body #quick-scan-modal.fixed.qsx .qs-right > div:last-child button[onclick*="qsClearFields"]{order:-1;flex:0 0 38% !important;width:auto !important;font-size:15px !important;padding:0 8px !important;background:#fff !important;color:#0b2a55 !important;border:1.5px solid #cfd8e3 !important;border-radius:14px !important;font-weight:800 !important;display:flex;align-items:center;justify-content:center;gap:6px}
+html body #quick-scan-modal.fixed.qsx .qs-right > div:last-child button[onclick*="qsClearFields"]::before{content:"⟲";font-size:22px;line-height:1}
+html body #quick-scan-modal.fixed.qsx #qs-recent{max-height:none !important;overflow:visible !important}
+html body #quick-scan-modal.fixed.qsx #qs-mode button .t{display:flex;flex-direction:column;line-height:1.15}
+html body #quick-scan-modal.fixed.qsx #qs-mode button .t small{margin-top:2px}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn:focus{outline:none}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+#qsx-head .dt{font-size:12px;padding:4px 10px}
+#qsx-head .dt:has(#qsx-date:empty){display:none}
+/* สีประเภทเหมือนกันทุกตาราง: หน้าค้นหาประวัติตั๋วใช้ชุดเดียวกัน */
+html body #global-search-modal.fixed .gx-ty.t1,html body #global-search-modal.fixed .gs-ch.t1{background:#dcfce7 !important;color:#15803d !important}
+html body #global-search-modal.fixed .gx-ty.t2,html body #global-search-modal.fixed .gs-ch.t2{background:#dbeafe !important;color:#1d4ed8 !important}
+html body #global-search-modal.fixed .gx-ty.t3,html body #global-search-modal.fixed .gs-ch.t3{background:#fef3c7 !important;color:#b45309 !important}
+html body #global-search-modal.fixed .gx-ty.t4,html body #global-search-modal.fixed .gs-ch.t4{background:#ffe4e6 !important;color:#be123c !important}
+
+/* มือถือ: กระชับให้ฟอร์มพอดีจอเดียว ปุ่มบันทึกติดล่างจอเสมอ (ผู้ใช้ขอ 24 พ.ย. 69) */
+@media (max-width:640px){
+html body #quick-scan-modal.fixed.qsx .qs-cols{padding:8px 10px 0 !important;gap:8px !important}
+html body #quick-scan-modal.fixed.qsx .qs-left,html body #quick-scan-modal.fixed.qsx .qs-right{gap:8px !important}
+html body #quick-scan-modal.fixed.qsx #qsx-head{padding:7px 52px 7px 10px;gap:8px}
+#qsx-head .lg{width:34px;height:34px}#qsx-head .lg svg{width:20px;height:20px}
+#qsx-head .tt b{font-size:19px}#qsx-head .tt small{display:none}
+#qsx-head .dt{font-size:11.5px;padding:3px 9px}#qsx-head .dt svg{width:14px;height:14px}
+html body #quick-scan-modal.fixed.qsx > div > button[aria-label="ปิด"]{top:7px !important;right:8px !important;width:34px;height:34px}
+html body #quick-scan-modal.fixed.qsx #qs-mode{margin:0 0 6px !important;padding:3px !important;gap:4px !important;border-radius:13px !important}
+html body #quick-scan-modal.fixed.qsx #qs-mode button{padding:5px 6px !important;gap:6px !important;font-size:14px !important;border-radius:10px !important;min-height:0 !important}
+html body #quick-scan-modal.fixed.qsx #qs-mode button small{font-size:11px !important;margin-top:0 !important}
+#qs-mode .qsx-bi{width:22px;height:22px}
+html body #quick-scan-modal.fixed.qsx #qs-count{padding:6px 10px !important;margin:0 0 6px !important;font-size:12.5px !important}
+html body #quick-scan-modal.fixed.qsx .qs-types{gap:6px !important;margin:0 0 6px !important;padding:0 !important}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn,html body #quick-scan-modal.fixed.qsx .qs-types .qs-type-btn{height:56px !important;min-height:56px !important;border-radius:13px !important;padding:2px !important}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn .k{font-size:22px}html body #quick-scan-modal.fixed.qsx .qs-type-btn .w{font-size:12px;gap:3px}html body #quick-scan-modal.fixed.qsx .qs-type-btn .w svg{width:14px;height:14px}
+html body #quick-scan-modal.fixed.qsx .qs-type-btn.on::after{width:20px;height:20px;font-size:12px;top:-6px;right:-4px}
+html body #quick-scan-modal.fixed.qsx .qs-pv-h,html body #quick-scan-modal.fixed.qsx .qs-pv-arrow{display:none !important}
+html body #quick-scan-modal.fixed.qsx .qs-pv-card{padding:5px 10px !important;margin:0 0 6px !important;min-height:0 !important;height:auto !important;max-height:none !important;overflow:visible !important;transform:none !important;flex-shrink:0 !important;display:grid !important;grid-template-columns:auto 1fr auto;align-items:center;column-gap:8px;border-radius:11px !important}
+html body #quick-scan-modal.fixed.qsx .qs-pv-card > *{margin:0 !important;font-size:11px !important;line-height:1.25 !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body #quick-scan-modal.fixed.qsx .qs-pv-card > :nth-child(2){font-size:16px !important;font-weight:800}
+/* ตัวอย่างตั๋วเดิม | ตั๋วใหม่ วางคู่กันในแถวเดียว */
+html body #quick-scan-modal.fixed.qsx .qs-cols{flex-direction:row !important;flex-wrap:wrap !important;align-content:flex-start;column-gap:8px !important;row-gap:0 !important}
+html body #quick-scan-modal.fixed.qsx .qs-cols > .qs-left > *,html body #quick-scan-modal.fixed.qsx .qs-cols > .qs-right > *{flex:0 0 100%;max-width:100%;min-width:0}
+html body #quick-scan-modal.fixed.qsx:not(.qs-single) .qs-cols > .qs-right > .qs-pv-card{flex:0 0 calc(50% - 4px) !important;max-width:calc(50% - 4px) !important;display:block !important}
+html body #quick-scan-modal.fixed.qsx .qs-sec{padding:8px 10px !important;border-radius:13px !important;margin:0 0 8px !important}
+html body #quick-scan-modal.fixed.qsx .qs-sec h3{font-size:14.5px !important;margin:0 0 2px !important;gap:6px}html body #quick-scan-modal.fixed.qsx .qs-sec h3 svg{width:19px;height:19px}
+html body #quick-scan-modal.fixed.qsx .qs-sec .qs-grid{gap:4px 8px !important}
+html body #quick-scan-modal.fixed.qsx .qs-sec label{font-size:12px !important;margin:0 0 1px !important;line-height:1.2 !important;min-height:0 !important}
+html body #quick-scan-modal.fixed.qsx .qs-in{height:42px !important;min-height:42px !important;font-size:18px !important;padding-top:0 !important;padding-bottom:0 !important;background-size:18px 18px !important;padding-left:34px !important}
+html body #quick-scan-modal.fixed.qsx #qs-bigscan,html body #quick-scan-modal.fixed.qsx .qs-camrow button,html body #quick-scan-modal.fixed.qsx .cam-btn{height:42px !important;min-height:42px !important;font-size:15px !important}
+html body #quick-scan-modal.fixed.qsx #qs-month-name{padding:0 !important;font-size:12px !important;line-height:1.2 !important;min-height:0 !important}
+html body #quick-scan-modal.fixed.qsx .qs-amt-hint:empty{display:none !important}html body #quick-scan-modal.fixed.qsx .qs-amt-hint{font-size:11.5px !important;margin-top:1px !important;line-height:1.2 !important}
+html body #quick-scan-modal.fixed.qsx .qs-msg:not(:empty){padding:7px 10px !important;font-size:13px !important;margin:0 0 6px !important}
+html body #quick-scan-modal.fixed.qsx .qs-cols > .qs-right > div:last-child{flex:0 0 calc(100% + 20px) !important;max-width:none !important;width:calc(100% + 20px) !important}
+html body #quick-scan-modal.fixed.qsx .qs-right > div:last-child{position:sticky !important;bottom:0 !important;z-index:5;background:#fff !important;margin:0 -10px !important;padding:8px 10px calc(8px + env(safe-area-inset-bottom)) !important;border-top:1px solid #e2e8f0;box-shadow:0 -8px 18px -12px rgba(15,23,42,.35)}
+html body #quick-scan-modal.fixed.qsx .qs-right > div:last-child button{height:50px !important;min-height:50px !important}
+}
+</style>
+<script id="qsx-js">
+(function(){ try{
+  var M=document.getElementById('quick-scan-modal'); if(!M) return;
+  var I={
+    scale:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M7 21h10M5 7h14M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/></svg>',
+    bolt:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
+    cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M12 14h2M16 14h0M8 17h2M12 17h2"/></svg>',
+    coins:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 10v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+    hand:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 15h4l5 2h5a2 2 0 0 0 0-4h-4"/><path d="M6 15v5H2M16 13l4-2a2 2 0 0 1 2 3l-7 5H9"/><circle cx="15" cy="6" r="3"/></svg>',
+    back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',
+    swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>',
+    scan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 8v8M11 8v8M14 8v8M17 8v8"/></svg>',
+    bar:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="2" height="14"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="2" height="14"/><rect x="14" y="5" width="1" height="14"/><rect x="17" y="5" width="2" height="14"/><rect x="20" y="5" width="1" height="14"/></svg>',
+    clk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+  };
+  var TW={'ส':['ส่งดอก',I.coins,1],'พ':['เพิ่ม',I.plus,2],'ผ':['ผ่อน',I.hand,3],'ถ':['ไถ่ถอน',I.back,4]};
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+  function thDate(k){ var p=String(k||'').split('-'); var MS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']; return p.length===3?(+p[2])+' '+MS[+p[1]-1]+' '+(+p[0]+543):''; }
+  function head(){
+    var panel=M.firstElementChild; if(!panel) return;
+    var h=document.getElementById('qsx-head');
+    if(!h){ h=document.createElement('div'); h.id='qsx-head'; h.innerHTML='<span class="lg">'+I.scale+'</span><span class="tt"><b>'+I.bolt+'คีย์ด่วน</b><small>บันทึกข้อมูลทะเบียนทรัพย์รับจำนำ</small></span><span class="dt">'+I.cal+'<span id="qsx-date"></span></span>'; panel.insertBefore(h,panel.firstChild); }
+    var d=document.getElementById('qsx-date'); if(d){ var t=thDate(typeof currentDate!=='undefined'?currentDate:''); d.textContent=t?'วันที่ '+t:''; }
+  }
+  function decorate(){
+    M.classList.add('qsx'); head();
+    M.querySelectorAll('.qs-type-btn').forEach(function(b){ var t=b.dataset.type, w=TW[t]; if(!w||b.querySelector('.k')) return; b.innerHTML='<span class="k">'+esc(t)+'</span><span class="w">'+w[1]+esc(w[0])+'</span>'; b.setAttribute('aria-label',t+' '+w[0]); });
+    M.querySelectorAll('#qs-mode button').forEach(function(b,i){ if(b.querySelector('.qsx-bi')) return; var t=document.createElement('span'); t.className='t'; while(b.firstChild) t.appendChild(b.firstChild); var s=document.createElement('span'); s.className='qsx-bi'; s.innerHTML=i?I.bar:I.scan; b.appendChild(s); b.appendChild(t); });
+    var cb=M.querySelector('button[onclick*="qsClearFields"]'); if(cb&&cb.textContent.trim()==='ล้างช่อง') cb.textContent='ล้างข้อมูล';
+    M.querySelectorAll('.qs-sec').forEach(function(s){ var h=s.querySelector('h3'); if(h&&!h.querySelector('svg')) h.insertAdjacentHTML('afterbegin',s.classList.contains('new')?I.swap:I.cal); });
+  }
+  /* รายการวันนี้ → ตาราง ลำดับ/เวลา/ประเภท/เลขตั๋ว·เล่ม/ยอดเงิน (ข้อมูลชุดเดิม: แถวที่บันทึกจากคีย์ด่วนวันนี้ ใหม่สุดอยู่บน) */
+  var orig=window.qsRenderRecent;
+  function render(){
+    var box=document.getElementById('qs-recent'); if(!box||typeof db==='undefined') return orig&&orig.apply(this,arguments);
+    var d=db[currentDate], items=[];
+    if(d&&Array.isArray(d.months)) d.months.forEach(function(m){ if(!m||!d.data||!Array.isArray(d.data[m])) return; d.data[m].forEach(function(r,i){ if(r&&r.attachedAt) items.push({m:m,i:i,r:r}); }); });
+    items.sort(function(a,b){ return String(b.r.attachedAt).localeCompare(String(a.r.attachedAt)); });
+    var all=document.getElementById('qs-show-all'); all=all&&all.checked; var list=all?items:items.slice(0,8);
+    var c=document.getElementById('qs-recent-count'); if(c) c.textContent=items.length?'('+items.length+' ใบ)':'';
+    var fm=function(v){ try{ return formatNumber(v); }catch(e){ return String(v); } };
+    var h='<div id="qsx-tb"><div class="r h"><span>ลำดับ</span><span>เวลา</span><span>ประเภท</span><span>เลขตั๋ว / เล่ม</span><span>ยอดเงิน</span></div>';
+    if(!list.length) h+='<div class="em">ยังไม่มีรายการวันนี้</div>';
+    list.forEach(function(x,k){ var r=x.r, t=String(r.type||'').trim(), w=TW[t];
+      var tm=String(r.timestamp||'').replace(/:\d\d$/,'').slice(0,5);
+      h+='<div class="r"><span class="no">'+(k+1)+'</span><span class="tm">'+I.clk+esc(tm||'-')+'</span><span>'+(w?'<span class="qsx-ty t'+w[2]+'"><b>'+esc(t)+'</b>'+esc(w[0])+'</span>':esc(t||'-'))+'</span>'+
+        '<span class="tk">'+esc(r.ticket)+' / '+esc(r.book||'–')+(r.newTicket?'<small>→ '+esc(r.newTicket)+' / '+esc(r.newBook||'–')+'</small>':(t==='ถ'?'':'<small class="qs-nonew" style="color:#94a3b8">ไม่มีตั๋วใหม่</small>'))+'</span>'+
+        '<span class="am">'+(String(r.amount==null?'':r.amount).trim()?fm(r.amount):'-')+(r.newTicket?'<button type="button" class="ul" data-m="'+esc(x.m)+'" data-i="'+x.i+'" onclick="qsUnlink(this)">ยกเลิกการติด</button>':'')+'</span></div>'; });
+    box.innerHTML=h+'</div>';
+  }
+  if(typeof orig==='function'){ window.qsRenderRecent=render; try{ qsRenderRecent=render; }catch(e){} }
+  var oo=window.openQuickScanModal;
+  if(typeof oo==='function'){ var w=function(){ var r=oo.apply(this,arguments); try{ decorate(); render(); }catch(e){ console.error('qsx',e); } return r; }; window.openQuickScanModal=w; try{ openQuickScanModal=w; }catch(e){} }
+  decorate();
+}catch(e){ try{ console.error('qsx',e); }catch(_){} } })();
+</script>

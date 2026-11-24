@@ -47,3 +47,4 @@ xcheck.html
 tkwdesk.html
 lgdesk.html
 newver.html
+qsskin.html
