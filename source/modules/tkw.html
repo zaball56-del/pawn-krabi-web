@@ -672,7 +672,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     if(hit){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){} if(key===k){ day=d; if(document.body.classList.contains('tkw-open')) render(); } } return hit; };
   function undoBtn(){ $('tkw-undo').disabled=!undo.length; }
   SM.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ST.focus(); } });
-  ST.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); onTk(); if(ST.value.trim()) SA.focus(); } });
+  ST.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); onTk(); if(tmL){ clearTimeout(tmL); tmL=null; try{ lookup(); dupHint(); autoSaveMaybe(null); }catch(_){} } if(ST.value.trim()) SA.focus(); } });   /* กด Enter = พิมพ์จบแล้ว → ค้นทันที ไม่ต้องรอ 0.6 วิ */
   SA.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); sqSave(); } });
   SA.addEventListener('focus',function(){ SA.value=SA.value.replace(/,/g,''); });
   SA.addEventListener('blur',function(){ if(SA.value.trim()) SA.value=fmt(num(SA.value)); });

@@ -31,6 +31,11 @@ let fail=0; const ok=(c,m)=>{ if(!c) fail++; console.log((c?'ok  ':'FAIL')+' '+m
  await pg.focus('#qs-ticket'); await pg.evaluate(()=>{ document.getElementById('qs-ticket').value=''; }); await pg.keyboard.type('4567'); await pg.keyboard.press('Backspace'); await pg.keyboard.type('8'); await pg.keyboard.press('Enter'); await sleep(300);
  const hs=await pg.evaluate(()=>({ro:document.getElementById('qs-ticket').readOnly,v:document.getElementById('qs-ticket').value,act:document.activeElement.id}));
  ok(hs.ro&&hs.v==='4568'&&hs.act!=='qs-ticket','11 ช่องล็อกแป้นเครื่อง (readonly) แต่เครื่องยิงบาร์โค้ด/คีย์บอร์ดจริงยังพิมพ์ได้ + Enter ไปช่องถัดไป '+JSON.stringify(hs));
+ /* แก้บั๊ค 24 พ.ย. 69: พิมพ์เลขตั๋วแล้วกด ถัดไป ทันที (ก่อนระบบค้นเสร็จ) ประเภท ถ → เคอร์เซอร์ค้างที่เลขตั๋ว ตัวเลขต่อไปไปต่อท้ายเลขตั๋ว */
+ for(const mode of ['full','single']){ await pg.evaluate((mode)=>{ document.activeElement&&document.activeElement.blur(); qsClearFields(false); localStorage.setItem('pawn_qs_auto','0'); document.querySelector('#qs-mode button[data-m="'+mode+'"]').click(); },mode); await sleep(200); await pg.evaluate(()=>qsPickType('ถ')); await pg.focus('#qs-month'); await pg.evaluate(()=>{ document.getElementById('qs-month').value=''; });
+   for(const k of ['1','1','ถัดไป','5','5','ถัดไป']) await K(pg,k); await sleep(200);
+   const st=await pg.evaluate(()=>({act:document.activeElement.id,t:document.getElementById('qs-ticket').value}));
+   ok(st.act!=='qs-ticket'&&st.t==='55','12 '+mode+' · ถ พิมพ์เลขตั๋วแล้วกด ถัดไป ทันที → เคอร์เซอร์ไปช่องถัดไป ไม่ค้างที่เลขตั๋ว '+JSON.stringify(st)); }
  ok(!pg.errs.length,'9 ไม่มี error '+JSON.stringify(pg.errs));
  pg=await mk(false); await pg.focus('#qs-month'); await sleep(200);
  ok(await pg.evaluate(()=>!document.getElementById('qsnp').classList.contains('on')&&document.getElementById('qs-month').getAttribute('inputmode')!=='none'),'10 จอคอม: ไม่มีแป้นเล็ก พิมพ์คีย์บอร์ดปกติ');

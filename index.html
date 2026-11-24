@@ -8551,7 +8551,10 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
       if(e&&e.key==='Enter'&&e.target&&(e.target.id==='qs-ticket'||e.target.id==='qs-book')){
         try{ if(window.__qsRun) window.__qsRun(); }catch(x){}
         var A=$('qs-amount'),B=$('qs-book');
-        if(A&&B&&A.classList.contains('qs-auto')&&B.value.trim()&&A.value.trim()){ e.preventDefault(); var n=$('qs-new-ticket'); if(n){n.focus();n.select();} return; }
+        if(A&&B&&A.classList.contains('qs-auto')&&B.value.trim()&&A.value.trim()){ e.preventDefault(); var n=$('qs-new-ticket');
+          /* ช่องตั๋วใหม่ใช้ไม่ได้ (ประเภท ถ = ปิดไว้ · โหมดตั๋วเดิมอย่างเดียว = ซ่อน) → ไปช่องยอดเงินแทน ไม่ให้เคอร์เซอร์ค้างที่เลขตั๋ว (แก้บั๊ค 24 พ.ย. 69) */
+          if(n&&!n.disabled&&n.offsetParent!==null){ n.focus(); n.select(); } else { A.focus(); try{ A.select(); }catch(_){} }
+          return; }
       }
       return orig.apply(this,arguments);
     };
@@ -10431,7 +10434,7 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     if(hit){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){} if(key===k){ day=d; if(document.body.classList.contains('tkw-open')) render(); } } return hit; };
   function undoBtn(){ $('tkw-undo').disabled=!undo.length; }
   SM.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ST.focus(); } });
-  ST.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); onTk(); if(ST.value.trim()) SA.focus(); } });
+  ST.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); onTk(); if(tmL){ clearTimeout(tmL); tmL=null; try{ lookup(); dupHint(); autoSaveMaybe(null); }catch(_){} } if(ST.value.trim()) SA.focus(); } });   /* กด Enter = พิมพ์จบแล้ว → ค้นทันที ไม่ต้องรอ 0.6 วิ */
   SA.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); sqSave(); } });
   SA.addEventListener('focus',function(){ SA.value=SA.value.replace(/,/g,''); });
   SA.addEventListener('blur',function(){ if(SA.value.trim()) SA.value=fmt(num(SA.value)); });
@@ -12753,10 +12756,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 5ac99ca5ed41 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน ef2f77c5c183 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='5ac99ca5ed41'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='ef2f77c5c183'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
