@@ -12721,10 +12721,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 74278dd77aa8 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 1c78371ab4be และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='74278dd77aa8'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='1c78371ab4be'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
@@ -13010,8 +13010,10 @@ html body #quick-scan-modal.fixed.qsnp-on .qs-in.qsnp-f{border-color:#c89422 !im
     setTimeout(function(){ try{ t.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){} },30); }
   function hide(){ M.classList.remove('qsnp-on'); pad.classList.remove('on'); IDS.forEach(function(i){ var e=document.getElementById(i); if(e) e.classList.remove('qsnp-f'); }); cur=null; }
   function arm(){ var on=want()&&small(); IDS.forEach(function(i){ var e=document.getElementById(i); if(!e) return;
-      if(on){ if(!e.dataset.qsnpIm) e.dataset.qsnpIm=e.getAttribute('inputmode')||''; e.setAttribute('inputmode','none'); }
-      else if(e.dataset.qsnpIm!==undefined){ if(e.dataset.qsnpIm) e.setAttribute('inputmode',e.dataset.qsnpIm); else e.removeAttribute('inputmode'); delete e.dataset.qsnpIm; } });
+      /* บางเครื่อง/บางแป้นไม่ฟัง inputmode="none" → ใส่ readonly ด้วย (แป้นของเครื่องไม่ขึ้นแน่นอน)
+         ตัวอักษรจากเครื่องยิงบาร์โค้ด/คีย์บอร์ดจริง รับเองที่ keydown ด้านล่าง จึงยังพิมพ์ได้เหมือนเดิม */
+      if(on){ if(e.dataset.qsnpIm===undefined) e.dataset.qsnpIm=e.getAttribute('inputmode')||''; e.setAttribute('inputmode','none'); e.readOnly=true; e.dataset.qsnpRo='1'; }
+      else if(e.dataset.qsnpIm!==undefined){ if(e.dataset.qsnpIm) e.setAttribute('inputmode',e.dataset.qsnpIm); else e.removeAttribute('inputmode'); delete e.dataset.qsnpIm; if(e.dataset.qsnpRo){ e.readOnly=false; delete e.dataset.qsnpRo; } } });
     if(!on) hide(); return on; }
   M.addEventListener('focusin',function(e){ var t=e.target; if(!t||IDS.indexOf(t.id)<0) return; if(arm()) show(t); });
   M.addEventListener('focusout',function(){ setTimeout(function(){ var a=document.activeElement; if(!a||IDS.indexOf(a.id)<0) hide(); },120); });
@@ -13023,6 +13025,16 @@ html body #quick-scan-modal.fixed.qsnp-on .qs-in.qsnp-f{border-color:#c89422 !im
     var p=(txt===null)?s:s+txt.length; try{ if(t.type!=='number') t.setSelectionRange(p,p); }catch(_){}
     t.dispatchEvent(new Event('input',{bubbles:true}));
   }
+  /* ช่องเป็น readonly ระหว่างใช้แป้นของโปรแกรม: รับตัวอักษรจากคีย์บอร์ดจริง/เครื่องยิงบาร์โค้ดเอง (Enter ปล่อยให้ระบบเดิมจัดการ) */
+  IDS.forEach(function(i){ var e=document.getElementById(i); if(!e) return;
+    e.addEventListener('keydown',function(ev){ if(!e.dataset.qsnpRo||ev.ctrlKey||ev.metaKey||ev.altKey) return;
+      if(ev.key==='Backspace'){ ev.preventDefault(); put(e,null); return; }
+      if(ev.key&&ev.key.length===1){ if(e.type==='number'&&!/[0-9]/.test(ev.key)) { ev.preventDefault(); return; } ev.preventDefault(); put(e,ev.key); } },true);
+    e.addEventListener('paste',function(ev){ if(!e.dataset.qsnpRo) return; var t=(ev.clipboardData&&ev.clipboardData.getData('text'))||''; if(t){ ev.preventDefault(); put(e,t.trim()); } });
+  });
+  /* เปิดหน้าคีย์ด่วนทุกครั้ง: ตั้งค่าใหม่อีกรอบ (กันโค้ดอื่นเปลี่ยนกลับ) */
+  var oo=window.openQuickScanModal; if(typeof oo==='function'){ var w=function(){ arm(); return oo.apply(this,arguments); }; window.openQuickScanModal=w; try{ openQuickScanModal=w; }catch(_){} }
+  M.addEventListener('pointerdown',function(ev){ var t=ev.target; if(t&&IDS.indexOf(t.id)>=0) arm(); },true);
   function enter(t){ var ev=new KeyboardEvent('keydown',{key:'Enter',code:'Enter',keyCode:13,which:13,bubbles:true,cancelable:true}); t.dispatchEvent(ev); }
   /* กดปุ่มแป้น: ห้ามช่องเสียโฟกัส (ไม่งั้นแป้นจะหาย) */
   pad.addEventListener('pointerdown',function(e){ e.preventDefault(); });

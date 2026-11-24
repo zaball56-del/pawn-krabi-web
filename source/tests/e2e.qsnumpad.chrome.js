@@ -25,9 +25,12 @@ let fail=0; const ok=(c,m)=>{ if(!c) fail++; console.log((c?'ok  ':'FAIL')+' '+m
  await pg.evaluate(()=>{ qsPickType('ส'); }); await pg.evaluate(()=>document.activeElement.blur()); await sleep(250);
  ok(await pg.evaluate(()=>!document.getElementById('qsnp').classList.contains('on')&&getComputedStyle(document.querySelector('.qs-right > div:last-child')).display!=='none'),'6 แตะที่อื่น → แป้นหาย แถบบันทึกกลับมา');
  await pg.focus('#qs-book'); await K(pg,'⌨'); await sleep(300);
- ok(await pg.evaluate(()=>localStorage.getItem('pawn_qs_numpad')==='0'&&!document.getElementById('qsnp').classList.contains('on')&&document.getElementById('qs-book').getAttribute('inputmode')==='numeric'),'7 ปุ่มแป้นมือถือ → กลับไปใช้แป้นเครื่อง (inputmode ตัวเลข)');
+ ok(await pg.evaluate(()=>localStorage.getItem('pawn_qs_numpad')==='0'&&!document.getElementById('qsnp').classList.contains('on')&&document.getElementById('qs-book').getAttribute('inputmode')==='numeric'&&!document.getElementById('qs-book').readOnly),'7 ปุ่มแป้นมือถือ → กลับไปใช้แป้นเครื่อง (inputmode ตัวเลข)');
  await pg.evaluate(()=>window.qsNumpadEnable(true)); await pg.focus('#qs-month'); await sleep(200);
  ok(await pg.evaluate(()=>document.getElementById('qsnp').classList.contains('on')),'8 เปิดกลับจากตั้งค่าได้');
+ await pg.focus('#qs-ticket'); await pg.evaluate(()=>{ document.getElementById('qs-ticket').value=''; }); await pg.keyboard.type('4567'); await pg.keyboard.press('Backspace'); await pg.keyboard.type('8'); await pg.keyboard.press('Enter'); await sleep(300);
+ const hs=await pg.evaluate(()=>({ro:document.getElementById('qs-ticket').readOnly,v:document.getElementById('qs-ticket').value,act:document.activeElement.id}));
+ ok(hs.ro&&hs.v==='4568'&&hs.act!=='qs-ticket','11 ช่องล็อกแป้นเครื่อง (readonly) แต่เครื่องยิงบาร์โค้ด/คีย์บอร์ดจริงยังพิมพ์ได้ + Enter ไปช่องถัดไป '+JSON.stringify(hs));
  ok(!pg.errs.length,'9 ไม่มี error '+JSON.stringify(pg.errs));
  pg=await mk(false); await pg.focus('#qs-month'); await sleep(200);
  ok(await pg.evaluate(()=>!document.getElementById('qsnp').classList.contains('on')&&document.getElementById('qs-month').getAttribute('inputmode')!=='none'),'10 จอคอม: ไม่มีแป้นเล็ก พิมพ์คีย์บอร์ดปกติ');
