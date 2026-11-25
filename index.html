@@ -5217,7 +5217,8 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                                 onkeydown="handleEnterKey(event, 'ticket', ${cIdx}, ${r})"
                                 class="ticket-input-${cIdx} ticket-input-${cIdx}-${r} ${rowRedClass} ${offCls} ${linkCls} w-full text-center bg-transparent border-0 text-[11px] font-semibold text-slate-900 focus:ring-1 focus:ring-emerald-500">
                         </td>
-                        <td class="border border-slate-300 p-0.5">
+                        <td class="border border-slate-300 p-0.5" style="position:relative">
+                            ${((currentData.type === 'พ' || currentData.type === 'ผ') && String(currentData.newAmount ?? '').trim() && Number(String(currentData.newAmount).replace(/,/g, ''))) ? `<span class="amt-tag ${currentData.type === 'พ' ? 'up' : 'dn'} no-print" title="ยอดปัจจุบัน (ตั๋วใหม่)" aria-hidden="true">${currentData.type === 'พ' ? 'เพิ่ม' : 'ผ่อน'}→${escapeHtml(formatNumber(String(currentData.newAmount).replace(/,/g, '')))}</span>` : ''}
                             <input type="text" value="${valAmount}" 
                                 onfocus="this.value = this.value.replace(/,/g, '')" 
                                 ${offAttr} onblur="this.value = formatNumber(this.value); updateCellData(${cIdx}, ${r}, 'amount', this.value, this)" 
@@ -9456,6 +9457,8 @@ window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; va
 </script>
 
 <style id="tw-css">
+/* ป้ายยอดปัจจุบันในช่องเงิน (พ เพิ่ม / ผ ผ่อน) แบบเดียวกับป้ายเล่ม — ผู้ใช้ขอ 25 พ.ย. 69 · ไม่พิมพ์ */
+.amt-tag{position:absolute;top:-5px;right:3px;z-index:3;font:700 8px/1.35 Sarabun,sans-serif;letter-spacing:.2px;color:#fff;border:1px solid #fff;border-radius:999px;padding:0 6px;pointer-events:none;white-space:nowrap}.amt-tag.up{background:linear-gradient(135deg,#f59e0b,#ea580c);box-shadow:0 2px 4px rgba(194,65,12,.38)}.amt-tag.dn{background:linear-gradient(135deg,#22c55e,#059669);box-shadow:0 2px 4px rgba(4,120,87,.38)}
 .bk-tag{position:absolute;top:-5px;right:3px;z-index:3;font:700 8px/1.35 Sarabun,sans-serif;letter-spacing:.2px;color:#fff;background:linear-gradient(135deg,#14b8a6,#0ea5e9);border:1px solid #fff;border-radius:999px;padding:0 6px;box-shadow:0 2px 4px rgba(14,116,144,.38);pointer-events:none;white-space:nowrap}.bk-tag::before{content:'';display:inline-block;width:5px;height:6px;margin-right:3px;vertical-align:-0.5px;border-radius:1px;background:rgba(255,255,255,.92);box-shadow:inset -1.5px 0 0 rgba(14,116,144,.35)}@media print{.bk-tag{display:none !important}}@media print{#print-preview-paper table th,#print-preview-paper table td{padding-left:2px !important;padding-right:2px !important}}
 .s3tabs{display:flex;gap:4px;padding:5px;margin:10px 14px 12px;background:#e2e8f0;border-radius:14px}.s3tab{flex:1;border:0;background:transparent;color:#475569;border-radius:10px;padding:9px 8px;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}.s3tab.on{background:#4f46e5;color:#fff;box-shadow:0 2px 8px rgba(79,70,229,.35)}
 /* ช่องกรอกในหน้าตั้งค่า: สีตัวอักษรเข้ม/พื้นขาวชัดเจน (ธีมมืดกลับสีให้เองทั้งหน้า) */
@@ -12430,6 +12433,7 @@ html body.app-shell:not(.page-home) #ledger-page table thead tr:nth-child(2) th:
 html body.app-shell:not(.page-home) #ledger-page table tbody tr:first-child > td:not(#_x){position:sticky !important;top:129px !important;z-index:5;background:#E6F1EA !important;box-shadow:0 1px 0 #BFD8C8}
 /* ป้าย "เล่ม" เดิมยื่นขึ้นไปทับขอบแถวบน (top:-5px) -> แถวแรกโดนแถวยกมาที่ค้างไว้บังครึ่งป้าย: ย้ายป้ายให้อยู่ในช่องตัวเอง */
 html body.app-shell:not(.page-home) #ledger-page table tbody .bk-tag:not(#_x){top:2px !important}
+html body.app-shell:not(.page-home) #ledger-page table tbody .amt-tag:not(#_x){top:2px !important}
 /* ท้ายตาราง: เหนือแถบเมนูล่าง (สูง 66px + ระยะลอย) */
 html body.app-shell:not(.page-home) #ledger-page #foot-carried-row > td:not(#_x){position:sticky !important;bottom:78px !important;z-index:5;background:#E6F1EA !important;box-shadow:0 -1px 0 #BFD8C8}
 html body.app-shell:not(.page-home) #ledger-page #foot-totals-row > td:not(#_x){position:sticky !important;bottom:129px !important;z-index:5;background:#EEF5F0 !important;box-shadow:0 -1px 0 #BFD8C8}
@@ -12756,10 +12760,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 0f610bb41971 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน a8bca702d319 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='0f610bb41971'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='a8bca702d319'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

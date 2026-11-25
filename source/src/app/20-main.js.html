@@ -3439,7 +3439,8 @@
                                 onkeydown="handleEnterKey(event, 'ticket', ${cIdx}, ${r})"
                                 class="ticket-input-${cIdx} ticket-input-${cIdx}-${r} ${rowRedClass} ${offCls} ${linkCls} w-full text-center bg-transparent border-0 text-[11px] font-semibold text-slate-900 focus:ring-1 focus:ring-emerald-500">
                         </td>
-                        <td class="border border-slate-300 p-0.5">
+                        <td class="border border-slate-300 p-0.5" style="position:relative">
+                            ${((currentData.type === 'พ' || currentData.type === 'ผ') && String(currentData.newAmount ?? '').trim() && Number(String(currentData.newAmount).replace(/,/g, ''))) ? `<span class="amt-tag ${currentData.type === 'พ' ? 'up' : 'dn'} no-print" title="ยอดปัจจุบัน (ตั๋วใหม่)" aria-hidden="true">${currentData.type === 'พ' ? 'เพิ่ม' : 'ผ่อน'}→${escapeHtml(formatNumber(String(currentData.newAmount).replace(/,/g, '')))}</span>` : ''}
                             <input type="text" value="${valAmount}" 
                                 onfocus="this.value = this.value.replace(/,/g, '')" 
                                 ${offAttr} onblur="this.value = formatNumber(this.value); updateCellData(${cIdx}, ${r}, 'amount', this.value, this)" 
