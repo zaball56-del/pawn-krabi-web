@@ -51,6 +51,7 @@ html body #quick-scan-modal.fixed.qsnp-on .qs-in.qsnp-f{border-color:#c89422 !im
     var v=t.value, s=v.length, e2=v.length;
     try{ if(typeof t.selectionStart==='number'&&t.type!=='number'){ s=t.selectionStart; e2=t.selectionEnd; } }catch(_){}
     if(txt===null){ if(s===e2){ if(s===0) return; s=s-1; } t.value=v.slice(0,s)+v.slice(e2); }
+    else if(t.id==='qs-month'&&/^\d$/.test(txt)&&(v.length>=2||+(v+txt)>12)){ t.value=txt; s=0; }   /* เดือนมีค่าอยู่แล้ว (เช่น 11) กด 7 → เป็น 7 ไม่ใช่ 117 */
     else t.value=v.slice(0,s)+txt+v.slice(e2);
     var p=(txt===null)?s:s+txt.length; try{ if(t.type!=='number') t.setSelectionRange(p,p); }catch(_){}
     t.dispatchEvent(new Event('input',{bubbles:true}));

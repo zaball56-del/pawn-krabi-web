@@ -36,6 +36,8 @@ let fail=0; const ok=(c,m)=>{ if(!c) fail++; console.log((c?'ok  ':'FAIL')+' '+m
    for(const k of ['1','1','ถัดไป','5','5','ถัดไป']) await K(pg,k); await sleep(200);
    const st=await pg.evaluate(()=>({act:document.activeElement.id,t:document.getElementById('qs-ticket').value}));
    ok(st.act!=='qs-ticket'&&st.t==='55','12 '+mode+' · ถ พิมพ์เลขตั๋วแล้วกด ถัดไป ทันที → เคอร์เซอร์ไปช่องถัดไป ไม่ค้างที่เลขตั๋ว '+JSON.stringify(st)); }
+ await pg.evaluate(()=>{ const m=document.getElementById('qs-month'); m.value='11'; }); await pg.focus('#qs-month'); await K(pg,'7'); const m7=await pg.evaluate(()=>document.getElementById('qs-month').value); await K(pg,'⌫'); await K(pg,'1'); await K(pg,'2'); const m12=await pg.evaluate(()=>document.getElementById('qs-month').value);
+ ok(m7==='7'&&m12==='12','13 ช่องเดือนมี 11 กด 7 → 7 (ไม่ใช่ 117) · ลบแล้วกด 1 2 → 12 '+m7+' / '+m12);
  ok(!pg.errs.length,'9 ไม่มี error '+JSON.stringify(pg.errs));
  pg=await mk(false); await pg.focus('#qs-month'); await sleep(200);
  ok(await pg.evaluate(()=>!document.getElementById('qsnp').classList.contains('on')&&document.getElementById('qs-month').getAttribute('inputmode')!=='none'),'10 จอคอม: ไม่มีแป้นเล็ก พิมพ์คีย์บอร์ดปกติ');
