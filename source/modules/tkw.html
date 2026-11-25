@@ -615,8 +615,17 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       +'<small>'+(mo?'เดือน: '+esc(mo)+' (แตะแท็บเดือนเพื่อดู) · ':'')+'ในตารางวันนี้ '+cnt+' ใบ</small>';
     el.className='on';
   }
-  window.tkwImportS3=function(k,recs){
-    var d=JSON.parse(JSON.stringify(get(k))), add=0, skip=0, fill=0, fix=0, fixLog=[], addedMo={};
+  window.tkwImportS3=function(k,recs,opt){ opt=opt||{};
+    var d=JSON.parse(JSON.stringify(get(k))), add=0, skip=0, fill=0, fix=0, fixLog=[], addedMo={}, nfix=0, nLog=[];
+    /* ตั๋วที่คีย์ไว้แต่ "เล่มผิด" หรือ "เลขตั๋วผิด 1 หลัก/สลับหลัก" → แก้แถวเดิม ไม่เพิ่มแถวใหม่ (เหมือนตารางรักษาของ · แก้บั๊ค 25 พ.ย. 69)
+       ใช้เฉพาะแถวที่ไม่ตรงกับใบไหนใน สธ.3 · เจอหลายแถว = ไม่เดา · ถ้าผู้ใช้เอาติ๊ก "แก้แถวเดิม" ออกในหน้านำเข้า = ลงเป็นใบใหม่ */
+    var NZ=function(v){ return String(v==null?'':v).trim().replace(/^0+(?=\d)/,''); };
+    var nearTk=function(a,b){ a=NZ(a); b=NZ(b); if(a===b||!/^\d+$/.test(a)||!/^\d+$/.test(b)) return false;
+      if(a.length===b.length){ var df=[]; for(var q=0;q<a.length;q++) if(a[q]!==b[q]) df.push(q); return df.length===1||(df.length===2&&df[1]===df[0]+1&&a[df[0]]===b[df[1]]&&a[df[1]]===b[df[0]]); }
+      if(Math.abs(a.length-b.length)!==1) return false; var sh=a.length<b.length?a:b, lo=a.length<b.length?b:a; for(var z=0;z<lo.length;z++) if(lo.slice(0,z)+lo.slice(z+1)===sh) return true; return false; };
+    var freeE=[]; d.m.forEach(function(mm,gg){ (d.r[gg]||[]).forEach(function(x,ii){ if(!x||!String(x[0]==null?'':x[0]).trim()) return;
+      var mt=(recs||[]).some(function(p){ return +p.month===mm&&NZ(p.ticket)===NZ(x[0])&&(!p.book||!x[2]||NZ(p.book)===NZ(x[2])); }); if(!mt) freeE.push({g:gg,m:mm,i:ii,x:x}); }); });
+    var usedE=[];
     (recs||[]).forEach(function(p){
       var t=String(p.ticket||'').trim(); if(!t) return;
       var m=+p.month, b=String(p.book||'').trim(), a=String(p.amount==null?'':p.amount).replace(/,/g,'');
@@ -628,12 +637,24 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
         var hits=col.filter(function(x){ return nz(x[0])===nz(t)&&(!b||!x[2]||nz(x[2])===nz(b)); });
         if(hits.length===1&&a!==''&&num(a)!==num(hit[1])){ fixLog.push(t+' '+(num(hit[1])||0).toLocaleString('en-US')+'→'+num(a).toLocaleString('en-US')); hit[1]=String(num(a)); fix++; }
         return; }   /* มีเลขตั๋วอยู่แล้วแต่ยังไม่มีเล่มที่ → เติมเล่มที่จาก สธ.3 ให้ */
+      /* ทำเฉพาะตอนนำเข้า สธ.3 ทั้งไฟล์ (opt.near) — ปุ่มเพิ่มทีละใบจากหน้าเทียบ ไม่ทำ · ผู้ใช้เอาติ๊กออกในหน้านำเข้า = ไม่ทำ */
+      if(opt.near&&!(p.nearFix&&p.nearUse===false)){
+        var cand=freeE.filter(function(e){ return usedE.indexOf(e)<0&&NZ(e.x[0])===NZ(t)&&e.x[2]&&b&&NZ(e.x[2])!==NZ(b); });
+        if(cand.length!==1) cand=freeE.filter(function(e){ return usedE.indexOf(e)<0&&e.g===g&&e.x[2]&&b&&NZ(e.x[2])===NZ(b)&&num(e.x[1])===num(a)&&nearTk(e.x[0],t); });
+        /* ใบที่ตัวย้ายเดือนจัดการได้ (เลขตั๋วตรง คนละเดือน) → ไม่แตะ */
+        if(cand.length===1&&!(NZ(cand[0].x[0])===NZ(t)&&cand[0].g!==g&&(!cand[0].x[2]||!b))){
+          var e=cand[0]; usedE.push(e); nLog.push(e.x[0]+'/'+(e.x[2]||'–')+' → '+t+'/'+b);
+          var nx=e.x.slice(); nx[0]=t; nx[1]=a===''?nx[1]:String(num(a)); nx[2]=b;
+          if(e.g===g) d.r[g][e.i]=nx;
+          else { var j=0; while(j<col.length&&(col[j][0]||col[j][1])) j++; while(col.length<=j) col.push(['','']); col[j]=nx; d.r[e.g][e.i]=['','']; }
+          nfix++; return; } }
       var i=0; while(i<col.length&&(col[i][0]||col[i][1])) i++;
       while(col.length<=i) col.push(['','']);
       col[i]=[t,a===''?'':String(num(a)),b,''];
       if(d.pen) col[i][4]=d.pen;   /* ตั๋วที่นำเข้าได้สีปากกาปัจจุบันของวันนั้นทันที */
       add++; addedMo[m]=(addedMo[m]||0)+1; });
     if(fix){ try{ if(window.__audit) window.__audit('แก้ยอดตาม สธ.3 (เขียนตั๋ว)','วันที่ '+k+' · '+fix+' ใบ: '+fixLog.slice(0,20).join(', ')+(fixLog.length>20?' …':'')); }catch(e){} }
+    if(nfix){ try{ if(window.__audit) window.__audit('แก้เล่ม/เลขตั๋วตาม สธ.3 (เขียนตั๋ว)','วันที่ '+k+' · '+nfix+' ใบ: '+nLog.slice(0,20).join(', ')+(nLog.length>20?' …':'')); }catch(e){} fix+=nfix; }
     if(add||fill||fix){ d.u=Date.now(); store[k]=d; save(); try{ markDirty(k); }catch(e){}
       try{ startSync(); }catch(e){}   /* นำเข้าจาก สธ.3 โดยยังไม่เคยเปิดหน้าเขียนตั๋ว → เริ่มซิงก์ให้ส่งขึ้นคลาวด์ (เดิมค้างในเครื่องจนกว่าจะเปิดหน้า เครื่องอื่นจึงไม่เห็น) */
       if(key===k){ day=d; if(cur>=NG()) cur=NG()-1; if(document.body.classList.contains('tkw-open')) render(); } }

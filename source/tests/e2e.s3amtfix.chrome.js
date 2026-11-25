@@ -14,7 +14,7 @@ async function run(mode,opt){ opt=opt||{}; const b=await chromium.launch({execut
    const d=getCurrentDayData(); d.months=['ตุลาคม','พฤศจิกายน','','','','']; d.data['ตุลาคม']=[]; d.data['พฤศจิกายน']=[];
    d.data['ตุลาคม'].push({type:'ถ',ticket:'101',book:'10',amount:'5000'});            // ตรง
    d.data['ตุลาคม'].push({type:'ส',ticket:'102',book:'10',amount:'7700',newTicket:'900',newBook:'50',newAmount:'7700'}); // ยอดผิด
-   d.data['พฤศจิกายน'].push({type:'ถ',ticket:'103',book:'99',amount:'1000'});        // คนละเล่ม = คนละใบ → นำเข้าใหม่
+   d.data['พฤศจิกายน'].push({type:'ถ',ticket:'103',book:'99',amount:'1000'});        // เลขตั๋วเดียวกัน เล่มผิด (99 แต่ สธ.3 = 10) → แก้แถวเดิม ไม่เพิ่มแถว
    if(opt.twin){ d.data['พฤศจิกายน'].push({type:'ถ',ticket:'104',book:'',amount:'1'}); d.data['พฤศจิกายน'].push({type:'ถ',ticket:'104',book:'',amount:'2'}); } // ซ้ำ 2 แถว → ไม่แตะ
    else d.data['พฤศจิกายน'].push({type:'ผ',ticket:'104',book:'',amount:''});        // ยอดว่าง → แก้
    saveDB();
@@ -35,11 +35,11 @@ async function run(mode,opt){ opt=opt||{}; const b=await chromium.launch({execut
  r.prep=prep; r.errs=errs; await b.close(); return r; }
 (async()=>{
   let r=await run('native');
-  ok(r.prep==='101:dup,102:fix,103:new,104:fix,105:new','1 เตรียม: ตรง=ข้าม, ยอดต่าง/ว่าง=แก้, คนละเล่ม/ไม่มี=ใหม่ '+r.prep);
-  ok(r.L==='101=5000ถ,102=7000ส>900 | 103=1000ถ,104=4000ผ,103=9000,105=6500'&&!r.errs.length,'2 แก้ยอดเฉพาะเงินต้น เก็บประเภท/ตั๋วใหม่ไว้ + นำเข้าใหม่ '+JSON.stringify(r));
+  ok(r.prep==='101:dup,102:fix,103:new,104:fix,105:new','1 เตรียม: ตรง=ข้าม, ยอดต่าง/ว่าง=แก้, ไม่มี/เล่มผิด=ใหม่(เล่มผิดแก้แถวเดิม) '+r.prep);
+  ok(r.L==='101=5000ถ,102=7000ส>900 | 103=9000ถ,104=4000ผ,105=6500'&&!r.errs.length,'2 แก้ยอดเฉพาะเงินต้น เก็บประเภท/ตั๋วใหม่ไว้ + เล่มผิดแก้แถวเดิม + นำเข้าใหม่ '+JSON.stringify(r));
   ok(/102 7,700→7,000/.test(r.au)&&/104 0→4,000/.test(r.au),'3 บันทึกประวัติการแก้ยอด '+r.au);
   r=await run('blocked',{tkw:true});
-  ok(r.L==='101=5000ถ,102=7000ส>900 | 103=1000ถ,104=4000ผ,103=9000,105=6500'&&!r.errs.length,'4 เบราว์เซอร์บล็อกกล่องยืนยัน (ถามในหน้า) + เขียนตั๋ว '+JSON.stringify(r));
+  ok(r.L==='101=5000ถ,102=7000ส>900 | 103=9000ถ,104=4000ผ,105=6500'&&!r.errs.length,'4 เบราว์เซอร์บล็อกกล่องยืนยัน (ถามในหน้า) + เขียนตั๋ว '+JSON.stringify(r));
   r=await run('native',{untick:true});
   ok(/102=7700ส/.test(r.L)&&/104=4000/.test(r.L),'5 เอาติ๊กออก = ไม่แก้ใบนั้น '+r.L);
   r=await run('native',{twin:true});

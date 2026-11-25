@@ -19,7 +19,7 @@
     if(!day||!day.data||!ready.length) return out;
     var used={};
     ready.forEach(function(r){
-      if(r.amtFix||(r.duplicate&&r.reason!=='มีเลขตั๋วนี้ในตารางแล้ว')) return;
+      if(r.amtFix||r.nearFix||(r.duplicate&&r.reason!=='มีเลขตั๋วนี้ในตารางแล้ว')) return;
       var tgt=thaiMonths[r.month-1]; var key=nrm(r.ticket); if(!tgt||!key) return;
       /* รอบ 1: เลขตั๋ว+เงินต้นตรง (เล่มไม่ขัด) · รอบ 2: เลขตั๋ว+เล่มตรงทั้งสองฝั่ง แต่ยอดต่าง = ใบเดียวกันที่คีย์ผิดทั้งเดือนและยอด → ย้ายและใช้ยอดตาม สธ.3 (ผู้ใช้ตัดสินใจ 23 พ.ย. 69) */
       var rb=trim(r.book)?String(Number(trim(r.book))||trim(r.book)):'';

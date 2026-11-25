@@ -57,7 +57,7 @@ const R3=[rec('252',11,'262','8000'),rec('701',11,'266','20000'),rec('815',10,'2
   ok(tickets(w,DAY).length===1&&tickets(w,DAY)[0].b==='255'&&tickets(w,DAY)[0].a==='51500','10 ตั๋วที่มีในตารางแต่ไม่มีเล่ม → นำเข้า สธ.3 แล้วเติมเล่มที่ให้ (2329 → 255) ไม่เบิ้ลแถว ยอดไม่เปลี่ยน');
   ok(/เติมเล่มที่ให้ 1 ใบ/.test(lastToast(w))&&/ลง 0 ใบ/.test(lastToast(w)),'10b ข้อความแจ้งว่าเติมเล่มที่ให้ ('+lastToast(w)+')'); }
 { const w=boot(); setRecs(w,[rec('2329',10,'254','51500')]); w.commitPDFImport(); setRecs(w,[rec('2329',10,'255','51500')]); w.document.getElementById('pdf-import-confirm').disabled=false; w.commitPDFImport();
-  ok(tickets(w,DAY).length===2&&!/เติมเล่มที่/.test(lastToast(w)),'10c ตั๋วเลขเดียวกันแต่คนละเล่ม (254 กับ 255) ไม่ถูกเติม/ทับ → เป็นคนละใบ'); }
+  ok(tickets(w,DAY).length===1&&tickets(w,DAY)[0].b==='255','10c ตั๋วเลขเดียวกันแต่เล่มที่คีย์ไว้ผิด (254 → สธ.3 = 255) → แก้เล่มแถวเดิม ไม่เพิ่มแถว (ไม่ให้ยอดเกินมา 1 ราย)'); }
 { const w=boot(); setRecs(w,[rec('2329',10,'255','51500')]); w.commitPDFImport(); setRecs(w,[rec('2329',10,'','51500')]); w.document.getElementById('pdf-import-confirm').disabled=false; w.commitPDFImport();
   ok(tickets(w,DAY).length===1&&tickets(w,DAY)[0].b==='255','10d สธ.3 ไม่มีเล่มที่ → ไม่ลบเล่มที่เดิม'); }
 { const w=boot(); setRecs(w,[rec('',11,'1','1'),rec('55',11,'3','1,500')]); w.commitPDFImport(); const t=tickets(w,DAY);
