@@ -34,6 +34,11 @@ let fail=0; const ok=(c,m)=>{ if(!c){fail++;console.log('FAIL',m);} else console
   await pg.evaluate(()=>{ const a=document.getElementById('tkw-sq-auto'); a.checked=false; a.dispatchEvent(new Event('change',{bubbles:true})); });
   await typeIn('tkw-sq-t','888'); await typeIn('tkw-sq-a','500'); await sleep(2800);
   ok(!/888=/.test(await col()),'3 ปิดบันทึกอัตโนมัติ → ไม่บันทึกเอง');
+  // 5 หยุดคิดหลังพิมพ์ 5 (ยอดของตั๋ว 5 ขึ้นมาแล้ว) แล้วพิมพ์ 6 ต่อ → ต้องได้ยอดของ 56 ไม่ใช่ของ 5 (แก้บั๊ค 26 พ.ย. 69)
+  await pg.evaluate(()=>{ const a=document.getElementById('tkw-sq-auto'); a.checked=true; a.dispatchEvent(new Event('change',{bubbles:true})); });
+  await pg.evaluate(K=>{ const d=tkwReadDay(K); const g=d.m.indexOf(11); d.r[g]=d.r[g].map(x=>x&&x[0]==='56'?['','','','']:x); tkwImportAll({[K]:d},'over'); },K);
+  await typeIn('tkw-sq-a',''); await pg.evaluate(()=>document.getElementById('tkw-sq-a').classList.remove('auto')); await typeIn('tkw-sq-m','11'); await typeIn('tkw-sq-t',''); await sleep(400); await pg.keyboard.type('5'); await sleep(2250); await pg.keyboard.type('6'); await sleep(3500);
+  ok(/56=4000/.test(await col())&&!/56=1500/.test(await col()),'5 หยุดกลางเลขตั๋วแล้วพิมพ์ต่อ → บันทึก 56 ด้วยยอดของ 56 (4,000) ไม่ใช่ยอดของตั๋ว 5 '+await col());
   ok(!errs.length,'4 ไม่มี error '+JSON.stringify(errs));
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0);
 })();

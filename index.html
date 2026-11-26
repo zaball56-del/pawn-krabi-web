@@ -10366,7 +10366,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
   function autoSaveMaybe(r){ clearTimeout(tmA); if(!$('tkw-sq-auto').checked) return; var m=+SM.value; if(!(m>=1&&m<=12)||!ST.value.trim()||!(num(SA.value.replace(/,/g,''))>0)) return; var w=(Date.now()-hTyped<2500)?2000:800; tmA=setTimeout(function(){ if(P.classList.contains('sq-on')&&$('tkw-sq-auto').checked){ window.__tkwAuto=true; sqSave(); } },w); }
   /* ค้นหลังพิมพ์เสร็จ: คนพิมพ์ทีละตัว → รอหยุด 0.6 วิ (กันดึงข้อมูลตั๋วใบอื่นระหว่างพิมพ์) · เครื่องยิง/กล้อง → เร็วเหมือนเดิม */
   function schedL(ev){ var h=ev&&ev.target?human(ev.target):false; clearTimeout(tmL); tmL=setTimeout(function(){ lookup(); try{ dupHint(); }catch(e){} try{ autoSaveMaybe(null); }catch(e){} },h?600:120); }
-  ST.addEventListener('input',function(ev){ if(!/^\d{12,13}$/.test(ST.value.trim())){ lastBook=''; lastYY=''; } schedL(ev); });
+  /* เลขตั๋วเปลี่ยน → ยกเลิกการบันทึกอัตโนมัติที่รอไว้ของเลขเดิม รอค้นยอดของเลขใหม่ก่อน (เดิมหยุดพิมพ์ 5 แล้วพิมพ์ 6 → บันทึก 56 ด้วยยอดของตั๋ว 5 · แก้บั๊ค 26 พ.ย. 69) */
+  ST.addEventListener('input',function(ev){ clearTimeout(tmA); if(!/^\d{12,13}$/.test(ST.value.trim())){ lastBook=''; lastYY=''; } schedL(ev); });
   SM.addEventListener('input',schedL);
   SA.addEventListener('input',function(){ autoAmt=false; SA.classList.remove('auto'); human(SA); autoSaveMaybe(null); });
   var busy=false;
@@ -10673,7 +10674,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
       d.months.forEach(function(mn){ var rows=d.data[mn]; if(!mn||!rows) return; var mname=String(mn).trim();
         rows.forEach(function(r){ if(!r) return;
           if(hasVal(r.amount)){ var t1=N(r.ticket); if(t1) add(m,t1,{date:k,month:mn,mname:mname,amount:String(r.amount).replace(/,/g,''),book:N(r.book),src:'ตั๋ว',man:r.importSource!=='PDF'}); }
-          if(r.newTicket&&hasVal(r.newAmount)){ var t2=N(r.newTicket); if(t2) add(m,t2,{date:k,month:mn,mname:mname,amount:String(r.newAmount).replace(/,/g,''),book:N(r.newBook),src:'ตั๋วใหม่',man:true}); }
+          /* ตั๋วใหม่ = ออกวันที่ k → เป็นตั๋วเดือนของวันนั้น (เดิมใช้เดือนของตั๋วเดิม เช่น ตั๋วเดิม ต.ค. ออกตั๋วใหม่ 20 พ.ย. → ระบบคิดว่าตั๋วใหม่เป็นเดือน 10 แล้วลงตาราง 10 · แก้บั๊ค 26 พ.ย. 69) */
+          if(r.newTicket&&hasVal(r.newAmount)){ var t2=N(r.newTicket), nm=TM[Number(k.slice(5,7))-1]||mname; if(t2) add(m,t2,{date:k,month:nm,mname:nm,amount:String(r.newAmount).replace(/,/g,''),book:N(r.newBook),src:'ตั๋วใหม่',man:true}); }
         }); });
     }
     try{ if(typeof window.tkwAll==='function') window.tkwAll().forEach(function(D){ D.m.forEach(function(mo,g){ var mname=TM[Number(mo)-1]||'';
@@ -12831,10 +12833,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน d6050e5cd260 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 41177420318f และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='d6050e5cd260'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='41177420318f'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

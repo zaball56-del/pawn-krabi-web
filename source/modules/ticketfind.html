@@ -25,7 +25,8 @@
       d.months.forEach(function(mn){ var rows=d.data[mn]; if(!mn||!rows) return; var mname=String(mn).trim();
         rows.forEach(function(r){ if(!r) return;
           if(hasVal(r.amount)){ var t1=N(r.ticket); if(t1) add(m,t1,{date:k,month:mn,mname:mname,amount:String(r.amount).replace(/,/g,''),book:N(r.book),src:'ตั๋ว',man:r.importSource!=='PDF'}); }
-          if(r.newTicket&&hasVal(r.newAmount)){ var t2=N(r.newTicket); if(t2) add(m,t2,{date:k,month:mn,mname:mname,amount:String(r.newAmount).replace(/,/g,''),book:N(r.newBook),src:'ตั๋วใหม่',man:true}); }
+          /* ตั๋วใหม่ = ออกวันที่ k → เป็นตั๋วเดือนของวันนั้น (เดิมใช้เดือนของตั๋วเดิม เช่น ตั๋วเดิม ต.ค. ออกตั๋วใหม่ 20 พ.ย. → ระบบคิดว่าตั๋วใหม่เป็นเดือน 10 แล้วลงตาราง 10 · แก้บั๊ค 26 พ.ย. 69) */
+          if(r.newTicket&&hasVal(r.newAmount)){ var t2=N(r.newTicket), nm=TM[Number(k.slice(5,7))-1]||mname; if(t2) add(m,t2,{date:k,month:nm,mname:nm,amount:String(r.newAmount).replace(/,/g,''),book:N(r.newBook),src:'ตั๋วใหม่',man:true}); }
         }); });
     }
     try{ if(typeof window.tkwAll==='function') window.tkwAll().forEach(function(D){ D.m.forEach(function(mo,g){ var mname=TM[Number(mo)-1]||'';
