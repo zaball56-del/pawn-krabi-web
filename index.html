@@ -6990,6 +6990,15 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
 })();
 </script>
 
+<style id="gx-oth-css">
+html body #global-search-modal .gx-oth{margin-top:12px;border:1px dashed #cbd5e1;background:#f8fafc}
+html body #global-search-modal .gx-oth .gx-hh{flex-wrap:wrap}
+html body #global-search-modal .gx-oth .gx-hh small{display:block;flex-basis:100%;font-weight:400;color:#64748b;font-size:12px;margin-top:2px}
+html body #global-search-modal .gx-ot{padding:10px 12px;border-top:1px solid #e2e8f0}
+html body #global-search-modal .gx-ot:first-of-type{border-top:0}
+html body #global-search-modal .gx-om{font-size:13px;color:#334155;margin-top:6px}
+html body #global-search-modal .gx-ol{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#64748b;margin-top:4px}
+</style>
 <script id="gs-timeline-js">
 (function(){
   var tb=document.getElementById('global-search-results'); if(!tb) return;
@@ -7031,6 +7040,24 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     while(g++<20){ e=null; for(k=0;k<list.length;k++){ if(used.indexOf(k)<0&&list[k].n&&same(list[k].o,cur)){ e=list[k]; used.push(k); break; } } if(!e) break; nodes.push(e.n); links.push(e); cur=e.n; }
     return {nodes:nodes,links:links};
   }
+  /* แยก "ตั๋วคนละใบ" ที่เลขซ้ำกัน (เลขตั๋วเริ่มใหม่ทุกเดือน): ไล่จากเก่าไปใหม่ ต่อสายเฉพาะใบที่ยังไม่ไถ่ถอน และเล่มไม่ขัดกัน
+     · ไถ่ถอน (ถ) = ใบนั้นจบ · เลขเดียวกันที่โผล่มาหลังจากนั้น = ใบใหม่ (แก้บั๊ค 26 พ.ย. 69: เดิมรวมทุกใบเป็นสายเดียว ยอดเริ่มต้น/จำนวนครั้งผิด) */
+  function mGroups(list){
+    var G=[], chron=list.slice().reverse();
+    chron.forEach(function(e){
+      var hit=null, k, g;
+      for(k=G.length-1;k>=0;k--){ g=G[k]; if(!g.open||!same(g.cur,e.o)) continue;
+        if(bk(g.cur)&&bk(e.o)){ hit=g; break; }          /* เล่มตรงกันทั้งคู่ = ใบเดียวกันแน่นอน */
+        if(!hit) hit=g; }
+      if(!hit){ hit={nodes:[e.o],ev:[],open:true,cur:e.o}; G.push(hit); }
+      else if(!bk(hit.cur)&&bk(e.o)){ hit.cur=e.o; hit.nodes[hit.nodes.length-1]=e.o; }
+      hit.ev.push(e);
+      if(e.n){ hit.nodes.push(e.n); hit.cur=e.n; }
+      if(e.ty==='ถ') hit.open=false;
+    });
+    G.forEach(function(g){ g.ev.reverse(); });        /* ใหม่สุดก่อน เหมือน list เดิม */
+    return G;
+  }
   var IC={
     tk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M12 9.5l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 11.6l2-.3z" fill="currentColor" stroke="none"/></svg>',
     bk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>',
@@ -7054,11 +7081,15 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     cb:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg>'
   };
   var TN={'ส':'ส่งดอก','พ':'เพิ่ม','ผ':'ผ่อน','ถ':'ไถ่ถอน'};
-  function mRender(list,q,bq,dates){
-    var me={t:q,b:bq}, C=mChain(list,me), first=list[list.length-1], last=list[0];
+  function mRender(listAll,q,bq,datesAll){
+    var me={t:q,b:bq}, G=mGroups(listAll), main=null, k, j;
+    for(k=0;k<listAll.length&&!main;k++){ var e0=listAll[k]; if(!(same(e0.o,me)||(e0.n&&same(e0.n,me)))) continue; for(j=0;j<G.length;j++) if(G[j].ev.indexOf(e0)>=0){ main=G[j]; break; } }
+    if(!main) main=G[G.length-1]||{nodes:[me],ev:listAll};
+    var list=main.ev, others=G.filter(function(g){ return g!==main; }), dates=list.map(function(e){ return e.d; });
+    var C={nodes:main.nodes}, first=list[list.length-1], last=list[0];
     var cur=C.nodes[C.nodes.length-1];
     var startAmt=first?num(first.amt):0, lastAmt=last?(last.n&&last.n.a?num(last.n.a):num(last.amt)):0;
-    LAST={q:q,bq:bq,list:list,cur:cur,startAmt:startAmt,lastAmt:lastAmt,first:first,last:last,dates:dates};
+    LAST={q:q,bq:bq,list:list,cur:cur,startAmt:startAmt,lastAmt:lastAmt,first:first,last:last,dates:dates,others:others.length};
     var range=dates.length?esc(dates[dates.length-1])+(dates.length>1?' – '+esc(dates[0]):''):'-';
     var h='<div class="gx-card gx-res"><span class="gx-ic">'+IC.doc+'</span><b>ผลการค้นหา</b><span class="gx-rs">พบข้อมูล <b>'+list.length+'</b> ครั้ง <i>|</i> ช่วงวันที่ '+range+'</span></div>';
     /* ซ้าย: ลำดับการเปลี่ยนตั๋ว + ข้อมูลสรุป */
@@ -7085,6 +7116,14 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         '<span class="gx-m">'+esc(e.amt||'')+(d===null?'':'<small class="gx-df '+(d>0?'up':(d<0?'dn':'eq'))+'">'+diffHtml(d)+'</small>')+(e.n&&e.n.a?'<small class="gx-na">ตั๋วใหม่ '+esc(e.n.a)+'</small>':'')+'</span></div>';
     });
     h+='</div></div>';
+    if(others.length){
+      h+='<div class="gx-pane gx-oth"><div class="gx-hh">'+IC2.cb+'<b>ตั๋วเลข '+esc(q)+' ใบอื่น</b><small>คนละใบกับด้านบน (คนละเล่ม หรือไถ่ถอนไปแล้ว) · ไม่นับรวมในสรุปด้านบน</small></div>';
+      others.slice().reverse().forEach(function(g){ var a=g.ev[g.ev.length-1], z=g.ev[0], za=z.n&&z.n.a?z.n.a:z.amt, red=!g.open;
+        h+='<div class="gx-ot"><div class="gx-ch-s">'+g.nodes.map(function(x){ return tkh(x,me,'c'); }).join('<span class="gx-ar">→</span>')+'</div>'+
+          '<div class="gx-om">'+esc(a.d)+(g.ev.length>1?' – '+esc(z.d):'')+' · '+g.ev.length+' ครั้ง · ยอดล่าสุด <b>'+esc(za||'-')+'</b>'+(red?' · <span class="gx-ty t4">ไถ่ถอนแล้ว</span>':'')+'</div>'+
+          '<div class="gx-ol">'+g.ev.slice().reverse().map(function(e){ return '<span>'+esc(e.d)+' · '+esc(TN[e.ty]||e.ty||'-')+' · '+esc(e.o.t||'-')+(bk(e.o)?' / '+esc(bk(e.o)):'')+(e.n?' → '+esc(e.n.t)+(bk(e.n)?' / '+esc(bk(e.n)):''):'')+' · '+esc(e.amt||'-')+'</span>'; }).join('')+'</div></div>'; });
+      h+='</div>';
+    }
     h+='<div class="gx-act"><button type="button" class="gx-b re" onclick="__gxAct(\'new\')">'+IC.rst+'ค้นหาใหม่</button><button type="button" class="gx-b pr" onclick="__gxAct(\'print\')">'+IC.prn+'พิมพ์</button><button type="button" class="gx-b pd" onclick="__gxAct(\'pdf\')">'+IC.pdf+'ส่งออก PDF</button></div>';
     return '<div class="gx">'+h+'</div>';
   }
@@ -7102,7 +7141,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
     }
     var rows=sheetRows(), th=rows.shift();
     var html='<!doctype html><'+'html><'+'head><meta charset="utf-8"><title>'+esc(name)+'</title><'+'style>body{font-family:Sarabun,sans-serif;margin:16mm 12mm;color:#000}h2{margin:0 0 4px;font-size:18px}p{margin:0 0 10px;font-size:13px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #555;padding:4px 6px;text-align:center}th{background:#eee}td.r{text-align:right}</'+'style></'+'head><'+'body>'+
-      '<h2>ประวัติตั๋ว '+esc(L.q)+(L.bq?' / เล่ม '+esc(L.bq):'')+'</h2><p>พบข้อมูล '+L.list.length+' ครั้ง · ตั๋วปัจจุบัน '+esc(L.cur.t||'-')+' / เล่ม '+esc(bk(L.cur)||'–')+' · ยอดเริ่มต้น '+fm(L.startAmt)+' · ยอดล่าสุด '+fm(L.lastAmt)+' บาท</p>'+
+      '<h2>ประวัติตั๋ว '+esc(L.q)+(L.bq?' / เล่ม '+esc(L.bq):'')+'</h2><p>พบข้อมูล '+L.list.length+' ครั้ง · ตั๋วปัจจุบัน '+esc(L.cur.t||'-')+' / เล่ม '+esc(bk(L.cur)||'–')+' · ยอดเริ่มต้น '+fm(L.startAmt)+' · ยอดล่าสุด '+fm(L.lastAmt)+' บาท'+(L.others?'<br>(มีตั๋วเลขเดียวกันใบอื่นอีก '+L.others+' ใบ — ไม่รวมในรายงานนี้)':'')+'</p>'+
       '<table><thead><tr>'+th.map(function(v){ return '<th>'+esc(v)+'</th>'; }).join('')+'</tr></thead><tbody>'+rows.map(function(r){ return '<tr>'+r.map(function(v,i){ return '<td'+(i>=9?' class="r"':'')+'>'+esc(i>=9&&i<=10&&v!==''?fm(v):v)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></'+'body></'+'html>';
     var f=document.getElementById('gx-print'); if(f) f.remove();
     f=document.createElement('iframe'); f.id='gx-print'; f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'; document.body.appendChild(f);
@@ -12836,10 +12875,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 7c5cadae7f5e และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 176578b7e55f และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='7c5cadae7f5e'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='176578b7e55f'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
