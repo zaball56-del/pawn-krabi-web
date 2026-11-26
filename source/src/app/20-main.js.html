@@ -379,7 +379,7 @@
         }
         function qsIdKey(book, ticket) { return normalizeCompareTicket(book) + '|' + normalizeCompareTicket(ticket); }
         function qsFindLinkedNew(book, ticket, exceptRow) {
-            const key = qsIdKey(book, ticket);
+            const key = qsIdKey(book, ticket), noBook = !normalizeCompareTicket(book);
             // ย้อนหลัง 240 วัน: เล่มขึ้นใหม่ทุกปี ตั๋วใหม่เล่ม+เลขเดียวกันของปีก่อนเป็นคนละใบ
             let lim = ''; try { const p = String(currentDate).split('-'), ld = new Date(+p[0], +p[1] - 1, +p[2] - 240); lim = ld.getFullYear() + '-' + String(ld.getMonth() + 1).padStart(2, '0') + '-' + String(ld.getDate()).padStart(2, '0'); } catch (_) {}
             for (const dKey in db) {
@@ -389,7 +389,10 @@
                 for (const m of d.months) {
                     if (!m || !Array.isArray(d.data[m])) continue;
                     for (const r of d.data[m]) {
-                        if (r && r !== exceptRow && r.newTicket && qsIdKey(r.newBook, r.newTicket) === key) return { date: dKey, month: m, ticket: r.ticket };
+                        if (r && r !== exceptRow && r.newTicket && qsIdKey(r.newBook, r.newTicket) === key) {
+                            /* ไม่มีเล่มที่: เลขตั๋วเริ่มใหม่ทุกเดือน → นับว่าซ้ำเฉพาะตั๋วใหม่ที่ออกเดือนเดียวกัน (เดิมเตือนผิดข้ามเดือน · แก้บั๊ค 26 พ.ย. 69) */
+                            if (!noBook || String(dKey).slice(0, 7) === String(currentDate).slice(0, 7)) return { date: dKey, month: m, ticket: r.ticket };
+                        }
                     }
                 }
             }

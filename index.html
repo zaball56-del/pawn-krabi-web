@@ -2157,7 +2157,7 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
         }
         function qsIdKey(book, ticket) { return normalizeCompareTicket(book) + '|' + normalizeCompareTicket(ticket); }
         function qsFindLinkedNew(book, ticket, exceptRow) {
-            const key = qsIdKey(book, ticket);
+            const key = qsIdKey(book, ticket), noBook = !normalizeCompareTicket(book);
             // ย้อนหลัง 240 วัน: เล่มขึ้นใหม่ทุกปี ตั๋วใหม่เล่ม+เลขเดียวกันของปีก่อนเป็นคนละใบ
             let lim = ''; try { const p = String(currentDate).split('-'), ld = new Date(+p[0], +p[1] - 1, +p[2] - 240); lim = ld.getFullYear() + '-' + String(ld.getMonth() + 1).padStart(2, '0') + '-' + String(ld.getDate()).padStart(2, '0'); } catch (_) {}
             for (const dKey in db) {
@@ -2167,7 +2167,10 @@ html body.app-shell:not(.page-home) header > div > div:nth-child(1){margin-right
                 for (const m of d.months) {
                     if (!m || !Array.isArray(d.data[m])) continue;
                     for (const r of d.data[m]) {
-                        if (r && r !== exceptRow && r.newTicket && qsIdKey(r.newBook, r.newTicket) === key) return { date: dKey, month: m, ticket: r.ticket };
+                        if (r && r !== exceptRow && r.newTicket && qsIdKey(r.newBook, r.newTicket) === key) {
+                            /* ไม่มีเล่มที่: เลขตั๋วเริ่มใหม่ทุกเดือน → นับว่าซ้ำเฉพาะตั๋วใหม่ที่ออกเดือนเดียวกัน (เดิมเตือนผิดข้ามเดือน · แก้บั๊ค 26 พ.ย. 69) */
+                            if (!noBook || String(dKey).slice(0, 7) === String(currentDate).slice(0, 7)) return { date: dKey, month: m, ticket: r.ticket };
+                        }
                     }
                 }
             }
@@ -12833,10 +12836,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 41177420318f และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 7c5cadae7f5e และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='41177420318f'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='7c5cadae7f5e'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
