@@ -29,7 +29,7 @@
           if(r.base){ hint.className='qs-amt-hint'; hint.textContent='ดึงยอดจากทะเบียนทรัพย์รับจำนำ ('+r.month+' · เล่ม '+r.base.book+') แก้ไขได้'; }
           else {
           hint.className='qs-amt-hint'+((r.differs||r.manual)?' warn':'');
-          hint.textContent=r.manual?('ดึงยอดจาก'+(r.src==='ตารางเขียนตั๋ว'?'ตารางเขียนตั๋ว':'ข้อมูลที่คีย์เอง')+' ('+dth(r.date)+' · '+r.month+') · ยังไม่ยืนยันกับ สธ.3'+(r.differs?' · มีหลายยอด':'')+' — ตรวจก่อนบันทึก'):('ดึงยอดจากข้อมูลเดิม ('+dth(r.date)+' · '+r.month+(r.src==='ตั๋วใหม่'?' · เป็นตั๋วใหม่':'')+')'+(r.differs?' — มีหลายยอด ตรวจสอบก่อนบันทึก':'')+' แก้ไขได้'); } }
+          hint.textContent=r.raw?('ดึงยอดจากข้อมูลดิบ (ฐานตั้งต้น · จำนำ '+dth(r.date)+' · '+r.month+' · เล่ม '+r.book+') — ตรวจก่อนบันทึก'):r.manual?('ดึงยอดจาก'+(r.src==='ตารางเขียนตั๋ว'?'ตารางเขียนตั๋ว':'ข้อมูลที่คีย์เอง')+' ('+dth(r.date)+' · '+r.month+') · ยังไม่ยืนยันกับ สธ.3'+(r.differs?' · มีหลายยอด':'')+' — ตรวจก่อนบันทึก'):('ดึงยอดจากข้อมูลเดิม ('+dth(r.date)+' · '+r.month+(r.src==='ตั๋วใหม่'?' · เป็นตั๋วใหม่':'')+')'+(r.differs?' — มีหลายยอด ตรวจสอบก่อนบันทึก':'')+' แก้ไขได้'); } }
         else { hint.className='qs-amt-hint'; hint.textContent=r.base?('พบในทะเบียนทรัพย์รับจำนำ ยอด '+formatNumber(r.amount)+' (เล่ม '+r.base.book+')'):('พบในข้อมูลเดิม ยอด '+formatNumber(r.amount)+' ('+dth(r.date)+')'+(r.manual?' · คีย์เอง ยังไม่ยืนยันกับ สธ.3':'')); }
       } else {
         if(A.classList.contains('qs-auto')){A.value='';A.classList.remove('qs-auto')}

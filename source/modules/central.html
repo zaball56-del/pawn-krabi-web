@@ -20,7 +20,7 @@
 #ct-modal td{padding:6px 9px;border-top:1px solid #f1f5f9;white-space:nowrap}#ct-modal .r{text-align:right}
 #ct-modal .bd{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:700}
 #ct-modal .bd.renew{background:#dbeafe;color:#1d4ed8}#ct-modal .bd.new{background:#dcfce7;color:#15803d}
-#ct-modal .bd.manual{background:#fef3c7;color:#92400e}#ct-modal .bd.diff{background:#fee2e2;color:#b91c1c}#ct-modal .bd.out{background:#ede9fe;color:#6d28d9}#ct-modal .bd.chk{background:#fee2e2;color:#b91c1c}#ct-modal .bd.wait{background:#f1f5f9;color:#64748b}
+#ct-modal .bd.manual{background:#fef3c7;color:#92400e}#ct-modal .bd.raw{background:#e0e7ff;color:#3730a3}#ct-modal .bd.diff{background:#fee2e2;color:#b91c1c}#ct-modal .bd.out{background:#ede9fe;color:#6d28d9}#ct-modal .bd.chk{background:#fee2e2;color:#b91c1c}#ct-modal .bd.wait{background:#f1f5f9;color:#64748b}
 #ct-modal .c-foot{padding:10px 18px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;background:#fff}
 #ct-modal .c-foot button{border:0;border-radius:10px;padding:9px 18px;background:#e2e8f0;cursor:pointer;font:inherit}
 @media(max-width:760px){#ct-modal .c-chips{display:none}#ct-modal .c-note{font-size:11.5px;padding:7px 9px}#ct-modal .c-body{padding:10px 12px;gap:8px}#ct-modal{padding:6px}}
@@ -154,10 +154,10 @@
     });
     return out;
   };
-  var LBL={renew:['renew','ต่อตั๋ว'],new:['new','จำนำใหม่'],out:['out','ไถ่ถอน'],chk:['chk','ตรวจ'],wait:['wait','รอ สธ.2'],manual:['manual','คีย์เอง'],diff:['diff','ยอดไม่ตรง']};
+  var LBL={renew:['renew','ต่อตั๋ว'],new:['new','จำนำใหม่'],out:['out','ไถ่ถอน'],chk:['chk','ตรวจ'],wait:['wait','รอ สธ.2'],manual:['manual','คีย์เอง'],diff:['diff','ยอดไม่ตรง'],raw:['raw','ข้อมูลดิบ']};
   window.centralRender=function(){
-    var rows=ST.rows, cnt={renew:0,new:0,out:0,chk:0,wait:0,manual:0,diff:0}; rows.forEach(function(r){cnt[r.kind]++});
-    $('ct-chips').innerHTML=[['ทั้งหมด',rows.length],['ต่อตั๋ว',cnt.renew],['จำนำใหม่',cnt.new],['ไถ่ถอน',cnt.out],['ต้องตรวจ',cnt.chk],['รอ สธ.2',cnt.wait],['คีย์เอง ยังไม่ยืนยัน',cnt.manual],['ยอดไม่ตรง สธ.3',cnt.diff]].map(function(c){return '<div class="c-chip"><small>'+c[0]+'</small><b>'+c[1].toLocaleString('th-TH')+'</b></div>'}).join('');
+    var rows=ST.rows, cnt={renew:0,new:0,out:0,chk:0,wait:0,manual:0,diff:0,raw:0}; rows.forEach(function(r){cnt[r.kind]++});
+    $('ct-chips').innerHTML=[['ทั้งหมด',rows.length],['ต่อตั๋ว',cnt.renew],['จำนำใหม่',cnt.new],['ไถ่ถอน',cnt.out],['ต้องตรวจ',cnt.chk],['รอ สธ.2',cnt.wait],['คีย์เอง ยังไม่ยืนยัน',cnt.manual],['ยอดไม่ตรง สธ.3',cnt.diff],['ข้อมูลดิบ (ยังอยู่)',cnt.raw]].map(function(c){return '<div class="c-chip"><small>'+c[0]+'</small><b>'+c[1].toLocaleString('th-TH')+'</b></div>'}).join('');
     var tabs=[['all','ทั้งหมด',rows.length]].concat(Object.keys(LBL).map(function(k){return [k,LBL[k][1],cnt[k]]}));
     $('ct-tabs').innerHTML=tabs.map(function(t){return '<button type="button" class="c-tab'+(ST.filter===t[0]?' on':'')+'" onclick="centralFilter(\''+t[0]+'\')">'+t[1]+' ('+t[2]+')</button>'}).join('');
     var q=($('ct-q').value||'').trim().toLowerCase();
@@ -166,7 +166,7 @@
     $('ct-more').textContent=list.length>300?'แสดง 300 จาก '+list.length+' รายการ (ค้นหาเพื่อกรอง)':'แสดง '+list.length+' รายการ';
   };
   window.centralFilter=function(f){ST.filter=f;centralRender()};
-  window.centralOpen=function(){ ST.rows=centralBuild().concat(window.centralManual()).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}); ST.filter='all'; $('ct-q').value=''; $('ct-modal').classList.add('on'); centralRender(); };
+  window.centralOpen=function(){ ST.rows=centralBuild().concat(window.centralManual()).concat(typeof window.rawCentralRows==='function'?window.rawCentralRows():[]).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}); ST.filter='all'; $('ct-q').value=''; $('ct-modal').classList.add('on'); centralRender(); };
   window.centralClose=function(){ $('ct-modal').classList.remove('on') };
 })();
 </script>

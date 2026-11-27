@@ -17,6 +17,7 @@ loginfx.html
 tkw.html
 ticketfind.html
 central.html
+rawbase.html
 assetpurge.html
 holidays.html
 tablelock.html

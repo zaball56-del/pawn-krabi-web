@@ -1,0 +1,281 @@
+<style id="rawbase-css">
+#rb-modal{position:fixed;inset:0;z-index:9000;background:rgba(15,23,42,.55);display:none;align-items:flex-start;justify-content:center;padding:24px 10px;overflow:auto}
+#rb-modal.on{display:flex}
+#rb-modal .rb-box{background:#fff;border-radius:18px;max-width:880px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.3);font-family:Sarabun,sans-serif;color:#0f1b4d}
+#rb-modal .rb-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;background:#0f3d7a;color:#fff;border-radius:18px 18px 0 0}
+#rb-modal .rb-hd h3{margin:0;font-size:18px;flex:1}
+#rb-modal .rb-hd button{background:none;border:0;color:#fff;font-size:24px;cursor:pointer;line-height:1}
+#rb-modal .rb-bd{padding:14px 18px}
+#rb-modal .rb-note{font-size:13px;color:#475569;background:#f1f5f9;border-radius:10px;padding:8px 12px;margin-bottom:10px;line-height:1.5}
+#rb-modal .rb-file{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+#rb-modal table{width:100%;border-collapse:collapse;font-size:13px}
+#rb-modal th,#rb-modal td{border-bottom:1px solid #e2e8f0;padding:6px 8px;text-align:left;vertical-align:top}
+#rb-modal th{background:#f8fafc;font-weight:700}
+#rb-modal td.r,#rb-modal th.r{text-align:right}
+#rb-modal .ok{color:#15803d;font-weight:700}
+#rb-modal .bad{color:#b91c1c;font-weight:700}
+#rb-modal .warn{color:#b45309;font-weight:700}
+#rb-modal .rb-st{font-size:13px;margin:8px 0;min-height:18px}
+#rb-modal .rb-ft{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #e2e8f0}
+#rb-modal .rb-ft button{border:0;border-radius:10px;padding:9px 16px;font:700 14px Sarabun,sans-serif;cursor:pointer}
+#rb-modal .rb-go{background:#0f3d7a;color:#fff}
+#rb-modal .rb-go:disabled{opacity:.45;cursor:not-allowed}
+#rb-modal .rb-cl{background:#e2e8f0;color:#0f1b4d}
+#rb-modal .rb-del{background:#fee2e2;color:#b91c1c;margin-right:auto}
+#rb-modal h4{margin:14px 0 6px;font-size:15px}
+#gs-raw{margin:8px 0}
+#gs-raw .gr-card{border:1px dashed #94a3b8;background:#f8fafc;border-radius:14px;padding:10px 14px;font:14px Sarabun,sans-serif;color:#0f1b4d;margin-bottom:8px}
+#gs-raw .gr-card b{color:#0f3d7a}
+#gs-raw .gr-tag{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:6px;background:#e0e7ff;color:#3730a3}
+#gs-raw .gr-tag.end{background:#fee2e2;color:#b91c1c}
+#gs-raw .gr-tag.act{background:#dcfce7;color:#15803d}
+@media (max-width:640px){#rb-modal{padding:0}#rb-modal .rb-box{border-radius:0;min-height:100%}#rb-modal .rb-hd{border-radius:0}#rb-modal table{font-size:12px}}
+</style>
+<div id="rb-modal" class="no-print" role="dialog" aria-modal="true" aria-label="นำเข้าข้อมูลดิบ (ฐานตั้งต้น)">
+ <div class="rb-box">
+  <div class="rb-hd"><h3>นำเข้าข้อมูลดิบ (ฐานตั้งต้น)</h3><button type="button" onclick="rawClose()" aria-label="ปิด">×</button></div>
+  <div class="rb-bd">
+   <div class="rb-note">ไฟล์ "รายงานทะเบียนทรัพย์สินประจำวัน/เดือน" (PDF) · ใช้แค่ค้นตั๋ว (ยอด/เล่ม/เดือน) ตอนสแกนและในทะเบียน · <b>ไม่ลงตาราง ไม่เข้าสูตร ยอดบัญชีไม่เปลี่ยน</b> · เก็บในเครื่องนี้ (นำเข้าครั้งเดียวต่อเครื่อง) · ใบที่มีรายการหลังวันที่พิมพ์รายงาน (ไถ่ถอน/ต่อตั๋ว ในตาราง สธ.3 สธ.2 เขียนตั๋ว) ระบบตัดเป็น "จบแล้ว" เอง · สธ.3/สธ.2/ตาราง ชนะข้อมูลดิบเสมอ</div>
+   <div class="rb-file"><input id="rb-file" type="file" accept="application/pdf,.pdf" multiple onchange="rawPick(this.files)"></div>
+   <div id="rb-st" class="rb-st"></div>
+   <div id="rb-prev"></div>
+   <h4>ข้อมูลดิบที่มีในเครื่องนี้</h4>
+   <div id="rb-have"></div>
+  </div>
+  <div class="rb-ft"><button type="button" class="rb-del" onclick="rawClearAll()">ล้างข้อมูลดิบทั้งหมด</button><button type="button" class="rb-cl" onclick="rawClose()">ปิด</button><button type="button" id="rb-go" class="rb-go" disabled onclick="rawCommit()">นำเข้า</button></div>
+ </div>
+</div>
+<script id="rawbase-js">
+(function(){
+  /* ข้อมูลดิบ (ฐานตั้งต้น) — ผู้ใช้ตัดสิน 27 พ.ย. 69: นำเข้าครั้งเดียวเป็นฐาน หลังจากนั้นเป็นไปตาม สธ.2/สธ.3
+     · เก็บ IndexedDB ในเครื่อง (ไม่ซิงก์ ไม่แตะ Firebase) · อ่านอย่างเดียว: ไม่ลงตาราง ไม่เข้าสูตร/ยอดยกมา/ใบพิมพ์
+     · ticketFind ใช้เป็นลำดับสุดท้าย (หลัง ทะเบียน สธ.3/สธ.2 และที่คีย์เอง)
+     · ใบที่มีรายการตั้งแต่วันที่พิมพ์รายงาน (ตาราง/สธ.3/สธ.2/เขียนตั๋ว) = จบแล้ว ไม่ใช้ดึงยอด · จบเกิน 60 วัน ล้างออกจากที่เก็บ */
+  var TM=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  var AB=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  function $(i){return document.getElementById(i)}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function num(v){var n=parseFloat(String(v==null?'':v).replace(/,/g,''));return isNaN(n)?0:n}
+  function fm(n){return Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2})}
+  function N(v){ return window.ticketNorm?window.ticketNorm(v):String(v==null?'':v).trim(); }
+  function pad(n){return n<10?'0'+n:''+n}
+  function dth(k){ var p=String(k||'').split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+(Number(p[0])+543):String(k||''); }
+  function today(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function daysBetween(a,b){ var x=Date.parse(a),y=Date.parse(b); return isNaN(x)||isNaN(y)?0:Math.round((y-x)/864e5); }
+  /* วันที่ dd/mm/yyyy (พ.ศ. หรือ ค.ศ.) → yyyy-mm-dd */
+  function dkey(s){ var m=/(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(s||'')); if(!m) return ''; var y=Number(m[3]); if(y>2400) y-=543; return y+'-'+pad(Number(m[2]))+'-'+pad(Number(m[1])); }
+
+  // ===== ที่เก็บ (IndexedDB) =====
+  var RAW={snapAt:0,rows:[],files:[]}, loaded=false, ver=0;
+  function idb(){ return new Promise(function(res,rej){ try{ var q=indexedDB.open('pawn_rawbase',1); q.onupgradeneeded=function(){ q.result.createObjectStore('kv'); }; q.onsuccess=function(){ res(q.result); }; q.onerror=function(){ rej(q.error); }; }catch(e){ rej(e); } }); }
+  function load(){ return idb().then(function(d){ return new Promise(function(res){ var t=d.transaction('kv','readonly').objectStore('kv').get('base'); t.onsuccess=function(){ var v=t.result; if(v&&Array.isArray(v.rows)) RAW=v; loaded=true; ver++; res(RAW); }; t.onerror=function(){ loaded=true; res(RAW); }; }); }).catch(function(){ loaded=true; return RAW; }); }
+  function save(){ ver++; return idb().then(function(d){ return new Promise(function(res,rej){ var tx=d.transaction('kv','readwrite'); tx.objectStore('kv').put(RAW,'base'); tx.oncomplete=function(){ res(); }; tx.onerror=function(){ rej(tx.error); }; }); }); }
+  window.rawReady=load();
+
+  // ===== ตัวอ่าน PDF "รายงานทะเบียนทรัพย์สินประจำวัน/เดือน" =====
+  async function parse(buf){
+    var lib=await window.__ensurePdfjs(); var pdf=await lib.getDocument({data:new Uint8Array(buf)}).promise;
+    var rows=[], printed='', dayTot={}, grand=null, pend=[], curDate='';
+    for(var p=1;p<=pdf.numPages;p++){
+      var c=await (await pdf.getPage(p)).getTextContent();
+      var it=c.items.map(function(i){return {s:String(i.str||'').trim(),x:i.transform[4],y:i.transform[5]}}).filter(function(i){return i.s});
+      var sameY=function(a,tol){ return it.filter(function(i){ return i!==a&&Math.abs(i.y-a.y)<=(tol||3); }); };
+      /* วันที่พิมพ์ = วันที่ พ.ศ. ด้านขวาบน · วันที่ของหน้า (วันจำนำ) = วันที่ พ.ศ. ฝั่งซ้าย/กลาง ส่วนหัว */
+      var thDates=it.filter(function(i){ return /^\d{1,2}\/\d{1,2}\/25\d\d$/.test(i.s); });
+      thDates.forEach(function(i){ if(i.x>=440){ if(!printed) printed=dkey(i.s); } });
+      var head=thDates.filter(function(i){ return i.x<440; }).sort(function(a,b){ return b.y-a.y; })[0];
+      if(head){ curDate=dkey(head.s); if(pend.length){ pend.forEach(function(r){ r.d=curDate; }); pend=[]; } }
+      /* บรรทัดยอดรวมประจำวัน (ค.ศ.) และยอดรวมทั้งสิ้น */
+      var endY=[];
+      it.forEach(function(i){
+        if(/^\d{1,2}\/\d{1,2}\/20\d\d$/.test(i.s)){ var nr=sameY(i,4), mon=nr.filter(function(z){return /^[\d,]+\.\d\d$/.test(z.s)}).sort(function(a,b){return b.x-a.x})[0], cnt=nr.filter(function(z){return /^\d+$/.test(z.s)&&z.x>i.x})[0];
+          if(mon) { dayTot[dkey(i.s)]={n:cnt?Number(cnt.s):null,amt:num(mon.s)}; endY.push(i.y); } }
+        if(/ทั้ง\S*สิ|ทังสิ|ทั้งสิ/.test(i.s)||/^ยอดรวมท/.test(i.s)&&/สิ/.test(i.s)){ var nr2=sameY(i,4), mon2=nr2.filter(function(z){return /^[\d,]+\.\d\d$/.test(z.s)}).sort(function(a,b){return b.x-a.x})[0], cnt2=nr2.filter(function(z){return /^\d+$/.test(z.s)})[0];
+          if(mon2) grand={n:cnt2?Number(cnt2.s):null,amt:num(mon2.s)}; }
+      });
+      var anchors=it.filter(function(i){ return i.x<80&&/^\d{1,6}\s*\/\s*\d{1,4}$/.test(i.s); }).sort(function(a,b){ return b.y-a.y; });
+      anchors.forEach(function(a){
+        var nr=sameY(a,3), tb=/^(\d+)\s*\/\s*(\d+)$/.exec(a.s);
+        var am=nr.filter(function(i){ return i.x>=470&&/^[\d,]+\.\d\d$/.test(i.s); }).sort(function(p,q){ return q.x-p.x; })[0];
+        var w=nr.filter(function(i){ return i.x>260&&i.x<340&&/^\d+(?:\.\d+)?$/.test(i.s); })[0];
+        var ds=nr.filter(function(i){ return i.x>=70&&i.x<260; }).sort(function(p,q){ return p.x-q.x; })[0];
+        var r={t:String(Number(tb[1])),b:String(Number(tb[2])),a:am?num(am.s):NaN,w:w?w.s:'',x:ds?ds.s.replace(/[^฀-๿\w\s.,()%\-\/]/g,'').replace(/\s+/g,' ').trim().slice(0,60):'',d:curDate,p:p};
+        /* แถวที่อยู่ใต้บรรทัด "ยอดรวมประจำวัน" ในหน้าเดียวกัน = วันถัดไป (รอหัววันที่ของหน้าถัดไป) */
+        if(endY.some(function(y){ return y>a.y; })){ r.d=''; pend.push(r); }
+        rows.push(r);
+      });
+    }
+    /* ตั๋วเลข+เล่มซ้ำในไฟล์ (บรรทัดคร่อมหน้า) → ใบเดียว */
+    var seen={}, out=[], dup=0; rows.forEach(function(r){ var k=r.t+'/'+r.b+'/'+r.d; if(seen[k]){ dup++; if(isNaN(seen[k].a)&&!isNaN(r.a)) seen[k].a=r.a; return; } seen[k]=r; out.push(r); });
+    out.forEach(function(r){ r.m=r.d?Number(r.d.slice(5,7)):0; });
+    return {rows:out,printed:printed,dayTot:dayTot,grand:grand,dupLines:dup};
+  }
+
+  // ===== สถานะ: จบแล้ว (มีรายการตั้งแต่วันที่พิมพ์รายงาน) =====
+  var ST={v:-1,dv:-1,at:0,ended:null,active:null,idx:null};
+  function endedMap(){
+    var E={}, Eb={};
+    function mark(m,t,b,info){ t=N(t); if(!t||!(m>=1&&m<=12)) return; b=N(b); var k=m+'|'+t;
+      if(b){ var kb=k+'|'+b; if(!E[kb]||info.d<E[kb].d) E[kb]=info; } else { (Eb[k]=Eb[k]||[]).push(info); } }
+    if(typeof db!=='undefined') Object.keys(db).forEach(function(k){ var d=db[k]; if(!/^\d{4}-\d\d-\d\d$/.test(k)||!d) return;
+      if(d.data&&Array.isArray(d.months)) d.months.forEach(function(mn){ var mi=TM.indexOf(String(mn||'').trim())+1, rows=d.data[mn]; if(mi<1||!Array.isArray(rows)) return;
+        rows.forEach(function(r){ if(!r||!String(r.ticket||'').trim()) return; var ty=String(r.type||'').trim();
+          mark(mi,r.ticket,r.book||r.importBook,{d:k,ty:ty||(r.importSource==='PDF'?'สธ.3':''),nt:r.newTicket||'',nb:r.newBook||'',src:r.importSource==='PDF'?'สธ.3':'ตาราง'}); }); });
+      if(d.sor2&&Array.isArray(d.sor2.rows)) d.sor2.rows.forEach(function(x){ if(x&&x[1]&&x[2]) mark(Number(x[2]),x[1],'',{d:k,ty:x[0]||'',nt:x[3]||'',nb:x[4]||'',src:'สธ.2'}); });
+    });
+    try{ if(typeof window.tkwAll==='function') window.tkwAll().forEach(function(D){ D.m.forEach(function(mo,g){ (D.r[g]||[]).forEach(function(x){ if(x&&String(x[0]||'').trim()) mark(Number(mo),x[0],x[2],{d:D.k,ty:'',nt:'',nb:'',src:'เขียนตั๋ว'}); }); }); }); }catch(e){}
+    return {E:E,Eb:Eb};
+  }
+  function build(){
+    var now=Date.now(); if(ST.idx&&ST.v===ver&&ST.dv===(window.__dv||0)&&now-ST.at<30000) return ST;
+    var M=endedMap(), cnt={}, idx=Object.create(null), act=0, endN=0, purge=[], td=today();
+    RAW.rows.forEach(function(r){ var k=r.m+'|'+N(r.t); cnt[k]=(cnt[k]||0)+1; });
+    RAW.rows.forEach(function(r,i){
+      var k=r.m+'|'+N(r.t), snap=r.s||'', end=null;
+      var e1=M.E[k+'|'+N(r.b)]; if(e1&&(!snap||e1.d>=snap)) end=e1;
+      if(!end&&M.Eb[k]&&cnt[k]===1){ M.Eb[k].forEach(function(e){ if((!snap||e.d>=snap)&&(!end||e.d<end.d)) end=e; }); }
+      r._end=end||null;
+      if(end){ endN++; if(daysBetween(end.d,td)>60) purge.push(i); }
+      else { act++; (idx[N(r.t)]=idx[N(r.t)]||[]).push(r); }
+    });
+    if(purge.length&&loaded){ var ps={}; purge.forEach(function(i){ ps[i]=1; }); RAW.rows=RAW.rows.filter(function(r,i){ return !ps[i]; }); save().catch(function(){}); }
+    ST={v:ver,dv:window.__dv||0,at:now,idx:idx,active:act,ended:endN};
+    return ST;
+  }
+  window.rawStats=function(){ var s=build(); return {active:s.active,ended:s.ended,total:RAW.rows.length,files:RAW.files.slice()}; };
+
+  /* ค้นจากข้อมูลดิบ (เฉพาะใบที่ยังไม่จบ) · คืนรูปแบบเดียวกับ ticketFind */
+  window.rawFind=function(ticket,book,month){
+    if(!RAW.rows.length) return null;
+    var t=N(ticket), b=N(book), mn=Number(month)||0; if(!t) return null;
+    var cur=''; try{ cur=String(currentDate||''); }catch(e){}
+    var c=(build().idx[t]||[]).filter(function(r){ if(mn&&r.m!==mn) return false; if(b&&N(r.b)!==b) return false; if(cur&&r.d&&daysBetween(r.d,cur)>400) return false; return true; });
+    if(!c.length){ if(b){ var bk={}; (build().idx[t]||[]).forEach(function(r){ if((!mn||r.m===mn)&&N(r.b)!==b) bk[r.b]=1; }); var ks=Object.keys(bk); if(ks.length) return {status:'bookmismatch',books:ks.join(', ')}; } return null; }
+    if(!b){ var bs={}; c.forEach(function(r){ bs[N(r.b)]=1; }); if(Object.keys(bs).length>1) return {status:'multibook'}; }
+    c=c.slice().sort(function(x,y){ return x.d<y.d?1:(x.d>y.d?-1:0); }); var r=c[0];
+    return {status:'ok',amount:String(r.a),date:r.d,month:TM[r.m-1]||'',src:'ข้อมูลดิบ',differs:false,book:r.b,manual:true,raw:true};
+  };
+
+  /* ต่อเข้า ticketFind เป็นลำดับสุดท้าย: หาไม่เจอ (none) หรือพบแต่คนละเล่ม แล้วข้อมูลดิบมีเล่มตรง → ใช้ข้อมูลดิบ */
+  function hook(){
+    if(typeof window.ticketFind!=='function'||window.ticketFind.__raw) return false;
+    var o=window.ticketFind;
+    var f=function(ticket,book,month,opts){
+      if(opts&&opts.soft&&Number(month)){ var o2={}; for(var k in opts) o2[k]=opts[k]; o2.soft=false;
+        var r1=f(ticket,book,month,o2); if(r1.status==='ok') return r1;
+        var r2=f(ticket,book,0,o2); if(r2.status==='ok'){ r2.monthFallback=true; return r2; } return r1; }
+      var r=o.apply(this,arguments);
+      if(r&&(r.status==='none'||r.status==='bookmismatch')){ var w=window.rawFind(ticket,book,month); if(w&&(w.status==='ok'||r.status==='none')) return w; }
+      return r;
+    };
+    f.__raw=1; window.ticketFind=f; return true;
+  }
+  if(!hook()){ var hn=0, ht=setInterval(function(){ if(hook()||++hn>40) clearInterval(ht); },500); }
+
+  /* ทะเบียนทรัพย์รับจำนำ: แถวข้อมูลดิบที่ยังไม่จบ */
+  window.rawCentralRows=function(){ var out=[]; build(); RAW.rows.forEach(function(r){ if(r._end) return;
+      out.push({kind:'raw',date:r.d,oldT:r.t,oldM:r.m,oldB:r.b,oldA:r.a,nT:'',nB:'',nA:'',type:'',note:'ข้อมูลดิบ ณ '+dth(r.s)+(r.x?' · '+r.x:'')}); }); return out; };
+
+  /* หน้าค้นหาตั๋ว: การ์ดข้อมูลดิบ (รวมใบที่จบแล้ว) */
+  window.rawSearchRows=function(ticket,book){ var t=N(ticket), b=N(book); if(!t) return []; build();
+    return RAW.rows.filter(function(r){ return N(r.t)===t&&(!b||N(r.b)===b); }); };
+  function searchCard(){
+    var host=$('gs-raw'), tl=$('gs-timeline');
+    if(!host&&tl){ host=document.createElement('div'); host.id='gs-raw'; tl.parentNode.insertBefore(host,tl); }
+    if(!host) return;
+    var q=($('global-search-input')||{}).value||'', bq=($('global-search-book')||{}).value||'';
+    var rs=window.rawSearchRows(q,bq); if(!rs.length){ host.innerHTML=''; return; }
+    host.innerHTML=rs.sort(function(a,b){ return a.d<b.d?1:-1; }).map(function(r){ var e=r._end;
+      return '<div class="gr-card">ข้อมูลดิบ (ฐานตั้งต้น ณ '+esc(dth(r.s))+'): ตั๋ว <b>'+esc(r.t)+' / เล่ม '+esc(r.b)+'</b> · จำนำ '+esc(dth(r.d))+' ('+esc(AB[r.m-1]||'')+') · ยอด <b>'+fm(r.a)+'</b>'+(r.w?' · '+esc(r.w)+' กรัม':'')+(r.x?'<br><small>'+esc(r.x)+'</small>':'')+
+        (e?'<span class="gr-tag end">จบแล้ว '+esc(dth(e.d))+(e.ty?' · '+esc(e.ty):'')+(e.nt?' → '+esc(e.nt)+(e.nb?' / '+esc(e.nb):''):'')+' ('+esc(e.src)+')</span>':'<span class="gr-tag act">ยังอยู่ในคลัง</span>')+'</div>'; }).join('');
+  }
+  function hookSearch(){
+    if(typeof window.executeGlobalSearch!=='function'||window.executeGlobalSearch.__raw) return false;
+    var o=window.executeGlobalSearch; var f=function(){ var r=o.apply(this,arguments); try{ searchCard(); }catch(e){ console.error('raw search',e); } return r; };
+    f.__raw=1; window.executeGlobalSearch=f; try{ executeGlobalSearch=f; }catch(e){} return true;
+  }
+  if(!hookSearch()){ var sn=0, stt=setInterval(function(){ if(hookSearch()||++sn>40) clearInterval(stt); },500); }
+
+  // ===== หน้านำเข้า =====
+  var P=null;
+  function ledgerCarry(mi){
+    /* ยกไปของช่องเดือนนี้ วันล่าสุดก่อนวันที่พิมพ์รายงาน (รายงานพิมพ์เช้า = สิ้นวันก่อนหน้า) */
+    if(typeof db==='undefined'||typeof getMonthCarriedCount!=='function') return null;
+    var snap=P&&P.printed||today(), nm=TM[mi-1];
+    var ks=Object.keys(db).filter(function(k){ return /^\d{4}-\d\d-\d\d$/.test(k)&&k<snap&&db[k]&&Array.isArray(db[k].months)&&db[k].months.indexOf(nm)>=0; }).sort();
+    var k=ks[ks.length-1]; if(!k||daysBetween(k,snap)>45) return null;
+    try{ return {k:k,n:getMonthCarriedCount(k,nm),amt:getMonthCarriedBalance(k,nm)}; }catch(e){ return null; }
+  }
+  function renderHave(){
+    var s=window.rawStats(), by={};
+    RAW.rows.forEach(function(r){ var k=r.d.slice(0,7); var o=by[k]=by[k]||{n:0,amt:0,act:0}; o.n++; o.amt+=r.a; if(!r._end) o.act++; });
+    var ks=Object.keys(by).sort();
+    $('rb-have').innerHTML=!RAW.rows.length?'<div style="color:#64748b;font-size:13px">ยังไม่มี</div>':
+      '<table><thead><tr><th>เดือนจำนำ</th><th class="r">ใบ (ตอนนำเข้า)</th><th class="r">ยอด</th><th class="r">ยังอยู่ในคลัง</th></tr></thead><tbody>'+
+      ks.map(function(k){ var o=by[k], mi=Number(k.slice(5,7)); return '<tr><td>'+esc(TM[mi-1]+' '+(Number(k.slice(0,4))+543))+'</td><td class="r">'+o.n+'</td><td class="r">'+fm(o.amt)+'</td><td class="r">'+o.act+'</td></tr>'; }).join('')+
+      '</tbody></table><div style="font-size:12px;color:#64748b;margin-top:4px">รวม '+s.total+' ใบ · ยังอยู่ '+s.active+' · จบแล้ว '+s.ended+' (จบเกิน 60 วัน ล้างออกเอง)'+(RAW.files.length?' · ไฟล์: '+RAW.files.map(function(f){ return esc(f.name)+' (พิมพ์ '+esc(dth(f.printed))+')'; }).join(', '):'')+'</div>';
+  }
+  function renderPrev(){
+    var el=$('rb-prev'), go=$('rb-go'); if(!P){ el.innerHTML=''; go.disabled=true; return; }
+    var by={}; P.rows.forEach(function(r){ var k=r.d.slice(0,7); var o=by[k]=by[k]||{n:0,amt:0,mi:r.m}; o.n++; o.amt+=r.a; });
+    var sum=P.rows.reduce(function(s,r){ return s+(isNaN(r.a)?0:r.a); },0), bad=P.rows.filter(function(r){ return isNaN(r.a)||!r.d; }).length;
+    var okG=P.grand?(P.grand.n===P.rows.length&&Math.abs(P.grand.amt-sum)<0.01):null;
+    var h='<table><thead><tr><th>เดือนจำนำ</th><th class="r">อ่านได้</th><th class="r">ยอด</th><th>เทียบยกไปช่องเดือนในตาราง</th></tr></thead><tbody>';
+    Object.keys(by).sort().forEach(function(k){ var o=by[k], c=ledgerCarry(o.mi), cmp;
+      if(!c) cmp='<span style="color:#64748b">ไม่มีช่องเดือนนี้ในตารางช่วงนั้น</span>';
+      else { var dn=o.n-c.n, da=Math.round((o.amt-c.amt)*100)/100; cmp=(dn===0&&da===0?'<span class="ok">✓ ตรง</span>':'<span class="warn">ต่าง '+(dn>0?'+':'')+dn+' ใบ / '+(da>0?'+':'')+fm(da)+'</span>')+' <small>(ยกไป '+esc(dth(c.k))+': '+c.n+' ใบ / '+fm(c.amt)+')</small>'; }
+      h+='<tr><td>'+esc(TM[o.mi-1]+' '+(Number(k.slice(0,4))+543))+'</td><td class="r">'+o.n+'</td><td class="r">'+fm(o.amt)+'</td><td>'+cmp+'</td></tr>'; });
+    h+='</tbody></table>';
+    h+='<div class="rb-st">อ่านได้ <b>'+P.rows.length+' ใบ / '+fm(sum)+'</b> · '+(okG===null?'<span class="warn">ไม่พบยอดรวมทั้งสิ้นท้ายรายงาน</span>':(okG?'<span class="ok">✓ ตรงกับยอดรวมทั้งสิ้นท้ายรายงาน ('+P.grand.n+' ใบ / '+fm(P.grand.amt)+')</span>':'<span class="bad">✗ ไม่ตรงยอดรวมทั้งสิ้นท้ายรายงาน ('+P.grand.n+' ใบ / '+fm(P.grand.amt)+') — ตรวจไฟล์ก่อนนำเข้า</span>'))+
+      ' · ข้อมูล ณ วันที่พิมพ์ <b>'+esc(dth(P.printed)||'ไม่พบ')+'</b>'+(bad?' · <span class="bad">อ่านยอด/วันที่ไม่ได้ '+bad+' ใบ</span>':'')+(P.dupLines?' · ตัดบรรทัดซ้ำคร่อมหน้า '+P.dupLines:'')+'</div>';
+    h+='<div class="rb-note">กดนำเข้า: เดือนจำนำที่อยู่ในไฟล์นี้ จะ<b>แทนที่</b>ข้อมูลดิบเดิมของเดือนนั้นทั้งเดือน (เดือนอื่นไม่แตะ)</div>';
+    el.innerHTML=h; go.disabled=!P.rows.length||!P.printed||bad>0;
+  }
+  window.rawPick=async function(files){
+    P=null; renderPrev(); var st=$('rb-st'); if(!files||!files.length){ st.textContent=''; return; }
+    st.textContent='กำลังอ่านไฟล์…';
+    try{
+      var all={rows:[],printed:'',grand:{n:0,amt:0},dupLines:0,names:[]}, gOK=true;
+      for(var i=0;i<files.length;i++){ var buf=await files[i].arrayBuffer(); var p=await parse(buf);
+        all.rows=all.rows.concat(p.rows); all.dupLines+=p.dupLines; all.names.push({name:files[i].name,printed:p.printed,n:p.rows.length});
+        if(p.printed&&(!all.printed||p.printed<all.printed)) all.printed=p.printed;
+        if(p.grand){ all.grand.n+=p.grand.n; all.grand.amt+=p.grand.amt; } else gOK=false;
+        p.rows.forEach(function(r){ r.s=p.printed; }); }
+      if(!gOK) all.grand=null;
+      P=all; st.textContent=''; renderPrev();
+      if(!P.rows.length) st.innerHTML='<span class="bad">ไม่พบรายการตั๋วในไฟล์ — ต้องเป็นไฟล์ "รายงานทะเบียนทรัพย์สินประจำวัน/เดือน"</span>';
+    }catch(e){ console.error(e); st.innerHTML='<span class="bad">อ่านไฟล์ไม่ได้: '+esc(e&&e.message||e)+'</span>'; }
+  };
+  window.rawCommit=async function(){
+    if(!P||!P.rows.length) return;
+    var months={}; P.rows.forEach(function(r){ months[r.d.slice(0,7)]=1; });
+    var keep=RAW.rows.filter(function(r){ return !months[r.d.slice(0,7)]; });
+    var add=P.rows.map(function(r){ return {t:r.t,b:r.b,a:r.a,w:r.w,x:r.x,d:r.d,m:r.m,s:r.s}; });
+    RAW={snapAt:Date.now(),rows:keep.concat(add),files:RAW.files.filter(function(f){ return !f.months||!f.months.some(function(m){ return months[m]; }); }).concat(P.names.map(function(n){ return {name:n.name,printed:n.printed,n:n.n,months:Object.keys(months)}; }))};
+    try{ await save(); }catch(e){ alert('บันทึกข้อมูลดิบไม่สำเร็จ: '+(e&&e.message||e)); return; }
+    var n=add.length; P=null; $('rb-file').value=''; renderPrev(); renderHave();
+    try{ if(typeof logAuditEvent==='function') logAuditEvent('นำเข้าข้อมูลดิบ (ฐานตั้งต้น)', n+' ใบ · เดือน '+Object.keys(months).sort().join(', ')); }catch(e){}
+    $('rb-st').innerHTML='<span class="ok">นำเข้าแล้ว '+n+' ใบ · ยังอยู่ในคลัง '+window.rawStats().active+' ใบ</span>';
+    try{ showToast('นำเข้าข้อมูลดิบ '+n+' ใบ'); }catch(e){}
+  };
+  window.rawClearAll=async function(){
+    if(!RAW.rows.length) return;
+    if(!confirm('ล้างข้อมูลดิบทั้งหมดในเครื่องนี้ ('+RAW.rows.length+' ใบ)?\nไม่กระทบตาราง/ยอดบัญชี · นำเข้าไฟล์ใหม่ได้ภายหลัง')) return;
+    RAW={snapAt:0,rows:[],files:[]}; try{ await save(); }catch(e){} renderHave(); $('rb-st').textContent='ล้างข้อมูลดิบแล้ว';
+  };
+  window.rawOpen=function(){ P=null; $('rb-file').value=''; $('rb-st').textContent=''; renderPrev(); $('rb-modal').classList.add('on'); window.rawReady.then(renderHave); };
+  window.rawClose=function(){ $('rb-modal').classList.remove('on'); };
+  window.__raw={parse:parse,data:function(){ return RAW; },set:function(v){ RAW=v; return save(); },reload:load,build:function(){ ST.idx=null; return build(); }};
+
+  /* ปุ่มในเมนูซ้าย (ใต้ทะเบียนทรัพย์รับจำนำ) และเมนู PDF */
+  function addButtons(){
+    if($('rb-sb')) return true;
+    var sb=[].slice.call(document.querySelectorAll('#app-sidebar .sb-item')).filter(function(b){ return /centralOpen/.test(b.getAttribute('onclick')||''); })[0];
+    if(sb){ var b=sb.cloneNode(true); b.id='rb-sb'; b.setAttribute('onclick','sbClose();rawOpen()'); var ic=b.querySelector('.sb-ic'); b.textContent=''; if(ic) b.appendChild(ic); b.appendChild(document.createTextNode(' นำเข้าข้อมูลดิบ (ฐานตั้งต้น)')); sb.parentNode.insertBefore(b,sb.nextSibling); }
+    var mi=[].slice.call(document.querySelectorAll('.hdr-menu-panel .menu-item')).filter(function(b){ return /openPDFImportModal/.test(b.getAttribute('onclick')||''); })[0];
+    if(mi&&!$('rb-mi')){ var m2=document.createElement('button'); m2.className='menu-item'; m2.id='rb-mi'; m2.setAttribute('onclick','rawOpen()'); m2.innerHTML='<i class="fa-solid fa-database"></i> นำเข้าข้อมูลดิบ (ฐานตั้งต้น)'; mi.parentNode.insertBefore(m2,mi.nextSibling); }
+    return !!sb;
+  }
+  if(!addButtons()){ var bn=0, bt=setInterval(function(){ if(addButtons()||++bn>20) clearInterval(bt); },500); }
+})();
+</script>
