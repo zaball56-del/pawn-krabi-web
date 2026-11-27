@@ -54,6 +54,14 @@ let fail=0; const ok=(c,m)=>{ if(!c){fail++;console.log('FAIL',m);} else console
   await pg.evaluate(()=>{ centralClose(); openGlobalSearch(); document.getElementById('global-search-input').value='9101'; executeGlobalSearch(); }); await sleep(800);
   const gs=await pg.evaluate(()=>(document.getElementById('gs-raw')||{innerText:''}).innerText.replace(/\s+/g,' '));
   ok(/9101 \/ เล่ม 153/.test(gs)&&/จบแล้ว 27\/11\/2569/.test(gs)&&/9101 \/ เล่ม 156/.test(gs)&&/ยังอยู่ในคลัง/.test(gs),'13 หน้าค้นหา: การ์ดข้อมูลดิบ 2 ใบ (153 จบแล้ว · 156 ยังอยู่) · '+gs.slice(0,200));
+  // 13d–f ตั๋วที่มีแค่ในข้อมูลดิบ: ข้อความไม่ขัดกับการ์ด · ค้นหาใหม่/เปิดใหม่ → การ์ดไม่ค้าง (แก้บั๊ค 27 พ.ย. 69)
+  await pg.evaluate(()=>{ document.getElementById('global-search-input').value='9104'; executeGlobalSearch(); }); await sleep(700);
+  const m1=await pg.evaluate(()=>({card:(document.getElementById('gs-raw')||{innerText:''}).innerText.includes('9104'),msg:[...document.querySelectorAll('#gs-timeline .gs-msg')].map(x=>x.textContent+(x.classList.contains('bad')?'[แดง]':'')).join('|')}));
+  ok(m1.card&&/ยังไม่มีรายการในตาราง/.test(m1.msg)&&!/ไม่พบ|แดง/.test(m1.msg),'13d ตั๋วมีแค่ในข้อมูลดิบ → การ์ด + "ยังไม่มีรายการในตาราง" (ไม่ใช่ "ไม่พบ" สีแดง) · '+JSON.stringify(m1));
+  await pg.evaluate(()=>__gxAct('new')); await sleep(300);
+  ok(await pg.evaluate(()=>!(document.getElementById('gs-raw')||{innerHTML:''}).innerHTML),'13e กด "ค้นหาใหม่" → การ์ดข้อมูลดิบหายไปด้วย');
+  await pg.evaluate(()=>{ document.getElementById('global-search-input').value='9104'; executeGlobalSearch(); closeGlobalSearch(); openGlobalSearch(); }); await sleep(300);
+  ok(await pg.evaluate(()=>!(document.getElementById('gs-raw')||{innerHTML:''}).innerHTML),'13f ปิดแล้วเปิดหน้าค้นหาใหม่ → ไม่มีการ์ดเก่าค้าง');
   await pg.evaluate(()=>closeGlobalSearch());
   // 13b–c หน้าสแกน 2 ตาราง: พิมพ์ 9104 → ดึงยอด/เล่ม/เดือนจากข้อมูลดิบ พร้อมป้ายบอกที่มา
   await pg.evaluate(()=>{ localStorage.setItem('pawn_qs_auto','0'); openQuickScanModal(); }); await sleep(800);

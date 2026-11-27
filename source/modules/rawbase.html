@@ -70,7 +70,9 @@
   function idb(){ return new Promise(function(res,rej){ try{ var q=indexedDB.open('pawn_rawbase',1); q.onupgradeneeded=function(){ q.result.createObjectStore('kv'); }; q.onsuccess=function(){ res(q.result); }; q.onerror=function(){ rej(q.error); }; }catch(e){ rej(e); } }); }
   function load(){ return idb().then(function(d){ return new Promise(function(res){ var t=d.transaction('kv','readonly').objectStore('kv').get('base'); t.onsuccess=function(){ var v=t.result; if(v&&Array.isArray(v.rows)) RAW=v; loaded=true; ver++; res(RAW); }; t.onerror=function(){ loaded=true; res(RAW); }; }); }).catch(function(){ loaded=true; return RAW; }); }
   function save(){ ver++; return idb().then(function(d){ return new Promise(function(res,rej){ var tx=d.transaction('kv','readwrite'); tx.objectStore('kv').put(RAW,'base'); tx.oncomplete=function(){ res(); }; tx.onerror=function(){ rej(tx.error); }; }); }); }
-  window.rawReady=load();
+  /* ขอให้เบราว์เซอร์เก็บข้อมูลเว็บนี้แบบถาวร (ไม่ล้างเองตอนพื้นที่เครื่องเหลือน้อย) — ขอเมื่อมีข้อมูลดิบ · ไม่ได้ก็ไม่เป็นไร นำเข้าใหม่ได้ */
+  function persist(){ try{ if(navigator.storage&&navigator.storage.persist) return navigator.storage.persisted().then(function(p){ return p||navigator.storage.persist(); }).catch(function(){ return false; }); }catch(e){} return Promise.resolve(false); }
+  window.rawReady=load().then(function(v){ if(RAW.rows.length) persist(); return v; });
 
   // ===== ตัวอ่าน PDF "รายงานทะเบียนทรัพย์สินประจำวัน/เดือน" =====
   async function parse(buf){
@@ -114,16 +116,17 @@
   // ===== สถานะ: จบแล้ว (มีรายการตั้งแต่วันที่พิมพ์รายงาน) =====
   var ST={v:-1,dv:-1,at:0,ended:null,active:null,idx:null};
   function endedMap(){
-    var E={}, Eb={};
+    /* ดูเฉพาะวันตั้งแต่วันที่พิมพ์รายงานที่เก่าสุด (รายการก่อนหน้านั้นไม่ตัดใบไหนอยู่แล้ว) — ไม่ต้องไล่ทั้งปี */
+    var E={}, Eb={}, minS=''; RAW.rows.forEach(function(r){ if(r.s&&(!minS||r.s<minS)) minS=r.s; });
     function mark(m,t,b,info){ t=N(t); if(!t||!(m>=1&&m<=12)) return; b=N(b); var k=m+'|'+t;
       if(b){ var kb=k+'|'+b; if(!E[kb]||info.d<E[kb].d) E[kb]=info; } else { (Eb[k]=Eb[k]||[]).push(info); } }
-    if(typeof db!=='undefined') Object.keys(db).forEach(function(k){ var d=db[k]; if(!/^\d{4}-\d\d-\d\d$/.test(k)||!d) return;
+    if(typeof db!=='undefined') Object.keys(db).forEach(function(k){ var d=db[k]; if(!/^\d{4}-\d\d-\d\d$/.test(k)||!d||(minS&&k<minS)) return;
       if(d.data&&Array.isArray(d.months)) d.months.forEach(function(mn){ var mi=TM.indexOf(String(mn||'').trim())+1, rows=d.data[mn]; if(mi<1||!Array.isArray(rows)) return;
         rows.forEach(function(r){ if(!r||!String(r.ticket||'').trim()) return; var ty=String(r.type||'').trim();
           mark(mi,r.ticket,r.book||r.importBook,{d:k,ty:ty||(r.importSource==='PDF'?'สธ.3':''),nt:r.newTicket||'',nb:r.newBook||'',src:r.importSource==='PDF'?'สธ.3':'ตาราง'}); }); });
       if(d.sor2&&Array.isArray(d.sor2.rows)) d.sor2.rows.forEach(function(x){ if(x&&x[1]&&x[2]) mark(Number(x[2]),x[1],'',{d:k,ty:x[0]||'',nt:x[3]||'',nb:x[4]||'',src:'สธ.2'}); });
     });
-    try{ if(typeof window.tkwAll==='function') window.tkwAll().forEach(function(D){ D.m.forEach(function(mo,g){ (D.r[g]||[]).forEach(function(x){ if(x&&String(x[0]||'').trim()) mark(Number(mo),x[0],x[2],{d:D.k,ty:'',nt:'',nb:'',src:'เขียนตั๋ว'}); }); }); }); }catch(e){}
+    try{ if(typeof window.tkwAll==='function') window.tkwAll().forEach(function(D){ if(minS&&D.k<minS) return; D.m.forEach(function(mo,g){ (D.r[g]||[]).forEach(function(x){ if(x&&String(x[0]||'').trim()) mark(Number(mo),x[0],x[2],{d:D.k,ty:'',nt:'',nb:'',src:'เขียนตั๋ว'}); }); }); }); }catch(e){}
     return {E:E,Eb:Eb};
   }
   function build(){
@@ -189,9 +192,16 @@
       return '<div class="gr-card">ข้อมูลดิบ (ฐานตั้งต้น ณ '+esc(dth(r.s))+'): ตั๋ว <b>'+esc(r.t)+' / เล่ม '+esc(r.b)+'</b> · จำนำ '+esc(dth(r.d))+' ('+esc(AB[r.m-1]||'')+') · ยอด <b>'+fm(r.a)+'</b>'+(r.w?' · '+esc(r.w)+' กรัม':'')+(r.x?'<br><small>'+esc(r.x)+'</small>':'')+
         (e?'<span class="gr-tag end">จบแล้ว '+esc(dth(e.d))+(e.ty?' · '+esc(e.ty):'')+(e.nt?' → '+esc(e.nt)+(e.nb?' / '+esc(e.nb):''):'')+' ('+esc(e.src)+')</span>':'<span class="gr-tag act">ยังอยู่ในคลัง</span>')+'</div>'; }).join('');
   }
+  /* ข้อความ "ไม่พบประวัติ" ของหน้าค้นหา ขัดกับการ์ดข้อมูลดิบ → เปลี่ยนเป็นข้อความกลาง ๆ (แก้บั๊ค 27 พ.ย. 69) */
+  function fixMsg(){ var host=$('gs-raw'); if(!host||!host.children.length) return;
+    [].slice.call(document.querySelectorAll('#gs-timeline .gs-msg')).forEach(function(m){ if(/ไม่พบ/.test(m.textContent)){ m.textContent='ยังไม่มีรายการในตาราง (มีในข้อมูลดิบด้านบน)'; m.classList.remove('bad'); m.style.color='#64748b'; } }); }
+  function clearCard(){ var h=$('gs-raw'); if(h) h.innerHTML=''; }
+  /* ผลการค้นหาถูกล้าง (ค้นหาใหม่ / เปิดหน้าค้นหาใหม่) → ล้างการ์ดข้อมูลดิบด้วย (แก้บั๊ค 27 พ.ย. 69: การ์ดใบเก่าค้าง) */
+  (function(){ var tb=$('global-search-results'); if(!tb) return; new MutationObserver(function(){ if(!tb.children.length) clearCard(); else setTimeout(fixMsg,0); }).observe(tb,{childList:true}); })();
+  (function(){ var tries=0, t=setInterval(function(){ if(typeof window.openGlobalSearch==='function'&&!window.openGlobalSearch.__raw){ var o=window.openGlobalSearch; var f=function(){ clearCard(); return o.apply(this,arguments); }; f.__raw=1; window.openGlobalSearch=f; try{ openGlobalSearch=f; }catch(e){} clearInterval(t); } else if(++tries>40) clearInterval(t); },500); })();
   function hookSearch(){
     if(typeof window.executeGlobalSearch!=='function'||window.executeGlobalSearch.__raw) return false;
-    var o=window.executeGlobalSearch; var f=function(){ var r=o.apply(this,arguments); try{ searchCard(); }catch(e){ console.error('raw search',e); } return r; };
+    var o=window.executeGlobalSearch; var f=function(){ clearCard(); var r=o.apply(this,arguments); try{ searchCard(); setTimeout(fixMsg,0); setTimeout(fixMsg,60); }catch(e){ console.error('raw search',e); } return r; };
     f.__raw=1; window.executeGlobalSearch=f; try{ executeGlobalSearch=f; }catch(e){} return true;
   }
   if(!hookSearch()){ var sn=0, stt=setInterval(function(){ if(hookSearch()||++sn>40) clearInterval(stt); },500); }
@@ -253,6 +263,7 @@
     var add=P.rows.map(function(r){ return {t:r.t,b:r.b,a:r.a,w:r.w,x:r.x,d:r.d,m:r.m,s:r.s}; });
     RAW={snapAt:Date.now(),rows:keep.concat(add),files:RAW.files.filter(function(f){ return !f.months||!f.months.some(function(m){ return months[m]; }); }).concat(P.names.map(function(n){ return {name:n.name,printed:n.printed,n:n.n,months:Object.keys(months)}; }))};
     try{ await save(); }catch(e){ alert('บันทึกข้อมูลดิบไม่สำเร็จ: '+(e&&e.message||e)); return; }
+    persist();
     var n=add.length; P=null; $('rb-file').value=''; renderPrev(); renderHave();
     try{ if(typeof logAuditEvent==='function') logAuditEvent('นำเข้าข้อมูลดิบ (ฐานตั้งต้น)', n+' ใบ · เดือน '+Object.keys(months).sort().join(', ')); }catch(e){}
     $('rb-st').innerHTML='<span class="ok">นำเข้าแล้ว '+n+' ใบ · ยังอยู่ในคลัง '+window.rawStats().active+' ใบ</span>';
