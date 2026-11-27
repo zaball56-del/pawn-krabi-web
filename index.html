@@ -9479,8 +9479,21 @@ window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; va
       try{ window.__scanReadBeep(true); }catch(_){}
       var wd=function(){ warnDup(r.book,r.ticket,el.id); }; setTimeout(wd,60);
       /* บันทึกอัตโนมัติหลังอ่านบาร์โค้ด: ใช้ช่อง "บันทึกอัตโนมัติ" ในหน้าคีย์ด่วน (scanmode.html · pawn_qs_auto) จุดเดียว — ตั้งค่า → การใช้งาน แก้ค่าเดียวกัน */
-      var mon=document.getElementById('qs-month'), amt=document.getElementById(el.id==='qs-ticket'?'qs-amount':'qs-new-amount');
-      var next=(el.id==='qs-ticket'&&mon&&!mon.value)?mon:amt; if(next) setTimeout(function(){ try{next.focus();}catch(_){} },30);
+      /* ย้ายเคอร์เซอร์ไปช่องถัดไป — ตัดสินใจตอนครบเวลา ไม่ใช่ตอนอ่าน (แก้บั๊ค 27 พ.ย. 69: เครื่องยิงส่ง Enter ก่อน 30ms
+         Enter ย้ายไปช่องตั๋วใหม่แล้ว คำสั่งเก่ากลับดึงไปช่องยอดเงิน → ยิงตั๋วใหม่แล้วเลขบาร์โค้ดไปต่อท้ายยอด)
+         · ถ้าเคอร์เซอร์ออกจากช่องนี้ไปแล้ว (Enter/ผู้ใช้แตะ) ไม่ย้ายซ้ำ
+         · ค้นยอดให้เสร็จก่อน แล้วเลือก: เดือนว่าง → เดือน · ยอดขึ้นแล้ว + ช่องตั๋วใหม่ใช้ได้ (ส/พ/ผ) → ตั๋วใหม่ · อื่นๆ → ยอดเงิน */
+      var eid=el.id;
+      setTimeout(function(){ try{
+        if(document.activeElement!==el) return;
+        if(eid==='qs-ticket'){ try{ if(window.__qsRun) window.__qsRun(); }catch(_){} }
+        var mon=document.getElementById('qs-month'), amt=document.getElementById(eid==='qs-ticket'?'qs-amount':'qs-new-amount'), nt=document.getElementById('qs-new-ticket'), next=amt;
+        if(eid==='qs-ticket'){
+          if(mon&&!mon.value) next=mon;
+          else if(amt&&amt.value.trim()&&amt.classList.contains('qs-auto')&&nt&&!nt.disabled&&nt.offsetParent!==null) next=nt;
+        }
+        if(next&&document.activeElement===el){ next.focus(); try{ if(next.select) next.select(); }catch(_){} }
+      }catch(_){} },30);
     } finally { busy=false; }
   }
   document.addEventListener('input',onIn,true);
@@ -12875,10 +12888,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 176578b7e55f และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 3aacad2ac15c และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='176578b7e55f'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='3aacad2ac15c'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;

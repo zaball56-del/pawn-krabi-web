@@ -84,8 +84,21 @@ window.__scanReadBeep=function(ok){ try{ if(!window.__scanCfg().beep) return; va
       try{ window.__scanReadBeep(true); }catch(_){}
       var wd=function(){ warnDup(r.book,r.ticket,el.id); }; setTimeout(wd,60);
       /* บันทึกอัตโนมัติหลังอ่านบาร์โค้ด: ใช้ช่อง "บันทึกอัตโนมัติ" ในหน้าคีย์ด่วน (scanmode.html · pawn_qs_auto) จุดเดียว — ตั้งค่า → การใช้งาน แก้ค่าเดียวกัน */
-      var mon=document.getElementById('qs-month'), amt=document.getElementById(el.id==='qs-ticket'?'qs-amount':'qs-new-amount');
-      var next=(el.id==='qs-ticket'&&mon&&!mon.value)?mon:amt; if(next) setTimeout(function(){ try{next.focus();}catch(_){} },30);
+      /* ย้ายเคอร์เซอร์ไปช่องถัดไป — ตัดสินใจตอนครบเวลา ไม่ใช่ตอนอ่าน (แก้บั๊ค 27 พ.ย. 69: เครื่องยิงส่ง Enter ก่อน 30ms
+         Enter ย้ายไปช่องตั๋วใหม่แล้ว คำสั่งเก่ากลับดึงไปช่องยอดเงิน → ยิงตั๋วใหม่แล้วเลขบาร์โค้ดไปต่อท้ายยอด)
+         · ถ้าเคอร์เซอร์ออกจากช่องนี้ไปแล้ว (Enter/ผู้ใช้แตะ) ไม่ย้ายซ้ำ
+         · ค้นยอดให้เสร็จก่อน แล้วเลือก: เดือนว่าง → เดือน · ยอดขึ้นแล้ว + ช่องตั๋วใหม่ใช้ได้ (ส/พ/ผ) → ตั๋วใหม่ · อื่นๆ → ยอดเงิน */
+      var eid=el.id;
+      setTimeout(function(){ try{
+        if(document.activeElement!==el) return;
+        if(eid==='qs-ticket'){ try{ if(window.__qsRun) window.__qsRun(); }catch(_){} }
+        var mon=document.getElementById('qs-month'), amt=document.getElementById(eid==='qs-ticket'?'qs-amount':'qs-new-amount'), nt=document.getElementById('qs-new-ticket'), next=amt;
+        if(eid==='qs-ticket'){
+          if(mon&&!mon.value) next=mon;
+          else if(amt&&amt.value.trim()&&amt.classList.contains('qs-auto')&&nt&&!nt.disabled&&nt.offsetParent!==null) next=nt;
+        }
+        if(next&&document.activeElement===el){ next.focus(); try{ if(next.select) next.select(); }catch(_){} }
+      }catch(_){} },30);
     } finally { busy=false; }
   }
   document.addEventListener('input',onIn,true);
