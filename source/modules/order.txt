@@ -50,3 +50,4 @@ lgdesk.html
 newver.html
 qsskin.html
 qsnumpad.html
+scanguard.html

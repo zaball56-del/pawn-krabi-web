@@ -589,6 +589,8 @@ body.tkw-open #m-bar,body.tkw-open #cam-fab,body.tkw-open #m-next{display:none !
     if(!(m>=1&&m<=12)){ msg('ใส่เดือน 1–12 ก่อน','er'); SM.focus(); return; }
     if(!t){ msg('ยังไม่มีเลขตั๋ว สแกนหรือพิมพ์ก่อน','er'); ST.focus(); return; }
     if(!a||!(num(a)>0)){ msg('ใส่ยอดเงินก่อน','er'); SA.focus(); return; }
+    /* ยอดต่อใบเกิน 10 ล้าน = ผิดปกติ (เช่น เลขบาร์โค้ดไปต่อท้ายยอด) → ไม่บันทึก · แก้บั๊ค 27 พ.ย. 69 */
+    if(num(a)>10000000){ msg('ยอดเงินผิดปกติ (เกิน 10 ล้านบาทต่อใบ) — ตรวจช่องยอดเงินก่อนบันทึก','er'); SA.focus(); try{ SA.select(); }catch(e){} return; }
     var g=day.m.indexOf(m); snap();
     if(g<0){ if(NG()>=MAXG){ undo.pop(); msg('คอลัมน์เดือนเต็ม 12 คอลัมน์แล้ว','er'); return; } day.m.push(m); day.r.push(emptyCol()); g=NG()-1; }
     var col=day.r[g]; for(var i=0;i<col.length;i++){ if(nzT(col[i][0])===nzT(t)&&(!lastBook||!col[i][2]||nzT(col[i][2])===nzT(lastBook))){ undo.pop(); msg('ตั๋ว '+t+(lastBook?' เล่ม '+lastBook:'')+' มีอยู่แล้วในเดือน'+MN[m]+' (แถว '+(i+1)+') ไม่บันทึกซ้ำ','er'); ST.select(); return; } }

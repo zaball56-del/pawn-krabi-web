@@ -1,0 +1,95 @@
+<script id="scanguard-js">
+/* กันเครื่องยิงบาร์โค้ดพิมพ์ผิดช่อง — หน้าคีย์ด่วน (รักษาของ) และสแกนตั๋วเดิม (เขียนตั๋ว) · แก้บั๊ค 27 พ.ย. 69 (ผู้ใช้เลือกแบบ ก)
+   1) บาร์โค้ดตั๋ว 13 หลักถูกพิมพ์รัว ๆ เข้าช่องที่ไม่ใช่เลขตั๋ว (ยอด/เดือน/เล่ม) → คืนค่าเดิมของช่อง · ไม่ให้ Enter ท้ายบาร์โค้ดบันทึก
+      แล้วส่งบาร์โค้ดไปช่องที่ถูก: ส/พ/ผ ที่ยังไม่มีตั๋วใหม่ → ช่องตั๋วใหม่ · นอกนั้น = ตั๋วใบถัดไป → บันทึกใบเดิมให้ก่อน (ถ้าครบ) แล้วเริ่มใบใหม่
+      (เดิม: ปิดบันทึกอัตโนมัติ ยิง 445 แล้วยิง 446 → บันทึก 445 ยอด 70,006,900,264,004,470)
+   2) กล่องยืนยันเปิดอยู่ → ไม่รับตัวเลขจากเครื่องยิง และ Enter ที่ตามมาติด ๆ (ต้องแตะ/คลิกปุ่มเอง)
+      (เดิม: กล่องเตือน "ตั๋วซ้ำ" เปิดอยู่ ยิง 446 → Enter กดยืนยันให้ → บันทึก 446 ด้วยยอดของ 445)
+   3) ยอดเงินต่อใบเกิน 10 ล้าน → ไม่บันทึก ให้ตรวจก่อน */
+(function(){
+  function $(i){return document.getElementById(i)}
+  var MAX_AMT=10000000;
+  var GUARD={'qs-month':'qs','qs-book':'qs','qs-amount':'qs','qs-new-book':'qs','qs-new-amount':'qs','tkw-sq-m':'tkw','tkw-sq-a':'tkw'};
+  var FAST=40, GAP=90;           /* เครื่องยิง: ห่างกันไม่เกิน ~40ms ต่อหลัก · มนุษย์ช้ากว่านี้มาก */
+  var B=null, lastDigit=0, dlgAt=0, idleT=0;
+  function vis(e){ return !!(e&&e.offsetParent!==null&&getComputedStyle(e).display!=='none'); }
+  function dlgOpen(){ var d=$('ui-dialog'); return !!(d&&d.style.display!=='none'&&d.childNodes.length); }
+  function fire(el){ el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
+  function beep(){ try{ window.__scanBeep&&window.__scanBeep('er'); }catch(e){} try{ navigator.vibrate&&navigator.vibrate([90,60,90]); }catch(e){} }
+  function isCode(s){ try{ return /^\d{12,13}$/.test(s)&&!!(window.__parseTicketBarcode&&window.__parseTicketBarcode(s)); }catch(e){ return false; } }
+  function msgQ(t,cls){ var m=$('qs-msg'); if(m){ m.textContent=t; m.className='qs-msg '+(cls||'warn'); } }
+  function msgT(t){ var m=$('tkw-sq-msg'); if(m){ m.textContent=t; m.className=(m.className||'').replace(/\b(ok|er|warn)\b/g,'')+' er'; } }
+  /* จดเวลาเปิดกล่องยืนยัน (ใช้กัน Enter ที่ตามมาจากการยิงใบถัดไป) */
+  ['uiConfirm','uiChoice','uiAlert'].forEach(function(n){ var t=0, iv=setInterval(function(){ var f=window[n]; if(typeof f==='function'&&!f.__sg){ var g=function(){ dlgAt=Date.now(); return f.apply(this,arguments); }; g.__sg=1; window[n]=g; clearInterval(iv); } else if(++t>40) clearInterval(iv); },250); });
+
+  function routeTo(f,code){ if(!f) return; try{ f.focus(); }catch(e){} f.value=code; fire(f); }
+  function afterSave(isDone,go,fail){ var n=0, t=setInterval(function(){ if(isDone()){ clearInterval(t); go(); } else if(++n>12||dlgOpen()){ clearInterval(t); fail(); } },60); }
+  function handle(b){
+    var el=b.el, code=b.digits, ctx=GUARD[el.id];
+    el.value=b.snap; fire(el);                                   /* คืนค่าเดิมของช่องที่โดนพิมพ์ทับ */
+    beep();
+    if(ctx==='qs'){
+      var typ=($('qs-type')||{}).value||'', nt=$('qs-new-ticket'), tk=$('qs-ticket');
+      var oldSec=/^(qs-month|qs-book|qs-amount)$/.test(el.id);
+      if(oldSec&&/^[สพผ]$/.test(typ)&&nt&&!nt.disabled&&vis(nt)&&!nt.value.trim()&&tk&&tk.value.trim()){ routeTo(nt,code); msgQ('อ่านบาร์โค้ดเป็นตั๋วใหม่ (ยิงตอนเคอร์เซอร์อยู่ช่องอื่น — ย้ายให้แล้ว)','ok'); return; }
+      if(tk&&tk.value.trim()){
+        var was=tk.value.trim();
+        try{ window.submitQuickScan&&window.submitQuickScan(); }catch(e){}
+        afterSave(function(){ return !$('qs-ticket').value.trim(); },
+          function(){ routeTo($('qs-ticket'),code); msgQ('บันทึกตั๋ว '+was+' แล้ว · อ่านใบถัดไป','ok'); },
+          function(){ msgQ('ยังบันทึกตั๋ว '+was+' ไม่ได้ (ข้อมูลไม่ครบหรือรอยืนยัน) — จัดการใบนี้ก่อน แล้วยิงใบถัดไปอีกครั้ง','er'); });
+        return;
+      }
+      routeTo(tk,code); return;
+    }
+    if(ctx==='tkw'){
+      var ST=$('tkw-sq-t'), sv=$('tkw-sq-save');
+      if(ST&&ST.value.trim()){
+        var w=ST.value.trim(); if(sv) sv.click();
+        afterSave(function(){ return !$('tkw-sq-t').value.trim(); },
+          function(){ routeTo($('tkw-sq-t'),code); },
+          function(){ msgT('ยังบันทึกตั๋ว '+w+' ไม่ได้ — จัดการใบนี้ก่อน แล้วยิงใบถัดไปอีกครั้ง'); });
+        return;
+      }
+      routeTo(ST,code);
+    }
+  }
+  function fast(b){ var n=b.digits.length; return n>=12&&(b.last-b.start)/(n-1)<=FAST; }
+  function check(){ idleT=0; var b=B; if(!b||b.done) return; if(Date.now()-b.last<GAP-5) { idleT=setTimeout(check,GAP); return; }
+    if(fast(b)&&isCode(b.digits)){ b.done=true; B=null; handle(b); } else B=null; }
+  window.addEventListener('keydown',function(e){
+    var k=e.key, now=Date.now(), dig=/^[0-9]$/.test(k);
+    /* 2) กล่องยืนยันเปิดอยู่: ไม่รับตัวเลข และ Enter ที่ตามตัวเลข/เพิ่งเปิดกล่อง */
+    if(dlgOpen()&&!(e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)&&e.target.closest&&e.target.closest('#ui-dialog'))){
+      if(dig){ lastDigit=now; e.preventDefault(); e.stopImmediatePropagation(); if(now-(window.__sgBeepAt||0)>800){ window.__sgBeepAt=now; beep(); } return; }
+      if(k==='Enter'&&(now-lastDigit<600||now-dlgAt<500)){ e.preventDefault(); e.stopImmediatePropagation(); return; }
+      return;
+    }
+    var t=e.target; if(!t||!t.id||!GUARD[t.id]){ B=null; return; }
+    if(dig){
+      if(!B||B.el!==t||now-B.last>GAP||B.done){ B={el:t,snap:t.value,digits:'',start:now,last:now}; }
+      B.digits+=k; B.last=now; lastDigit=now;
+      if(B.digits.length>13){ B=null; return; }
+      clearTimeout(idleT); idleT=setTimeout(check,GAP);
+      return;
+    }
+    if(k==='Enter'&&B&&B.el===t&&!B.done&&now-B.last<GAP&&fast(B)&&isCode(B.digits)){
+      e.preventDefault(); e.stopImmediatePropagation(); clearTimeout(idleT); var b=B; b.done=true; B=null; handle(b); return;
+    }
+    if(k!=='Shift') B=null;
+  },true);
+
+  /* 3) ยอดเงินต่อใบเกิน 10 ล้าน → ไม่บันทึก (คีย์ด่วน) · หน้าเขียนตั๋วตรวจใน sqSave */
+  function amt(id){ var e=$(id); return e?Number(String(e.value||'').replace(/,/g,''))||0:0; }
+  var tries=0, iv=setInterval(function(){
+    if(typeof window.submitQuickScan==='function'&&!window.submitQuickScan.__sg){
+      var o=window.submitQuickScan;
+      var f=function(){ var bad=amt('qs-amount')>MAX_AMT?'qs-amount':(amt('qs-new-amount')>MAX_AMT?'qs-new-amount':'');
+        if(bad){ msgQ('ยอดเงินผิดปกติ (เกิน 10 ล้านบาทต่อใบ) — ตรวจช่องยอดเงินก่อนบันทึก','er'); beep(); try{ $(bad).focus(); $(bad).select(); }catch(e){} return; }
+        return o.apply(this,arguments); };
+      f.__sg=1; window.submitQuickScan=f; try{ submitQuickScan=f; }catch(e){} clearInterval(iv);
+    } else if(++tries>40) clearInterval(iv);
+  },250);
+  window.__scanGuard={MAX_AMT:MAX_AMT};
+})();
+</script>
