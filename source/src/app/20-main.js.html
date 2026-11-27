@@ -1820,6 +1820,9 @@
            - นำเข้า สธ.2 แบบตั้งยอดรับจำนำ (pledgeSor2) → วันนั้นยึดยอด สธ.2 เป็นหลัก ไม่บวกตั๋วใหม่อีก
            - วันก่อน PLEDGE_AUTO_FROM: ยอดรับจำนำเดิมไม่เปลี่ยน (ถือว่ารวมไว้แล้ว) */
         const PLEDGE_AUTO_FROM = '2026-11-23';
+        /* ผู้ใช้ตัดสิน 27 พ.ย. 69: ตั้งแต่วันที่ 27 พ.ย. 2569 เลิกบวกตั๋วใหม่ (ส/ผ/พ) เข้า "รับจำนำ" ของสรุปประจำวัน
+           ช่องรับจำนำมาจากการนำเข้า สธ.2 (หรือพิมพ์เอง) อย่างเดียว · วันที่ 23–26 พ.ย. ยังใช้กติกาเดิม ยอดไม่ขยับ */
+        const PLEDGE_AUTO_UNTIL = '2026-11-27';
         function getNewTicketPledgeTotals(dayData) {
             let count = 0, amount = 0;
             (dayData && Array.isArray(dayData.months) ? dayData.months : []).forEach(m => {
@@ -1846,6 +1849,20 @@
                 dayData.pledgeSor2 = { count: rows[1].count, amount: rows[1].amount, at: 'sor2-before-auto' };
                 delete dayData.pledgeManual; delete dayData.pledgeLast;
                 return changed0;
+            }
+            if (String(dateKey || '') >= PLEDGE_AUTO_UNTIL) {
+                /* เลิกบวกอัตโนมัติ: ถ้าวันนี้ระบบเคยบวกตั๋วใหม่ไว้ (ยอดยังเท่าที่ระบบตั้งล่าสุด) → คืนเป็นยอดที่กรอกเอง/สธ.2 · ถ้าผู้ใช้พิมพ์ทับแล้ว → ใช้ที่พิมพ์ */
+                const pmX = dayData.pledgeManual, lastX = dayData.pledgeLast;
+                if (!pmX && !lastX) return false;
+                let changedX = false;
+                if (pmX && typeof pmX === 'object' && lastX && cleanNumberString(rows[1].count === '' || rows[1].count === undefined ? 0 : rows[1].count) === cleanNumberString(lastX.count)
+                    && roundMoney(cleanNumberString(rows[1].amount === '' || rows[1].amount === undefined ? 0 : rows[1].amount)) === roundMoney(cleanNumberString(lastX.amount))) {
+                    const pc = cleanNumberString(pmX.count), pa = roundMoney(cleanNumberString(pmX.amount));
+                    changedX = pc !== cleanNumberString(lastX.count) || pa !== roundMoney(cleanNumberString(lastX.amount));
+                    rows[1].count = pc ? pc : ''; rows[1].amount = pa ? pa : '';
+                }
+                delete dayData.pledgeManual; delete dayData.pledgeLast;
+                return changedX;
             }
             const auto = getNewTicketPledgeTotals(dayData);
             let pm = dayData.pledgeManual;

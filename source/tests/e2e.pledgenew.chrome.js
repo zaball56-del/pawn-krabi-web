@@ -116,5 +116,24 @@ const FILE=process.env.FILE||path.join(__dirname,'../../index.html'); let fail=0
       const row=db[k].data[MM].find(x=>x&&x.ticket===tk); document.querySelector('#qs-mode [data-m="full"]').click(); return {copied,msg,type:row&&row.type,nt:row&&row.newTicket||''}; },[mode,tk]);
     ok(r.type==='ส'&&!r.nt&&!/ยังไม่ได้ใส่เลขตั๋วใหม่/.test(r.msg),'26 ['+mode+'] ส ไม่ใส่เลขตั๋วใหม่ → บันทึกได้ (คัดลอก "'+r.copied+'" · '+r.msg.slice(0,40)+')');
   }
+  // ===== ผู้ใช้ตัดสิน 27 พ.ย. 69: ตั้งแต่ 27 พ.ย. ไม่บวกตั๋วใหม่ (ส/ผ/พ) เข้ารับจำนำ · ช่องนี้มาจาก สธ.2 หรือพิมพ์เอง =====
+  r=await pg.evaluate(async(M)=>{ const k='2026-12-01'; currentDate=k; const d=getCurrentDayData(); d.months=[M,'','','','',''];
+    d.data[M]=[{type:'ส',ticket:'1',book:'1',amount:'36000',count:'',newTicket:'1990',newBook:'280',newAmount:'36000'},{type:'ผ',ticket:'2',book:'1',amount:'10000',count:'',newTicket:'1991',newBook:'280',newAmount:'8000'}];
+    document.getElementById('doc-date').value=k; changeDate(); await new Promise(r=>setTimeout(r,200)); const s=db[k].data['สรุปประจำวัน']; return (s[1].count||'')+'/'+(s[1].amount||''); },M);
+  ok(r==='/','27a ตั้งแต่ 27 พ.ย.: แถว ส/ผ มีตั๋วใหม่ → รับจำนำไม่ถูกบวก (ว่าง) ('+r+')');
+  r=await pg.evaluate(async(M)=>{ const k='2026-12-01'; const s=db[k].data['สรุปประจำวัน']; s[1].count=94; s[1].amount=3485400; updateSummaryColumn(); saveDB();
+    db[k].data[M].push({type:'พ',ticket:'3',book:'1',amount:'5000',count:'',newTicket:'1992',newBook:'280',newAmount:'20000'}); saveDB(); updateSummaryColumn(); renderTable(); await new Promise(r=>setTimeout(r,200));
+    return (s[1].count||'')+'/'+(s[1].amount||''); },M);
+  ok(r==='94/3485400','27b พิมพ์รับจำนำ 94 / 3,485,400 แล้วคีย์ พ ตั๋วใหม่ 20,000 เพิ่ม → ยังเป็น 94 / 3,485,400 ไม่เกินเป็น 95 ('+r+')');
+  r=await pg.evaluate(async(M)=>{ const k='2026-12-02'; currentDate=k; const d=getCurrentDayData(); d.months=[M,'','','','',''];
+    d.data[M]=[{type:'ส',ticket:'1',book:'1',amount:'36000',count:'',newTicket:'1993',newBook:'280',newAmount:'36000'}];
+    const s=d.data['สรุปประจำวัน']||(d.data['สรุปประจำวัน']=[{},{},{},{}]); while(s.length<4) s.push({}); s[1].count=6; s[1].amount=136000; d.pledgeManual={count:5,amount:100000}; d.pledgeLast={count:6,amount:136000}; saveDB();
+    document.getElementById('doc-date').value=k; changeDate(); await new Promise(r=>setTimeout(r,200)); const t=db[k].data['สรุปประจำวัน']; return (t[1].count||'')+'/'+(t[1].amount||'')+'/'+(db[k].pledgeManual?'pm':'-'); },M);
+  ok(r==='5/100000/-','27c วันหลัง 27 พ.ย. ที่ระบบเคยบวกตั๋วใหม่ไว้แล้ว → คืนเป็นยอดที่กรอกเอง 5 / 100,000 ('+r+')');
+  r=await pg.evaluate(async(M)=>{ const k='2026-11-26'; currentDate=k; const d=getCurrentDayData(); d.months=[M,'','','','',''];
+    d.data[M]=[{type:'ส',ticket:'1',book:'1',amount:'36000',count:'',newTicket:'1994',newBook:'280',newAmount:'36000'}]; delete d.pledgeManual; delete d.pledgeLast; delete d.sor2; delete d.pledgeSor2;
+    const s=d.data['สรุปประจำวัน']||(d.data['สรุปประจำวัน']=[{},{},{},{}]); while(s.length<4) s.push({}); s[1].count=''; s[1].amount='';
+    document.getElementById('doc-date').value=k; changeDate(); await new Promise(r=>setTimeout(r,200)); const t=db[k].data['สรุปประจำวัน']; return (t[1].count||'')+'/'+(t[1].amount||''); },M);
+  ok(r==='1/36000','27d วันที่ 26 พ.ย. (ก่อนเปลี่ยน) ยังบวกตั๋วใหม่ตามกติกาเดิม 1 / 36,000 ('+r+')');
   ok(!errs.length,'11 ไม่มี error '+errs.join('|'));
   await b.close(); console.log(fail?'FAILED '+fail:'ALL PASS'); process.exit(fail?1:0); })();
