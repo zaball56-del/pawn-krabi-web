@@ -8430,8 +8430,18 @@ html body.app-shell header > div > div:nth-child(2) > button:not(#hdr-gear){min-
         rows.push({type:om?om[1]:'',oldT:om?String(Number(om[2])):'',oldM:om?Number(om[3]):0,ticket:String(Number(tb[1])),book:String(Number(tb[2])),weight:w?w.s.trim():'',amount:am?num(am.s):NaN,page:p,y:a.y});
       });
     }
+    /* บรรทัดคร่อมหน้า: รายงานพิมพ์บรรทัดสุดท้ายของหน้าซ้ำที่หัวหน้าถัดไป (พบจริง สธ.2 26 พ.ย. 69: 2258/282 ท้ายหน้า 5 + หัวหน้า 6 → อ่านได้ 95 ราย รายงานรวม 94)
+       ตั๋วใหม่เลข+เล่มเดียวกันมีได้ใบเดียวในวันเดียว → รวมเป็นแถวเดียว (เติมช่องที่ขาดจากแถวซ้ำ) · แก้บั๊ค 27 พ.ย. 69 */
+    var seen={}, dedup=[], dupN=0;
+    rows.forEach(function(r){ var k=r.ticket+'/'+r.book, f=seen[k];
+      if(!f){ seen[k]=r; dedup.push(r); return; }
+      dupN++;
+      if(!f.type&&r.type){ f.type=r.type; f.oldT=r.oldT; f.oldM=r.oldM; }
+      if(!f.weight&&r.weight) f.weight=r.weight;
+      if(isNaN(f.amount)&&!isNaN(r.amount)) f.amount=r.amount; });
+    rows=dedup;
     var all=pages.join(' \n ');
-    var out={rows:rows,date:'',total:tot.total||null,month:tot.month||null,goldBuy:null,goldSell:null};
+    var out={rows:rows,dupLines:dupN,date:'',total:tot.total||null,month:tot.month||null,goldBuy:null,goldSell:null};
     var dm=new RegExp('(\\d{1,2})\\s*('+TH.join('|')+')\\s*(\\d{4})').exec(pages[0]||'');
     if(dm){var yy=Number(dm[3]); if(yy>2400) yy-=543; out.date=yy+'-'+String(TH.indexOf(dm[2])+1).padStart(2,'0')+'-'+String(Number(dm[1])).padStart(2,'0');}
     var gb=/ซ.{0,3}อบาทละ\s*([\d,]+\.\d\d)/.exec(pages[0]||''), gs=/ขายบาทละ\s*([\d,]+\.\d\d)/.exec(pages[0]||'');
@@ -12905,10 +12915,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน c6d11a33868f และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 2c81339459d1 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='c6d11a33868f'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='2c81339459d1'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
