@@ -13110,6 +13110,15 @@ html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on em:not(#_x):n
   setInterval(fix,600);
 }catch(e){} })();
 </script>
+<style id="mctl-paint-fix">
+/* มือถือ: การ์ดสรุป/แถบเดือนเหนือตารางบางครั้งไม่ถูกวาด (Chrome Android + เอฟเฟกต์เบลอซ้อนบนพื้นหลัง fixed) (28 พ.ย. 69)
+   → ปิดเบลอเฉพาะในการ์ดนี้ + แยกเป็นชั้นของตัวเองเหนือพื้นหลัง · ไม่เกี่ยวกับสูตร/งานพิมพ์ */
+@media screen and (max-width:640px){
+html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x){position:relative !important;z-index:1 !important;transform:translateZ(0);isolation:isolate}
+html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x) *:not(#_y){-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs button:not(.on):not(#_x):not(#_y){background:rgba(255,255,255,.88) !important}
+}
+</style>
 
 <style id="xcheck-css">
 .xck{display:none;margin:6px 0 0;padding:7px 12px;border-radius:12px;font:700 13.5px/1.35 Sarabun,sans-serif}
@@ -13255,10 +13264,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 19ea0e04bcb5 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 4f8462c77898 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='19ea0e04bcb5'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='4f8462c77898'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
