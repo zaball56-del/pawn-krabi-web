@@ -66,7 +66,9 @@ html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on em:not(#_x):n
 /* มือถือ: การ์ดสรุป/แถบเดือนเหนือตารางบางครั้งไม่ถูกวาด (Chrome Android + เอฟเฟกต์เบลอซ้อนบนพื้นหลัง fixed) (28 พ.ย. 69)
    → ปิดเบลอเฉพาะในการ์ดนี้ + แยกเป็นชั้นของตัวเองเหนือพื้นหลัง · ไม่เกี่ยวกับสูตร/งานพิมพ์ */
 @media screen and (max-width:640px){
-html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x){position:relative !important;z-index:1 !important;transform:translateZ(0);isolation:isolate}
+html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x){position:relative !important;z-index:1 !important}
+/* แถบเดือนแบบปัดเลื่อนบางครั้งไม่ถูกวาดตอนปัด → ไม่ใช้การเลื่อน ให้ปุ่มขึ้นครบ (ตัดขึ้นบรรทัดใหม่ได้) */
+html body.app-shell:not(.page-home) #ledger-page #m-tabs:not(#_x):not(#_y){flex-wrap:wrap !important;overflow:visible !important;scroll-behavior:auto !important}
 html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x) *:not(#_y){-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
 html body.app-shell:not(.page-home) #ledger-page #m-tabs button:not(.on):not(#_x):not(#_y){background:rgba(255,255,255,.88) !important}
 }
