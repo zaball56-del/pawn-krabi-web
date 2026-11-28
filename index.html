@@ -13255,21 +13255,38 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 4f52954ab575 และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 19ea0e04bcb5 และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='4f52954ab575'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='19ea0e04bcb5'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
     fetch('version.txt',{cache:'no-store'}).then(function(r){ return r&&r.ok?r.text():''; })
       .then(function(v){ v=String(v||'').trim(); if(/^[0-9a-f]{12}$/.test(v)&&v!==ME) show(); }).catch(function(){}); }
   function show(){ if(shown||document.getElementById('newver-bar')) return; shown=true;
-    var b=document.createElement('div'); b.id='newver-bar'; b.setAttribute('role','status');
-    b.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#1e3a8a;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;font-size:15px;max-width:calc(100vw - 24px)';
-    b.innerHTML='<span>มีเวอร์ชันใหม่ของระบบ · กดรีเฟรชเพื่อใช้เวอร์ชันล่าสุด (ข้อมูลบันทึกไว้แล้ว)</span>'
-      +'<button type="button" id="newver-go" style="background:#fff;color:#1e3a8a;border:0;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer">รีเฟรช</button>'
-      +'<button type="button" id="newver-later" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:8px;padding:6px 10px;cursor:pointer">ภายหลัง</button>';
+    if(!document.getElementById('newver-css')){ var st=document.createElement('style'); st.id='newver-css'; st.textContent=
+      '#newver-bar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translate(-50%,0);z-index:99999;width:min(440px,calc(100vw - 24px));box-sizing:border-box;background:#fff;color:#0f172a;border-radius:18px;box-shadow:0 12px 40px rgba(15,23,42,.28),0 0 0 1px rgba(15,23,42,.06);padding:14px;font-family:inherit;animation:nvIn .35s cubic-bezier(.2,.9,.3,1.2)}'
+      +'#newver-bar .nv-top{display:flex;gap:12px;align-items:center}'
+      +'#newver-bar .nv-ic{flex:0 0 auto;width:48px;height:48px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.18)}'
+      +'#newver-bar .nv-t{font-size:16px;font-weight:700;line-height:1.3;margin:0}'
+      +'#newver-bar .nv-s{font-size:13px;color:#475569;line-height:1.4;margin:2px 0 0}'
+      +'#newver-bar .nv-s b{color:#047857;font-weight:600}'
+      +'#newver-bar .nv-btns{display:flex;gap:8px;margin-top:12px}'
+      +'#newver-bar button{flex:1;min-height:44px;border-radius:12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;border:0}'
+      +'#newver-go{background:linear-gradient(90deg,#1e3a8a,#2563eb);color:#fff}'
+      +'#newver-later{background:#f1f5f9;color:#334155;flex:0 0 34%!important}'
+      +'#newver-bar button:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}'
+      +'@media (min-width:700px){#newver-bar{left:auto;right:20px;transform:none;animation-name:nvInR}}'
+      +'@keyframes nvIn{from{opacity:0;transform:translate(-50%,24px)}to{opacity:1;transform:translate(-50%,0)}}'
+      +'@keyframes nvInR{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}'
+      +'@media (prefers-reduced-motion:reduce){#newver-bar{animation:none}}'
+      +'@media print{#newver-bar{display:none!important}}';
+      document.head.appendChild(st); }
+    var b=document.createElement('div'); b.id='newver-bar'; b.setAttribute('role','status'); b.setAttribute('aria-live','polite');
+    b.innerHTML='<div class="nv-top"><img class="nv-ic" src="icon-192.png" alt="" onerror="this.style.display=\'none\'">'
+      +'<div><p class="nv-t">มีเวอร์ชันใหม่พร้อมใช้งาน</p><p class="nv-s">กด "อัปเดตเลย" เพื่อใช้เวอร์ชันล่าสุด<br><b>✓ ข้อมูลบันทึกไว้แล้ว ไม่หาย</b></p></div></div>'
+      +'<div class="nv-btns"><button type="button" id="newver-later">ภายหลัง</button><button type="button" id="newver-go">อัปเดตเลย</button></div>';
     document.body.appendChild(b);
     document.getElementById('newver-go').onclick=function(){ try{ if(window.__flushSave) window.__flushSave(); }catch(e){} location.reload(); };
     document.getElementById('newver-later').onclick=function(){ b.remove(); setTimeout(function(){ shown=false; check(true); },30*60*1000); };
