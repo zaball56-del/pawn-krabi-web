@@ -68,7 +68,8 @@ html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on em:not(#_x):n
 @media screen and (max-width:640px){
 html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x){position:relative !important;z-index:1 !important}
 /* แถบเดือนแบบปัดเลื่อนบางครั้งไม่ถูกวาดตอนปัด → ไม่ใช้การเลื่อน ให้ปุ่มขึ้นครบ (ตัดขึ้นบรรทัดใหม่ได้) */
-html body.app-shell:not(.page-home) #ledger-page #m-tabs:not(#_x):not(#_y){flex-wrap:wrap !important;overflow:visible !important;scroll-behavior:auto !important}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs:not(#_x):not(#_y){display:grid !important;grid-template-columns:repeat(auto-fit,minmax(36px,1fr)) !important;gap:5px !important;overflow:visible !important;scroll-behavior:auto !important;padding:2px 0 10px !important}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs button:not(#_x):not(#_y){min-width:0 !important;width:100% !important;height:38px !important;padding:0 1px !important;font-size:clamp(11.5px,3.5vw,14px) !important;text-align:center !important;justify-content:center !important;white-space:nowrap !important;overflow:hidden;text-overflow:ellipsis;border-radius:12px !important;letter-spacing:-.2px}
 html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x) *:not(#_y){-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
 html body.app-shell:not(.page-home) #ledger-page #m-tabs button:not(.on):not(#_x):not(#_y){background:rgba(255,255,255,.88) !important}
 }

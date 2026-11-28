@@ -13116,7 +13116,8 @@ html body.app-shell:not(.page-home) #ledger-page #m-tabs button.on em:not(#_x):n
 @media screen and (max-width:640px){
 html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x){position:relative !important;z-index:1 !important}
 /* แถบเดือนแบบปัดเลื่อนบางครั้งไม่ถูกวาดตอนปัด → ไม่ใช้การเลื่อน ให้ปุ่มขึ้นครบ (ตัดขึ้นบรรทัดใหม่ได้) */
-html body.app-shell:not(.page-home) #ledger-page #m-tabs:not(#_x):not(#_y){flex-wrap:wrap !important;overflow:visible !important;scroll-behavior:auto !important}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs:not(#_x):not(#_y){display:grid !important;grid-template-columns:repeat(auto-fit,minmax(36px,1fr)) !important;gap:5px !important;overflow:visible !important;scroll-behavior:auto !important;padding:2px 0 10px !important}
+html body.app-shell:not(.page-home) #ledger-page #m-tabs button:not(#_x):not(#_y){min-width:0 !important;width:100% !important;height:38px !important;padding:0 1px !important;font-size:clamp(11.5px,3.5vw,14px) !important;text-align:center !important;justify-content:center !important;white-space:nowrap !important;overflow:hidden;text-overflow:ellipsis;border-radius:12px !important;letter-spacing:-.2px}
 html body.app-shell:not(.page-home) #ledger-page #m-ctl:not(#_x) *:not(#_y){-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
 html body.app-shell:not(.page-home) #ledger-page #m-tabs button:not(.on):not(#_x):not(#_y){background:rgba(255,255,255,.88) !important}
 }
@@ -13266,10 +13267,10 @@ html body #ledger-page #lg-calchd #balance-mode-badge:not(#_x):not(#_y){display:
 
 <script id="newver-js">
 /* แจ้ง "มีเวอร์ชันใหม่": แท็บที่เปิดค้างไว้จะใช้โค้ดเก่าไปเรื่อย ๆ จนกว่าจะรีเฟรช
-   tools/build.py ใส่รหัสเวอร์ชันแทน 103abefa756c และเขียนไฟล์ version.txt คู่กับ index.html
+   tools/build.py ใส่รหัสเวอร์ชันแทน 9ea01fad18ec และเขียนไฟล์ version.txt คู่กับ index.html
    ตรวจทุก 10 นาที และตอนกลับมาที่หน้าต่าง (ไม่เกินนาทีละครั้ง) · ไม่รีเฟรชเอง (กันขัดจังหวะตอนพิมพ์) · ไม่เกี่ยวกับข้อมูล/สูตร */
 (function(){ try{
-  var ME='103abefa756c'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
+  var ME='9ea01fad18ec'; if(!/^[0-9a-f]{12}$/.test(ME)) return;
   if(!/^https?:$/.test(location.protocol)) return;
   var shown=false, last=0;
   function check(force){ if(shown||navigator.onLine===false) return; var now=Date.now(); if(!force&&now-last<60000) return; last=now;
